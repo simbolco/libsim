@@ -1,0 +1,28 @@
+# ignore bin, lib, and obj directories
+bin/
+lib/
+obj/
+
+# ignore makefile_usage.txt
+/makefile_usage.txt
+
+# Ignore workspace-related files
+*.sublime-project
+*.sublime-workspace
+*.cbp
+*.depend
+*.layout
+.vscode/
+/*.sh
+
+# Track relevant include headers
+include/*
+!include/simsoft
+
+# Track relevant source code
+src/*
+!src/libsim
+
+# Only track ./.gitignore
+*.gitignore
+!.gitignore

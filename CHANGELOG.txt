@@ -1,0 +1,18 @@
+v0.1.0 [Simon Struthers] : INITIAL COMMIT
+    The first commit of the SimSoft library; has the start for some basic data structures (Vector,
+    HashSet, HashMap) along with a few basic features (dynamic library loading, OS-provided random
+    number generation, stack backtracing) and a start with multilingual support (C++ Exception,
+    C++ Vector [unfinished], C++ stack backtracing function call).
+
+    ADDED:
+      + SimSoft project Makefile v0.3.2 [Makefile]
+      + [_internal.h _internal.c common.h template.h]
+      + Files for Git repo & GitHub management [CHANGELOG.h LICENSE.h README.md TODO.txt .gitignore]
+      + Basic Allocator interface (C) [allocator.c allocator.h]
+      + Vector container (C, start on C++) [vector.c vector.h]
+      + Hash table containers; HashSet & HashMap (C) [hash.c hashset.h hashmap.h]
+      + Random number generation on Win32/Unixes (C) [random.c random.h]
+      + Stack backtracing on Win32/glibc (C, C++) [debug.c debug.cpp debug.h]
+      + Dynamic library loading on Windows/Unixes (C) [dynlib.c dynlib.h]
+      + Exceptions (C++) [exception.cpp exception.hpp]
+      + Empty/barebones headers for future use [string.h treeset.h treemap.h util.h]
