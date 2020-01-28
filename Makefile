@@ -322,7 +322,7 @@ exe%: odir ldir bdir
 	echo -e "\e[1;94mBuilding executable [\e[1;96m$*\e[1;94m]...\e[0m"; \
 	$(MAKE) -s -f '$(MAKEFILE)' $(call GETOBJS,exe,$*) CFLAGS='$(CFLAGS) $(exe.$*.cflags)'; \
 	echo -e "\e[1;96mLinking...\e[0m"; \
-	SUCCESS=0; \
+	SUCCESS=1; \
 	$(call EXE,$(BDIR)/$*$(EXEEXT), \
 		$(patsubst %,$(ODIR)/%,$(call GETOBJS,exe,$*)),$(LFLAGS) $(exe.$*.lflags) \
 	); \
@@ -331,7 +331,7 @@ exe%: odir ldir bdir
 			echo -e "\t\e[0;32mSuccessfully linked executable: '$(BDIR)/$*$(EXEEXT)'\e[0m"; \
 		else \
 			echo -e "\t\e[0;31mError linking '$(BDIR)/$*$(EXEEXT)': error code $$EXIT_CODE\e[0m"; \
-			SUCCESS=1; \
+			SUCCESS=0; \
 		fi; \
 	if [ $(OS) = Windows_NT ] && [ -d $(NO_SYMBOLS) ] && [ ! -d $(wildcard cv2pdb$(EXEEXT)) ]; \
 	then \
