@@ -2,7 +2,7 @@
 
 version.major    = 0
 version.minor    = 3
-version.revision = 3
+version.revision = 4
 
 ifneq ($(WINCMD),)
 RMDIR = rmdir /Q $1; mkdir $1
@@ -202,7 +202,7 @@ endif
 
 # == Back Porch ====================================================================================
 
-.PHONY: clean all bdir ldir odir help version
+.PHONY: clean all bdir ldir odir help version lib exe
 
 all: $(patsubst %,lib%,$(LIBS)) $(patsubst %,exe%,$(EXES))
 	@echo -e "\e[1;92mBuilt all targets:\e[97m" $(patsubst %,"[\e[96m%\e[97m]",$^) "\e[0m"
