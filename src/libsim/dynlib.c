@@ -20,7 +20,7 @@
 #   include <dlfcn.h>
 #endif
 
-// sim_load_library(2): Loads a dynamic library via filename
+// sim_load_library(2): Loads a dynamic library via filename during runtime.
 Sim_ReturnCode sim_load_library(
     const char*              filename,
     Sim_LibraryHandle *const out_library_handle
@@ -60,7 +60,7 @@ Sim_ReturnCode sim_load_library(
 #   endif
 }
 
-// sim_unload_library(1): Unloads a dynamic library handle
+// sim_unload_library(1): Unloads a dynamic library handle.
 Sim_ReturnCode sim_unload_library(
     Sim_LibraryHandle library_handle
 ) {
