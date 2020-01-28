@@ -746,7 +746,7 @@ Sim_ReturnCode sim_hashmap_insert(
     const void*        value_ptr
 ) {
     // check for nullptrs
-    if (!hashmap_ptr || !new_item_ptr)
+    if (!hashmap_ptr || !new_key_ptr)
         return SIM_RC_ERR_NULLPTR;
 
     return _sim_hash_insert(
