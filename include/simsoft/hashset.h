@@ -147,8 +147,8 @@ CPP_NAMESPACE_START(SimSoft)
          * @fn bool sim_hashset_contains(2)
          * @brief Checks if an item is contained in the hashset.
          * 
-         * @param[in,out] hashset_ptr         Pointer to hashset to search.
-         * @param[in]     item_ptr            Pointer to item to compare against.
+         * @param[in,out] hashset_ptr Pointer to hashset to search.
+         * @param[in]     item_ptr    Pointer to item to compare against.
          * 
          * @return @c true if the item is contained within @e hashset_ptr;
          *         @c false otherwise or if @e hashset_ptr is @c NULL .
@@ -158,11 +158,31 @@ CPP_NAMESPACE_START(SimSoft)
             const void *const  item_ptr
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_hashset_resize(2)
+         * @brief Resizes the hashset to a new size.
+         * 
+         * @param[in,out] hashset_ptr Pointer to a hashset to resize.
+         * @param[in]     new_size    The new size of the hashset.
+         * 
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr is @c NULL ;
+         *         @b SIM_RC_ERR_OUTOFMEM if the hashset cannot be resized;
+         *         @b SIM_RC_SUCCESS      otherwise.
+         */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashset_resize(
             Sim_HashSet *const hashset_ptr,
             const size_t       new_size
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_hashset_insert(2)
+         * @brief 
+         * 
+         * @param[in,out] hashset_ptr
+         * @param[in]     new_item_ptr
+         * 
+         * @return 
+         */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashset_insert(
             Sim_HashSet *const hashset_ptr,
             const void*        new_item_ptr

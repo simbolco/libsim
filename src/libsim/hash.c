@@ -542,8 +542,8 @@ Sim_ReturnCode sim_hashset_insert(
     Sim_HashSet *const hashset_ptr,
     const void*        new_item_ptr
 ) {
-    // check for nullptr
-    if (!hashset_ptr)
+    // check for nullptrs
+    if (!hashset_ptr || !new_item_ptr)
         return SIM_RC_ERR_NULLPTR;
     
     return _sim_hash_insert(
@@ -737,6 +737,10 @@ Sim_ReturnCode sim_hashmap_insert(
     const void*        new_key_ptr,
     const void*        value_ptr
 ) {
+    // check for nullptrs
+    if (!hashmap_ptr || !new_item_ptr)
+        return SIM_RC_ERR_NULLPTR;
+    
     return _sim_hash_insert(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
         new_key_ptr,
