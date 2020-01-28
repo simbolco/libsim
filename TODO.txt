@@ -13,3 +13,4 @@ LOW PRIORITY:
  - Implement Stack.
  - Determine implementation details for smart pointers.
  - Regular expressions
+ - Update the Makefile to support Windows CMD and other compilers.
