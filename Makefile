@@ -227,6 +227,10 @@ help:
 	"\t\e[3;1mNO_STATIC_LIB\e[0m - don't output static library for library targets\n" \
 	"\t\e[3;1mNO_SYMBOLS\e[0m - build without debugging symbols\n" \
 	"\n" \
+	"\e[1;97mExamples:\e[0m\n" \
+	"\t\e[3mmake libsim NO_SYMBOLS=1 NO_DYNAMIC_LIB=1\e[0m - Build library target\n" \
+	"\t\t'libsim' as a static library without debugging symbols\n" \
+	"\n" \
 	"\e[1;94mLibrary targets:\e[0m\n" \
 	$(foreach name, $(LIBS),\
 		$(if $(wildcard $(SDIR)/$(lib.$(name).subdir)/.*),\
@@ -244,7 +248,11 @@ help:
 			"\t\e[31m[\e[1;91mexe$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
 		)\
 	) \
-	> makefile_usage.txt; less -r makefile_usage.txt; $(RM) makefile_usage.txt
+	> makefile_usage.txt; \
+	less -r makefile_usage.txt; \
+	if [ $$? -eq 127 ]; then \
+		cat makefile_usage.txt; \
+	fi; $(RM) makefile_usage.txt
 
 version:
 	@echo $(version.major).$(version.minor).$(version.revision)
