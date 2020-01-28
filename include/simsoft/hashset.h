@@ -18,24 +18,26 @@
 CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_START /* C API */
 
-#       ifndef SIM_HASH_STARTING_SIZE
-#           define SIM_HASH_STARTING_SIZE 53
+#       ifndef SIM_HASH_DEFAULT_SIZE
+#           define SIM_HASH_DEFAULT_SIZE 53
 #       endif
 
         /**
          * @struct Sim_HashSet
          * @brief Generic unordered set type.
          * 
+         * @tparam _item_properties Properties pertaining to the items stored in this hashset.
+         * @tparam _allocator_ptr   Pointer to allocator used when resizing internal array.
          */
         typedef struct Sim_HashSet {
             const struct {
-                Sim_TypeInfo type_info;
+                Sim_TypeInfo type_info;                  // Type information
                 Sim_HashFuncPtr hash_func_ptr;           // Pointer to hash function
                 Sim_PredicateFuncPtr predicate_func_ptr; // Pointer to predicate function
-            } _item_properties;  // properties of hashset items
+            } _item_properties; // properties of hashset items
             const Sim_Allocator *const _allocator_ptr; // bucket allocator
-            const size_t _initial_size;
-            const size_t _base_size; // base size used for initialization
+            const size_t _initial_size; // the size of the hashset on initialization
+            const size_t _base_size; // used for dynamically resizing
             size_t _allocated;  // how many buckets have been allocated
             const size_t _deleted_item; // dedicated location for deleted key-value pairs
 
@@ -176,23 +178,53 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_hashset_insert(2)
-         * @brief 
+         * @brief Adds an item into a hashset.
          * 
-         * @param[in,out] hashset_ptr
-         * @param[in]     new_item_ptr
+         * @param[in,out] hashset_ptr  Pointer to a hashset to insert into.
+         * @param[in]     new_item_ptr Pointer to a new item to add to the hashset.
          * 
-         * @return 
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e new_item_ptr are @c NULL ;
+         *         @b SIM_RC_ERR_OUTOFMEM if the hashset had to resize to accomodate the newly
+         *                                inserted item and was unable to;
+         *         @b SIM_RC_FAILURE      if *new_item_ptr is already contained in the hashset;
+         *         @b SIM_RC_SUCCESS      otherwise.
          */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashset_insert(
             Sim_HashSet *const hashset_ptr,
             const void*        new_item_ptr
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_hashset_remove(2)
+         * @brief Removes an item from a hashset.
+         * 
+         * @param[in,out] hashset_ptr     Pointer to a hashset to remove from.
+         * @param[in]     remove_item_ptr Pointer to an item to remove from the hashset.
+         * 
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e remove_item_ptr are @c NULL ;
+         *         @b SIM_RC_ERR_OUTOFMEM if the hashset had to resize to save space and was
+         *                                unable to;
+         *         @b SIM_RC_FAILURE      if *remove_item_ptr was not contained in the hashset;
+         *         @b SIM_RC_SUCCESS      otherwise.
+         */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashset_remove(
             Sim_HashSet *const hashset_ptr,
             const void *const  remove_item_ptr
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_hashset_foreach(3)
+         * @brief Applies a given function to each item in the hashset.
+         * 
+         * @param[in,out] hashset_ptr      Pointer to a hashset whose items will be iterated over.
+         * @param[in]     foreach_func_ptr Pointer to a function that will be applied to each item
+         *                                 in the hashset.
+         * @param[in]     userdata         User-provided data for @e foreach_func_ptr
+         * 
+         * @return @b SIM_RC_ERR_NULLPTR if @e hashset_ptr or @e foreach_func_ptr are @c NULL ;
+         *         @b SIM_RC_FAILURE     if @e foreach_func_ptr returns @c false during the loop;
+         *         @b SIM_RC_SUCCESS     otherwise.
+         */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashset_foreach(
             Sim_HashSet *const      hashset_ptr,
             Sim_ConstForEachFuncPtr foreach_func_ptr,
