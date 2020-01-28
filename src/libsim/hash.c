@@ -154,7 +154,7 @@ static Sim_ReturnCode _sim_hash_destroy(
     const bool   is_hashmap
 ) {
     Sim_ReturnCode rc;
-    if ((rc = _sim_hash_clear(hash_ptr, is_hashmap)) != SIM_RC_SUCCESS)
+    if ((rc = _sim_hash_clear(hash_ptr, is_hashmap)))
         return rc;
     
     Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
@@ -204,22 +204,22 @@ static Sim_ReturnCode _sim_hash_resize(
                 hashmap_ptr->_allocator_ptr,
                 new_size
             )
-        ) != SIM_RC_SUCCESS)
+        ))
             return rc;
 
-        // re-hash old data and put into new hashmap/hashset
+        // re-hash old data and put into new hash table
         byte** hash_data = hashmap_ptr->data_ptr;
         for (size_t i = 0; i < hashmap_ptr->_allocated; i++) {
             byte* hash_node = hash_data[i];
             if (hash_node && hash_node != (const byte*)&hashmap_ptr->_deleted_item) {
-                if((rc = _sim_hash_insert(
-                        hash_ptr,
+                if ((rc = _sim_hash_insert(
+                        new_hash_ptr,
                         hash_node,
                         is_hashmap ?
                             hash_node + hashmap_ptr->_key_properties.type_info.size :
                             NULL
                     )
-                ) != SIM_RC_SUCCESS) {
+                )) {
                     _sim_hash_destroy(new_hash_ptr, is_hashmap);
                     return rc;
                 }
@@ -297,7 +297,7 @@ Sim_ReturnCode _sim_hash_insert(
                     0
                 )
             )
-        ) != SIM_RC_SUCCESS
+        )
     )
         return rc;
 
@@ -352,7 +352,7 @@ static Sim_ReturnCode _sim_hash_remove(
                 hashmap_ptr->_base_size / 2,
                 is_hashmap
             )
-        ) != SIM_RC_SUCCESS
+        )
     )
         return rc;
 
@@ -514,7 +514,7 @@ Sim_ReturnCode sim_hashset_clear(
 // sim_hashset_contains(2): Checks if an item is contained in the hashset.
 bool C_CALL sim_hashset_contains(
     Sim_HashSet *const hashset_ptr,
-    const void *const item_ptr
+    const void *const  item_ptr
 ) {
     return _sim_hash_contains(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
@@ -540,7 +540,7 @@ Sim_ReturnCode sim_hashset_resize(
 // sim_hashset_add(2): Adds an item into a hashset.
 Sim_ReturnCode sim_hashset_insert(
     Sim_HashSet *const hashset_ptr,
-    const void* new_item_ptr
+    const void*        new_item_ptr
 ) {
     // check for nullptr
     if (!hashset_ptr)
@@ -734,8 +734,8 @@ Sim_ReturnCode sim_hashmap_get(
 // sim_hashmap_insert(3): Inserts a new key-value pair into the hashmap.
 Sim_ReturnCode sim_hashmap_insert(
     Sim_HashMap *const hashmap_ptr,
-    const void* new_key_ptr,
-    const void* value_ptr
+    const void*        new_key_ptr,
+    const void*        value_ptr
 ) {
     return _sim_hash_insert(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
