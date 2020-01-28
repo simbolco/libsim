@@ -2,7 +2,7 @@
 
 version.major    = 0
 version.minor    = 3
-version.revision = 2
+version.revision = 3
 
 ifneq ($(WINCMD),)
 RMDIR = rmdir /Q $1; mkdir $1
@@ -273,7 +273,7 @@ lib%: odir ldir bdir
 	$(if $(call GETOBJS,lib,$*),,echo Target [$@] contains no source files; exit;) \
 	echo -e "\e[1;94mBuilding library [\e[1;96m$*\e[1;94m]...\e[0m"; \
 	$(MAKE) -s -f '$(MAKEFILE)' $(call GETOBJS,lib,$*) 'CFLAGS=$(CFLAGS) $(lib.$*.cflags)'; \
-	SUCCESS1=0; SUCCESS2=0; \
+	SUCCESS1=1; SUCCESS2=1; \
 	if [ -d $(NO_DYNAMIC_LIB) ]; then \
 		echo -e "\e[1;96mLinking...\e[0m"; \
 		$(call DLIB,$(BDIR)/$@.$(DLLEXT),$(patsubst %,$(ODIR)/%,$(call GETOBJS,lib,$*)),$(LFLAGS) \
@@ -281,9 +281,9 @@ lib%: odir ldir bdir
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then \
 			echo -e "\t\e[0;32mSuccessfully linked dynamic library: '$(BDIR)/$@.$(DLLEXT)'\e[0m"; \
-			SUCCESS1=1; \
 		else \
 			echo -e "\e[0;31mError linking '$(BDIR)/$@.$(DLLEXT)': error code $$EXIT_CODE\e[0m"; \
+			SUCCESS1=0; \
 		fi; \
 	fi; \
 	if [ -d $(NO_STATIC_LIB) ]; then \
@@ -291,10 +291,10 @@ lib%: odir ldir bdir
 		$(call SLIB,$(LDIR)/$@.$(AR_EXT),$(patsubst %,$(ODIR)/%,$(call GETOBJS,lib,$*))); \
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then \
-			echo -e "\t\e[0;32mSuccessfully archived static library: '$(LDIR)/$@.$(AR_EXT)'\e[0m"; \
-			SUCCESS2=1; \
+			echo -e "\t\e[0;32mSuccessfully archived static library: '$(LDIR)/$@.$(AR_EXT)'\e[0m";
 		else \
 			echo -e "\t\e[0;31mError archiving '$(LDIR)/$@.$(AR_EXT)'\e[0m"; \
+			SUCCESS2=0; \
 		fi; \
 	fi; \
 	if [ $$SUCCESS1 -eq 1 ] && [ $$SUCCESS2 -eq 1 ]; then \
@@ -321,16 +321,17 @@ exe%: odir ldir bdir
 	$(if $(call GETOBJS,exe,$*),,echo Target [$@] contains no source files; exit;) \
 	echo -e "\e[1;94mBuilding executable [\e[1;96m$*\e[1;94m]...\e[0m"; \
 	$(MAKE) -s -f '$(MAKEFILE)' $(call GETOBJS,exe,$*) CFLAGS='$(CFLAGS) $(exe.$*.cflags)'; \
-	echo -e "\e[1;96mLinking...\e[0m"; SUCCESS=0; \
+	echo -e "\e[1;96mLinking...\e[0m"; \
+	SUCCESS=0; \
 	$(call EXE,$(BDIR)/$*$(EXEEXT), \
 		$(patsubst %,$(ODIR)/%,$(call GETOBJS,exe,$*)),$(LFLAGS) $(exe.$*.lflags) \
 	); \
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then \
 			echo -e "\t\e[0;32mSuccessfully linked executable: '$(BDIR)/$*$(EXEEXT)'\e[0m"; \
-			SUCCESS=1; \
 		else \
 			echo -e "\t\e[0;31mError linking '$(BDIR)/$*$(EXEEXT)': error code $$EXIT_CODE\e[0m"; \
+			SUCCESS=1; \
 		fi; \
 	if [ $(OS) = Windows_NT ] && [ -d $(NO_SYMBOLS) ] && [ ! -d $(wildcard cv2pdb$(EXEEXT)) ]; \
 	then \
