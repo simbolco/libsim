@@ -73,6 +73,8 @@ static Sim_ReturnCode _sim_hash_initialize(
 
     // allocate buckets
     size_t starting_size = _sim_next_prime(initial_size);
+    if (starting_size < SIM_HASH_DEFAULT_SIZE)
+        starting_size = SIM_HASH_DEFAULT_SIZE;
     void* data_ptr = allocator_ptr->falloc(
         sizeof(void*) * starting_size,
         0
@@ -178,11 +180,8 @@ static Sim_ReturnCode _sim_hash_resize(
     const size_t new_size,
     const bool   is_hashmap
 ) {
-    // resize only if larger than starting size & greater than initial size
-    if (
-        new_size >= SIM_HASH_STARTING_SIZE &&
-        new_size > hash_ptr.hashmap_ptr->_initial_size
-    ) {
+    // resize only if larger than or equal to the initial size
+    if (new_size > hash_ptr.hashmap_ptr->_initial_size) {
         Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
         Sim_HashMap new_hash;
@@ -191,6 +190,7 @@ static Sim_ReturnCode _sim_hash_resize(
         };
         Sim_ReturnCode rc;
 
+        // initialize new hash table
         if ((rc = _sim_hash_initialize(
                 new_hash_ptr,
                 hashmap_ptr->_key_properties.type_info.size,
@@ -206,6 +206,14 @@ static Sim_ReturnCode _sim_hash_resize(
             )
         ))
             return rc;
+
+        // preserve initial size
+        *((union {
+            const size_t* const_ptr;
+            size_t* ptr;
+        }){
+            .const_ptr = &new_hash_ptr.hashmap_ptr->_initial_size
+        }).ptr = hashmap_ptr->_initial_size;
 
         // re-hash old data and put into new hash table
         byte** hash_data = hashmap_ptr->data_ptr;
@@ -740,7 +748,7 @@ Sim_ReturnCode sim_hashmap_insert(
     // check for nullptrs
     if (!hashmap_ptr || !new_item_ptr)
         return SIM_RC_ERR_NULLPTR;
-    
+
     return _sim_hash_insert(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
         new_key_ptr,
