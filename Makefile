@@ -291,7 +291,7 @@ lib%: odir ldir bdir
 		$(call SLIB,$(LDIR)/$@.$(AR_EXT),$(patsubst %,$(ODIR)/%,$(call GETOBJS,lib,$*))); \
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then \
-			echo -e "\t\e[0;32mSuccessfully archived static library: '$(LDIR)/$@.$(AR_EXT)'\e[0m";
+			echo -e "\t\e[0;32mSuccessfully archived static library: '$(LDIR)/$@.$(AR_EXT)'\e[0m"; \
 		else \
 			echo -e "\t\e[0;31mError archiving '$(LDIR)/$@.$(AR_EXT)'\e[0m"; \
 			SUCCESS2=0; \
