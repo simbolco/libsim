@@ -168,7 +168,8 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in]     new_size    The new size of the hashset.
          * 
          * @return @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr is @c NULL ;
-         *         @b SIM_RC_ERR_OUTOFMEM if the hashset cannot be resized;
+         *         @b SIM_RC_ERR_INVALARG if @e new_size < @e hashset_ptr->count ;
+         *         @b SIM_RC_ERR_OUTOFMEM if the hashset couldn't be resized;
          *         @b SIM_RC_SUCCESS      otherwise.
          */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashset_resize(

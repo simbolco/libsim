@@ -18,8 +18,8 @@
 CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_START /* C API */
 
-#       ifndef SIM_HASH_STARTING_SIZE
-#           define SIM_HASH_STARTING_SIZE 53
+#       ifndef SIM_HASH_DEFAULT_SIZE
+#           define SIM_HASH_DEFAULT_SIZE 53
 #       endif
 
         /**
@@ -197,6 +197,18 @@ CPP_NAMESPACE_START(SimSoft)
             const void *const key_ptr
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_hashmap_resize(2)
+         * @brief Resizes the hashmap to a new size.
+         * 
+         * @param[in,out] hashmap_ptr Pointer to a hashset to resize.
+         * @param[in]     new_size    The new size of the hashset.
+         * 
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr is @c NULL ;
+         *         @b SIM_RC_ERR_INVALARG if @e new_size < @e hashmap_ptr->count ;
+         *         @b SIM_RC_ERR_OUTOFMEM if the hashmap couldn't be resized;
+         *         @b SIM_RC_SUCCESS      otherwise.
+         */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashmap_resize(
             Sim_HashMap *const hashmap_ptr,
             size_t new_size
