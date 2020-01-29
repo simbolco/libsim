@@ -183,16 +183,17 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_hashmap_contains_key(2)
+         * @fn Sim_ReturnCode sim_hashmap_contains_key(2)
          * @brief Checks if a key is contained in the hashmap.
          * 
          * @param[in,out] hashmap_ptr         Pointer to hashmap to search.
          * @param[in]     key_ptr             Pointer to key to compare against.
          * 
-         * @return @c true if the key is contained within @e hashmap_ptr;
-         *         @c false otherwise or if @e hashmap_ptr is @c NULL .
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr or @e key_ptr are @c NULL ;
+         *         @b SIM_RC_ERR_NOTFOUND if @e key_ptr isn't contained in the hashmap;
+         *         @b SIM_RC_SUCCESS      otherwise.
          */
-        extern SIM_API bool C_CALL sim_hashmap_contains(
+        extern SIM_API Sim_ReturnCode C_CALL sim_hashmap_contains_key(
             Sim_HashMap *const hashmap_ptr,
             const void *const key_ptr
         );
@@ -214,29 +215,98 @@ CPP_NAMESPACE_START(SimSoft)
             size_t new_size
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_hashmap_get(3)
+         * @brief Get a value from the hashmap via a particular key.
+         * 
+         * @param[in,out] hashmap_ptr   Pointer to a hashmap to retrieve a value from.
+         * @param[in]     key_ptr       Pointer to lookup key.
+         * @param[out]    out_value_ptr Pointer to be filled with the associated value.
+         * 
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr, @e key_ptr, or @e out_value_ptr
+         *                                are @c NULL ;
+         *         @b SIM_RC_ERR_NOTFOUND if the key isn't contained in the hashmap;
+         *         @b SIM_RC_SUCCESS      otherwise.
+         */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashmap_get(
             Sim_HashMap *const hashmap_ptr,
             const void*        key_ptr,
             void*              out_value_ptr
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_hashmap_get_ptr(3)
+         * @brief Get pointer to value in the hashmap via a particular key.
+         * 
+         * @param[in,out] hashmap_ptr   Pointer to a hashmap to retrieve a value from.
+         * @param[in]     key_ptr       Pointer to lookup key.
+         * @param[out]    out_value_ptr Pointer to void* to be filled with pointer to the
+         *                              associated value.
+         * 
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr, @e key_ptr, or @e out_value_ptr
+         *                                are @c NULL ;
+         *         @b SIM_RC_ERR_NOTFOUND if the key isn't contained in the hashmap;
+         *         @b SIM_RC_SUCCESS      otherwise.
+         */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashmap_get_ptr(
             Sim_HashMap *const hashmap_ptr,
             const void*        key_ptr,
             void* *const       out_value_ptr
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_hashmap_insert(3)
+         * @brief Inserts a key-value pair into the hashmap or overwrites a pre-existing pair if
+         *        the value is already in the hashmap.
+         * 
+         * @param[in,out] hashmap_ptr Pointer to a hashmap to insert into.
+         * @param[in]     new_key_ptr Pointer to a new key to add to the hashmap.
+         * @param[in]     value_ptr   Pointer to a value to associate with the key.
+         * 
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr, @e new_key_ptr, or @e value_ptr
+         *                                are @c NULL ;
+         *         @b SIM_RC_ERR_OUTOFMEM if the hashmap had to resize to accomodate the newly
+         *                                inserted item and was unable to;
+         *         @b SIM_RC_SUCCESS      otherwise.
+         */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashmap_insert(
             Sim_HashMap *const hashmap_ptr,
             const void* new_key_ptr,
             const void* value_ptr
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_hashmap_remove(2)
+         * @brief Removes a key-value pair from the hashmap via a key.
+         * 
+         * @param[in,out] hashmap_ptr    Pointer to a hashmap to remove from.
+         * @param[in]     remove_key_ptr Pointer to a key to remove from the hashset.
+         * 
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr or @e remove_key_ptr are @c NULL ;
+         *         @b SIM_RC_ERR_OUTOFMEM if the hashmap had to resize to save space and was
+         *                                unable to;
+         *         @b SIM_RC_ERR_NOTFOUND if *remove_key_ptr was not contained in the hashmap;
+         *         @b SIM_RC_SUCCESS      otherwise.
+         */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashmap_remove(
             Sim_HashMap *const hashmap_ptr,
             const void *const remove_key_ptr
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_hashmap_foreach(3)
+         * @brief Applies a given function to each key-value pair in the hashmap.
+         * 
+         * @param[in,out] hashmap_ptr      Pointer to a hashmap whose key-value pairs will be
+         *                                 iterated over.
+         * @param[in]     foreach_func_ptr Pointer to a function that will be applied to each pair
+         *                                 in the hashset.
+         * @param[in]     userdata         User-provided data for @e foreach_func_ptr
+         * 
+         * @return @b SIM_RC_ERR_NULLPTR if @e hashmap_ptr or @e foreach_func_ptr are @c NULL ;
+         *         @b SIM_RC_FAILURE     if @e foreach_func_ptr returns @c false during the loop;
+         *         @b SIM_RC_SUCCESS     otherwise.
+         */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashmap_foreach(
             Sim_HashMap *const    hashmap_ptr,
             Sim_MapForEachFuncPtr foreach_func_ptr,
