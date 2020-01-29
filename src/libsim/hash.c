@@ -381,7 +381,7 @@ static Sim_ReturnCode _sim_hash_remove(
     );
     
     // failed to remove item; item not in hash table
-    return SIM_RC_FAILURE;
+    return SIM_RC_ERR_NOTFOUND;
 }
 
 // Checks if an item/key is contained in a hash table.
@@ -391,15 +391,15 @@ inline Sim_ReturnCode _sim_hash_contains(
 ) {
     Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
-    // check for nullptr
-    if (!hashmap_ptr)
-        return false;
+    // check for nullptrs
+    if (!hashmap_ptr || !key_ptr)
+        return SIM_RC_ERR_NULLPTR;
     
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr,
-        return true;
+        return SIM_RC_SUCCESS;
     );
 
-    return false;
+    return SIM_RC_ERR_NOTFOUND;
 }
 
 // Apply a function for each item in hash table.
@@ -520,7 +520,7 @@ Sim_ReturnCode sim_hashset_clear(
 }
 
 // sim_hashset_contains(2): Checks if an item is contained in the hashset.
-bool C_CALL sim_hashset_contains(
+Sim_ReturnCode C_CALL sim_hashset_contains(
     Sim_HashSet *const hashset_ptr,
     const void *const  item_ptr
 ) {
@@ -674,7 +674,7 @@ Sim_ReturnCode sim_hashmap_clear(
 }
 
 // sim_hashmap_contains_key(2): Checks if a key is contained in the hashmap.
-bool sim_hashmap_contains_key(
+Sim_ReturnCode sim_hashmap_contains_key(
     Sim_HashMap *const hashmap_ptr,
     const void *const key_ptr
 ) {
@@ -708,7 +708,7 @@ Sim_ReturnCode sim_hashmap_get_ptr(
     const void*        key_ptr,
     void* *const       out_value_ptr
 ) {
-    if (!hashmap_ptr || !out_value_ptr)
+    if (!hashmap_ptr || !out_value_ptr || !key_ptr)
         return SIM_RC_ERR_NULLPTR;
 
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr,
@@ -728,6 +728,9 @@ Sim_ReturnCode sim_hashmap_get(
     Sim_ReturnCode rc;
     void* value_ptr;
 
+    if (!out_value_ptr)
+        return SIM_RC_ERR_NULLPTR;
+
     // use get_ptr to save on macro-expanded code >:^)
     if ((rc = sim_hashmap_get_ptr(
         hashmap_ptr,
@@ -745,14 +748,15 @@ Sim_ReturnCode sim_hashmap_get(
     return SIM_RC_SUCCESS;
 }
 
-// sim_hashmap_insert(3): Inserts a new key-value pair into the hashmap.
+// sim_hashmap_insert(3): Inserts a key-value pair into the hashmap or overwrites a pre-existing
+//                        pair if the value is already in the hashmap.
 Sim_ReturnCode sim_hashmap_insert(
     Sim_HashMap *const hashmap_ptr,
     const void*        new_key_ptr,
     const void*        value_ptr
 ) {
     // check for nullptrs
-    if (!hashmap_ptr || !new_key_ptr)
+    if (!hashmap_ptr || !new_key_ptr || !value_ptr)
         return SIM_RC_ERR_NULLPTR;
 
     return _sim_hash_insert(
@@ -762,7 +766,7 @@ Sim_ReturnCode sim_hashmap_insert(
     );
 }
 
-// sim_hashmap_remove(2): Remove a key-value pair from the hashmap via a key.
+// sim_hashmap_remove(2): Removes a key-value pair from the hashmap via a key.
 Sim_ReturnCode sim_hashmap_remove(
     Sim_HashMap *const hashmap_ptr,
     const void *const remove_key_ptr
@@ -778,7 +782,7 @@ Sim_ReturnCode sim_hashmap_remove(
     );
 }
 
-// sim_hashmap_foreach(3): Applies a given function to each item in the hashset.
+// sim_hashmap_foreach(3): Applies a given function to each key-value pair in the hashmap.
 Sim_ReturnCode sim_hashmap_foreach(
     Sim_HashMap *const    hashmap_ptr,
     Sim_MapForEachFuncPtr foreach_func_ptr,
