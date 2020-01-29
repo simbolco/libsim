@@ -152,10 +152,11 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in,out] hashset_ptr Pointer to hashset to search.
          * @param[in]     item_ptr    Pointer to item to compare against.
          * 
-         * @return @c true if the item is contained within @e hashset_ptr;
-         *         @c false otherwise or if @e hashset_ptr is @c NULL .
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e item_ptr are @c NULL ;
+         *         @b SIM_RC_ERR_NOTFOUND if @e item_ptr isn't contained in the hashset;
+         *         @b SIM_RC_SUCCESS      otherwise.
          */
-        extern SIM_API bool C_CALL sim_hashset_contains(
+        extern SIM_API Sim_ReturnCode C_CALL sim_hashset_contains(
             Sim_HashSet *const hashset_ptr,
             const void *const  item_ptr
         );
@@ -187,7 +188,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @return @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e new_item_ptr are @c NULL ;
          *         @b SIM_RC_ERR_OUTOFMEM if the hashset had to resize to accomodate the newly
          *                                inserted item and was unable to;
-         *         @b SIM_RC_FAILURE      if *new_item_ptr is already contained in the hashset;
+         *         @b SIM_RC_ERR_NOTFOUND if *new_item_ptr is already contained in the hashset;
          *         @b SIM_RC_SUCCESS      otherwise.
          */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashset_insert(
@@ -205,7 +206,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @return @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e remove_item_ptr are @c NULL ;
          *         @b SIM_RC_ERR_OUTOFMEM if the hashset had to resize to save space and was
          *                                unable to;
-         *         @b SIM_RC_FAILURE      if *remove_item_ptr was not contained in the hashset;
+         *         @b SIM_RC_ERR_NOTFOUND if *remove_item_ptr was not contained in the hashset;
          *         @b SIM_RC_SUCCESS      otherwise.
          */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashset_remove(
