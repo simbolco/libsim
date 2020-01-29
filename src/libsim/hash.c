@@ -537,6 +537,9 @@ Sim_ReturnCode sim_hashset_resize(
 ) {
     if (!hashset_ptr)
         return SIM_RC_ERR_NULLPTR;
+
+    if (new_size < hashset_ptr->count)
+        return SIM_RC_ERR_INVALARG;
     
     return _sim_hash_resize(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
@@ -688,6 +691,9 @@ Sim_ReturnCode sim_hashmap_resize(
 ) {
     if (!hashmap_ptr)
         return SIM_RC_ERR_NULLPTR;
+
+    if (new_size < hashmap_ptr->count)
+        return SIM_RC_ERR_INVALARG;
     
     return _sim_hash_resize(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
