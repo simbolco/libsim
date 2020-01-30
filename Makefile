@@ -1,8 +1,8 @@
 # == Front porch ===================================================================================
 
 version.major    = 0
-version.minor    = 3
-version.revision = 5
+version.minor    = 4
+version.revision = 2
 
 ifneq ($(WINCMD),)
 RMDIR = rmdir /Q $1; mkdir $1
@@ -10,7 +10,7 @@ RM    = del
 MKDIR = if not exist "$1" mkdir "$1"
 SHELL = cmd
 else
-RMDIR = rmdir --ignore-fail-on-non-empty $1
+RMDIR = rm -r -f $1
 RM    = rm -f
 MKDIR = mkdir -p $1
 SHELL = sh
@@ -126,11 +126,26 @@ endif
 location = $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
 MAKEFILE := $(location)
 
-# Get objects
-GETOBJS = $(patsubst $(SDIR)/$($1.$2.subdir)/%.c,$($1.$2.subdir)/cc.%.o,$(filter-out $(patsubst %,\
-	$($1.$2.subdir)/%,$($1.$2.excludes)), $(wildcard $(SDIR)/$($1.$2.subdir)/*.c)))\
-$(patsubst $(SDIR)/$($1.$2.subdir)/%.cpp,$($1.$2.subdir)/cxx.%.o,$(filter-out $(patsubst %,\
-	$($1.$2.subdir)/%,$($1.$2.excludes)), $(wildcard $(SDIR)/$($1.$2.subdir)/*.cpp)))
+# Get source filenames from directory
+GET_C_SOURCE_FILES = $(wildcard $(SDIR)/$($1.$2.subdir)/*.c)
+GET_CPP_SOURCE_FILES = $(wildcard $(SDIR)/$($1.$2.subdir)/*.cpp)
+GET_SOURCE_FILES = $(filter-out $(patsubst %,$($1.$2.subdir)/%,$($1.$2.excludes)), \
+	$(call GET_C_SOURCE_FILES,$1,$2) \
+	$(call GET_CPP_SOURCE_FILES,$1,$2) \
+)
+
+# Query file type
+IS_C_SOURCE_FILE = $(if $(filter $3,$(call GET_C_SOURCE_FILES,$1,$2)),1,)
+IS_CPP_SOURCE_FILE = $(if $(filter $3,$(call GET_CPP_SOURCE_FILES,$1,$2)),1,)
+
+# Mangle source filename to object filename
+MANGLE = $(if $(call IS_C_SOURCE_FILE,$1,$2,$3), \
+	$(patsubst $(SDIR)/$($1.$2.subdir)/%.c,cc.%.o,$3), \
+	$(if $(call IS_CPP_SOURCE_FILE,$1,$2,$3), \
+		$(patsubst $(SDIR)/$($1.$2.subdir)/%.cpp,cxx.%.o,$3), \
+	) \
+)
+GET_OBJECT_FILES = $(foreach file, $(call GET_SOURCE_FILES,$1,$2), $(call MANGLE,$1,$2,$(file)))
 
 default:
 	@echo -e "Makefile: missing build target\nTry 'make help' for more info."
@@ -146,24 +161,24 @@ odir/%:
 
 cc.%.o: odir
 	@$(if $(wildcard $(SDIR)/$*.c),,$(error Source file $(SDIR)/$*.c not found))
-	@echo -e "\t\e[96mCompiling source $(SDIR)/$*.c...\e[0m"
+	@echo -e "\t\e[96mCompiling C source $(SDIR)/$*.c...\e[0m"
 	@$(call OCC,$(ODIR)/$@,$(SDIR)/$*.c,$(CFLAGS) $(CCFLAGS)); \
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then \
-			echo -e "\t\e[0;32mSuccessfully compiled C source '$(SDIR)/$*.c'\e[0m"; \
+			echo -e "\t\t\e[0;32mSuccessfully compiled '$(SDIR)/$*.c'\e[0m"; \
 		else \
-			echo -e "\t\e[0;31m$$EXIT_CODE error(s) compiling '$(SDIR)/$*.c'\e[0m"; \
+			echo -e "\t\t\e[0;31m$$EXIT_CODE error(s) compiling '$(SDIR)/$*.c'\e[0m"; \
 		fi; exit $$EXIT_CODE
 
 cxx.%.o: odir
 	@$(if $(wildcard $(SDIR)/$*.cpp),,$(error Source file $(SDIR)/$*.cpp not found))
-	@echo -e "\t\e[96mCompiling source $(SDIR)/$*.cpp...\e[0m"
+	@echo -e "\t\e[96mCompiling C++ source $(SDIR)/$*.cpp...\e[0m"
 	@$(call OCXX,$(ODIR)/$@,$(SDIR)/$*.cpp,$(CFLAGS) $(CXXFLAGS)); \
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then \
-			echo -e "\t\e[0;32mSuccessfully compiled C++ source '$(SDIR)/$*.cpp'\e[0m"; \
+			echo -e "\t\t\e[0;32mSuccessfully compiled '$(SDIR)/$*.cpp'\e[0m"; \
 		else \
-			echo -e "\t\e[0;31m$$EXIT_CODE error(s) compiling '$(SDIR)/$*.cpp'\e[0m"; \
+			echo -e "\t\t\e[0;31m$$EXIT_CODE error(s) compiling '$(SDIR)/$*.cpp'\e[0m"; \
 		fi; exit $$EXIT_CODE
 
 # == Target declarations ===========================================================================
@@ -190,18 +205,20 @@ endif
 exe.simtest.lflags += -lsim
 
 
-EXES += claysol
-exe.claysol.subdir = claysoldiers
-ifeq ($(OS),Windows_NT)
-ifdef MINGW
-	exe.claysol.lflags += -lmingw32
-endif
-endif
-exe.claysol.lflags += -lsim
-exe.claysol.lflags += -ldbghelp
+#EXES += claysol
+#exe.claysol.subdir = claysoldiers
+#ifeq ($(OS),Windows_NT)
+#ifdef MINGW
+#	exe.claysol.lflags += -lmingw32
+#endif
+#endif
+#exe.claysol.lflags += -lsim
+#exe.claysol.lflags += -ldbghelp
 
 
 # == Back Porch ====================================================================================
+
+RUNTIME_SHELL = $$("$1")
 
 .PHONY: clean all bdir ldir odir help version lib exe
 
@@ -209,7 +226,8 @@ all: $(patsubst %,lib%,$(LIBS)) $(patsubst %,exe%,$(EXES))
 	@echo -e "\e[1;92mBuilt all targets:\e[97m" $(patsubst %,"[\e[96m%\e[97m]",$^) "\e[0m"
 
 help:
-	@echo -e "SimSoft Makefile version $(version.major).$(version.minor).$(version.revision)\n" \
+	@tempfile=$(call RUNTIME_SHELL,mktemp); \
+	echo -e "SimSoft Makefile version $(version.major).$(version.minor).$(version.revision)\n" \
 	"===========================================================================\n" \
 	"\e[1;97mUsage:\e[0m\n" \
 	"\t'make lib{target} [options]' - Build library target\n" \
@@ -249,57 +267,75 @@ help:
 			"\t\e[31m[\e[1;91mexe$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
 		)\
 	) \
-	> makefile_usage.txt; \
-	less -r makefile_usage.txt; \
+	> $$tempfile; \
+	less -r $$tempfile; \
 	if [ $$? -eq 127 ]; then \
-		cat makefile_usage.txt; \
-	fi; $(RM) makefile_usage.txt
+		cat $$tempfile; \
+	fi; $(RM) $$tempfile
 
 version:
 	@echo $(version.major).$(version.minor).$(version.revision)
 
-clean:
-	@echo Cleaning all build targets...
-	@$(call RMDIR,$(ODIR));$(RM) $(patsubst %,$(BDIR)/lib%.$(DLLEXT),$(LIBS)); \
-	$(RM) $(patsubst %,$(LDIR)/lib%.$(AR_EXT),$(LIBS)); \
-	$(RM) $(patsubst %,$(BDIR)/%$(EXEEXT),$(EXES)); \
-	$(RM) $(patsubst %,$(BDIR)/%.pdb,$(EXES)); \
-	echo Done cleaning
-
-clean_all: clean
-
 lib%: odir ldir bdir
-	@if [ -d $(filter $*,$(LIBS)) ]; then \
+	@if [ -z $(filter $*,$(LIBS)) ]; then \
 		echo -e "\e[31mTarget [\e[1;91m$@\e[0m\e[31m] doesn't exist"; exit; fi; \
 	$(if $(lib.$*.subdir),$(MAKE) -s -f '$(MAKEFILE)' odir/$(lib.$*.subdir);,) \
-	$(if $(call GETOBJS,lib,$*),,echo Target [$@] contains no source files; exit;) \
+	$(if $(call GET_SOURCE_FILES,lib,$*),,echo Target [$@] contains no source files; exit;) \
 	echo -e "\e[1;94mBuilding library [\e[1;96m$*\e[1;94m]...\e[0m"; \
-	$(MAKE) -s -f '$(MAKEFILE)' $(call GETOBJS,lib,$*) 'CFLAGS=$(CFLAGS) $(lib.$*.cflags)'; \
-	SUCCESS1=1; SUCCESS2=1; \
-	if [ -d $(NO_DYNAMIC_LIB) ]; then \
+	recombine=0; \
+	$(foreach src_file, $(call GET_SOURCE_FILES,lib,$*), \
+		if  ([ -z $(NO_DYNAMIC_LIB) ] &&  [ $(src_file) -nt $(BDIR)/$@.$(DLLEXT) ]) || \
+			([ -z $(NO_STATIC_LIB)] && [ $(src_file) -nt $(LDIR)/$@.$(AR_EXT) ]) || \
+			([ ! -f $(BDIR)/$@.$(DLLEXT) ] && [ -z $(NO_DYNAMIC_LIB) ]) || \
+			([ ! -f $(LDIR)/$@.$(AR_EXT) ] && [ -z $(NO_STATIC_LIB) ]) \
+		; then \
+			$(MAKE) -s -f '$(MAKEFILE)' $(call MANGLE,lib,$*,$(src_file)) \
+				CFLAGS="$(CFLAGS) $(lib.$*.cflags)" SDIR="$(SDIR)/$(lib.$*.subdir)" \
+				ODIR="$(ODIR)/$@" \
+			; \
+			recombine=1; \
+		else \
+			$(if $(call IS_C_SOURCE_FILE,lib,$*,$(src_file)), \
+				echo -e "\t\e[94mC source '$(src_file)' is up to date\e[0m";, \
+			$(if $(call IS_CPP_SOURCE_FILE,lib,$*,$(src_file)), \
+				echo -e "\t\e[94mC++ source '$(src_file)' is up to date\e[0m";, \
+			)) \
+		fi; \
+	) \
+	linked=1; archived=1; \
+	if [ $$recombine -eq 1 ]; then \
+	$(if $(NO_DYNAMIC_LIB),, \
 		echo -e "\e[1;96mLinking...\e[0m"; \
-		$(call DLIB,$(BDIR)/$@.$(DLLEXT),$(patsubst %,$(ODIR)/%,$(call GETOBJS,lib,$*)),$(LFLAGS) \
-			$(lib.$*.lflags)); \
+		$(call DLIB,$(BDIR)/$@.$(DLLEXT), \
+			$(patsubst %,$(ODIR)/$(lib.$*.subdir)/%,$(call GET_OBJECT_FILES,lib,$*)),$(LFLAGS) \
+			$(lib.$*.lflags) \
+		); \
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then \
 			echo -e "\t\e[0;32mSuccessfully linked dynamic library: '$(BDIR)/$@.$(DLLEXT)'\e[0m"; \
 		else \
 			echo -e "\e[0;31mError linking '$(BDIR)/$@.$(DLLEXT)': error code $$EXIT_CODE\e[0m"; \
-			SUCCESS1=0; \
+			linked=0; \
 		fi; \
-	fi; \
-	if [ -d $(NO_STATIC_LIB) ]; then \
+	) \
+	$(if $(NO_STATIC_LIB),, \
 		echo -e "\e[1;96mArchiving...\e[0m"; \
-		$(call SLIB,$(LDIR)/$@.$(AR_EXT),$(patsubst %,$(ODIR)/%,$(call GETOBJS,lib,$*))); \
+		$(call SLIB,$(LDIR)/$@.$(AR_EXT), \
+			$(patsubst %,$(ODIR)/$(lib.$*.subdir)/%,$(call GET_OBJECT_FILES,lib,$*)) \
+		); \
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then \
 			echo -e "\t\e[0;32mSuccessfully archived static library: '$(LDIR)/$@.$(AR_EXT)'\e[0m"; \
 		else \
 			echo -e "\t\e[0;31mError archiving '$(LDIR)/$@.$(AR_EXT)'\e[0m"; \
-			SUCCESS2=0; \
+			archived=0; \
 		fi; \
+	) \
+	else \
+		echo -e "\e[1;90mDone building library [\e[1;96m$*\e[1;90m];" \
+			"nothing to update\e[0m"; exit; \
 	fi; \
-	if [ $$SUCCESS1 -eq 1 ] && [ $$SUCCESS2 -eq 1 ]; then \
+	if [ $$linked -eq 1 ] && [ $$archived -eq 1 ]; then \
 		echo -e "\e[1;94mDone building library [\e[1;96m$*\e[1;94m]\e[0m"; \
 	else \
 		echo -e "\e[1;33mDone building library [\e[1;96m$*\e[1;33m]," \
@@ -307,40 +343,61 @@ lib%: odir ldir bdir
 	fi;  echo
 
 clean_lib%:
-	@if [ -d $(filter $*,$(LIBS)) ]; then \
+	@if [ -z $(filter $*,$(LIBS)) ]; then \
 		echo -e "\e[31mTarget [\e[1;91mlib$*\e[0;31m] doesn't exist"; exit; \
 	else \
 		echo -e "Cleaning library [\e[1;96mlib$*\e[0m]..."; fi; \
-	@$(RM) $(ODIR)/$(lib.$*.subdir)/*.o; \
+	$(RM) $(ODIR)/$(lib.$*.subdir)/*.o; \
 	$(if $(lib.$*.subdir),$(call RMDIR,$(ODIR)/$(lib.$*.subdir));,) \
 	$(RM) $(LDIR)/lib$*.$(AR_EXT); $(RM) $(BDIR)/lib$*.$(DLLEXT); \
 	echo -e "Done cleaning library [\e[1;96m$*\e[0m]"
 
 exe%: odir ldir bdir
-	@if [ -d $(filter $*,$(EXES)) ]; then \
+	@if [ -z $(filter $*,$(EXES)) ]; then \
 		echo -e "\e[31mTarget [\e[1;91m$@\e[0m\e[31m] doesn't exist"; exit; fi; \
 	$(if $(exe.$*.subdir),$(MAKE) -s -f '$(MAKEFILE)' odir/$(exe.$*.subdir);,) \
-	$(if $(call GETOBJS,exe,$*),,echo Target [$@] contains no source files; exit;) \
+	$(if $(call GET_SOURCE_FILES,exe,$*),,echo Target [$@] contains no source files; exit;) \
 	echo -e "\e[1;94mBuilding executable [\e[1;96m$*\e[1;94m]...\e[0m"; \
-	$(MAKE) -s -f '$(MAKEFILE)' $(call GETOBJS,exe,$*) CFLAGS='$(CFLAGS) $(exe.$*.cflags)'; \
+	recombine=0; \
+	$(foreach src_file, $(call GET_SOURCE_FILES,exe,$*), \
+		if [ $(src_file) -nt $(BDIR)/$*$(EXEEXT) ] || [ ! -f $(BDIR)/$*$(EXEEXT) ]; then \
+			$(MAKE) -s -f '$(MAKEFILE)' $(call MANGLE,exe,$*,$(src_file)) \
+				CFLAGS="$(CFLAGS) $(exe.$*.cflags)" SDIR="$(SDIR)/$(exe.$*.subdir)" \
+				ODIR="$(ODIR)/$*"\
+			; \
+			recombine=1; \
+		else \
+			$(if $(call IS_C_SOURCE_FILE,exe,$*,$(src_file)), \
+				echo -e "\t\e[94mC source '$(src_file)' is up to date\e[0m";, \
+			$(if $(call IS_CPP_SOURCE_FILE,exe,$*,$(src_file)), \
+				echo -e "\t\e[94mC++ source '$(src_file)' is up to date\e[0m";, \
+			)) \
+		fi; \
+	) \
+	linked=1; \
+	if [ $$recombine -eq 1 ]; then \
 	echo -e "\e[1;96mLinking...\e[0m"; \
-	SUCCESS=1; \
 	$(call EXE,$(BDIR)/$*$(EXEEXT), \
-		$(patsubst %,$(ODIR)/%,$(call GETOBJS,exe,$*)),$(LFLAGS) $(exe.$*.lflags) \
+		$(patsubst %,$(ODIR)/$(exe.$*.subdir)/%,$(call GET_OBJECT_FILES,exe,$*)), \
+		$(LFLAGS) $(exe.$*.lflags) \
 	); \
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then \
 			echo -e "\t\e[0;32mSuccessfully linked executable: '$(BDIR)/$*$(EXEEXT)'\e[0m"; \
 		else \
 			echo -e "\t\e[0;31mError linking '$(BDIR)/$*$(EXEEXT)': error code $$EXIT_CODE\e[0m"; \
-			SUCCESS=0; \
+			linked=0; \
 		fi; \
-	if [ $(OS) = Windows_NT ] && [ -d $(NO_SYMBOLS) ] && [ ! -d $(wildcard cv2pdb$(EXEEXT)) ]; \
+	if [ $(OS) = Windows_NT ] && [ ! -z $(NO_SYMBOLS) ] && [ -f $(wildcard cv2pdb$(EXEEXT)) ]; \
 	then \
 		echo -e "\e[1;96mGenerating .pdb...\e[0m"; \
 		./cv2pdb -C $(BDIR)/$*$(EXEEXT); \
 		echo -e "\t\e[0;32mSuccessfully generated symbol database"; fi; \
-	if [ $$SUCCESS -eq 1 ]; then \
+	else \
+		echo -e "\e[1;90mDone building executable [\e[1;96m$*\e[1;90m];" \
+			"nothing to update\e[0m"; exit; \
+	fi; \
+	if [ $$linked -eq 1 ]; then \
 		echo -e "\e[1;94mDone building executable [\e[1;96m$*\e[1;94m]\e[0m"; \
 	else \
 		echo -e "\e[1;33mDone building executable [\e[1;96m$*\e[1;33m]," \
@@ -348,7 +405,7 @@ exe%: odir ldir bdir
 	fi;  echo
 
 clean_exe%:
-	@if [ -d $(filter $*,$(EXES)) ]; then \
+	@if [ -z $(filter $*,$(EXES)) ]; then \
 		echo -e "\e[31mTarget [\e[1;91mexe$*\e[0;31m] doesn't exist"; exit; \
 	else \
 		echo -e "Cleaning executable [\e[1;96mexe$*\e[0m]..."; fi; \
@@ -356,3 +413,7 @@ clean_exe%:
 	$(if $(exe.$*.subdir),$(call RMDIR,$(ODIR)/$(exe.$*.subdir));,) \
 	$(RM) $(BDIR)/$*$(EXEEXT); $(RM) $(BDIR)/$*.pdb; \
 	echo -e "Done cleaning executable [\e[1;96m$*\e[0m]"
+
+clean: $(foreach lib, $(LIBS), clean_lib$(lib)) $(foreach exe, $(EXES), clean_exe$(exe))
+
+clean_all: clean
