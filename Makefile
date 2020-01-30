@@ -2,7 +2,7 @@
 
 version.major    = 0
 version.minor    = 3
-version.revision = 4
+version.revision = 5
 
 ifneq ($(WINCMD),)
 RMDIR = rmdir /Q $1; mkdir $1
@@ -180,6 +180,16 @@ lib.sim.lflags += -ldbghelp
 endif
 
 
+EXES += simtest
+exe.simtest.subdir = simtest
+ifeq ($(OS),Windows_NT)
+ifdef MINGW
+	exe.simtest.lflags += -lmingw32
+endif
+endif
+exe.simtest.lflags += -lsim
+
+
 EXES += claysol
 exe.claysol.subdir = claysoldiers
 ifeq ($(OS),Windows_NT)
@@ -190,15 +200,6 @@ endif
 exe.claysol.lflags += -lsim
 exe.claysol.lflags += -ldbghelp
 
-
-
-EXES += cpptest
-exe.cpptest.subdir = cpptest
-ifeq ($(OS),Windows_NT)
-ifdef MINGW
-	exe.cpptest.lflags += -lmingw32
-endif
-endif
 
 # == Back Porch ====================================================================================
 
@@ -261,8 +262,9 @@ clean:
 	@echo Cleaning all build targets...
 	@$(call RMDIR,$(ODIR));$(RM) $(patsubst %,$(BDIR)/lib%.$(DLLEXT),$(LIBS)); \
 	$(RM) $(patsubst %,$(LDIR)/lib%.$(AR_EXT),$(LIBS)); \
-	$(RM) $(patsubst %,$(BDIR)/%$(EXEEXT),$(EXES))
-	@echo Done cleaning
+	$(RM) $(patsubst %,$(BDIR)/%$(EXEEXT),$(EXES)); \
+	$(RM) $(patsubst %,$(BDIR)/%.pdb,$(EXES)); \
+	echo Done cleaning
 
 clean_all: clean
 
