@@ -21,33 +21,7 @@ Exception::Exception(const Exception& other) noexcept : Exception(other._message
 Exception::Exception(Exception&& other) noexcept : Exception(other._message) {}
 
 Exception::Exception(ReturnCode rc) noexcept {
-    switch (rc){
-    case ReturnCode::ERR_NULLPTR:
-        _message = "Null pointer error";
-        break;
-    case ReturnCode::ERR_OUTOFMEM:
-        _message = "Out of memory";
-        break;
-    case ReturnCode::ERR_ZERODIV:
-        _message = "Zero division error";
-        break;
-    case ReturnCode::ERR_INVALARG:
-        _message = "Invalid argument";
-        break;
-    case ReturnCode::ERR_OUTOFBND:
-        _message = "Out of bounds error";
-        break;
-    case ReturnCode::ERR_UNSUPRTD:
-        _message = "Unsupported operation";
-        break;
-    case ReturnCode::ERR_NOTFOUND:
-        _message = "Item not found in container";
-        break;
-
-    case ReturnCode::FAILURE:
-    case ReturnCode::SUCCESS:
-        break;
-    }
+    _message = get_return_code_string(rc);
 
     if (
         rc &&
