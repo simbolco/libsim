@@ -1,8 +1,8 @@
 # == Front porch ===================================================================================
 
 version.major    = 0
-version.minor    = 4
-version.revision = 2
+version.minor    = 5
+version.revision = 0
 
 ifneq ($(WINCMD),)
 RMDIR = rmdir /Q $1; mkdir $1
@@ -52,6 +52,7 @@ CFLAGS ?= -I$(IDIR) -I$(SDIR) \
 	-Wwrite-strings \
 	-Wno-expansion-to-defined \
 	-Wpointer-arith \
+	-m64 \
 	-fPIC
 ifndef ($(NO_SYMBOLS))
 CFLAGS += -ggdb
@@ -184,7 +185,7 @@ cxx.%.o: odir
 # == Target declarations ===========================================================================
 
 LIBS += sim
-lib.sim.desc   = The SimSoft library
+lib.sim.desc   = The SimSoft library (work in progress)
 lib.sim.subdir = libsim
 lib.sim.cflags = -DSIM_BUILD
 ifeq ($(OS),Windows_NT)
@@ -196,13 +197,10 @@ endif
 
 
 EXES += simtest
+exe.simtest.desc   = Unit tests for the SimSoft library (work in progress)
 exe.simtest.subdir = simtest
-ifeq ($(OS),Windows_NT)
-ifdef MINGW
-	exe.simtest.lflags += -lmingw32
-endif
-endif
 exe.simtest.lflags += -lsim
+exe.simtest.lflags += $(lib.sim.lflags)
 
 
 #EXES += claysol
@@ -240,6 +238,8 @@ help:
 	"\t'make version' - This Makefile's version number\n" \
 	"\n" \
 	"\e[1;97mOptions:\e[0m\n" \
+	"\t\e[3;1mFORCE\e[0m - force all source files in target to recompile when building\n" \
+	"\t\e[3;1mCLEAN\e[0m - clean before rebuilding a target\n" \
 	"\t\e[3;1mDEBUG\e[0m - compile with debug compiler flags & settings\n" \
 	"\t\e[3;1mMINGW\e[0m - build using MinGW (for Windows only)\n" \
 	"\t\e[3;1mNO_DYNAMIC_LIB\e[0m - don't output dynamic libraries for library targets\n" \
@@ -262,7 +262,7 @@ help:
 	"\e[1;94mExecutable targets:\e[0m\n" \
 	$(foreach name, $(EXES),\
 		$(if $(wildcard $(SDIR)/$(exe.$(name).subdir)/.*),\
-			"\t[\e[1;96mexe$(name)\e[0m]\n" \
+			"\t[\e[1;96mexe$(name)\e[0m]" \
 				$(if $(exe.$(name).desc), "- $(exe.$(name).desc)",),\
 			"\t\e[31m[\e[1;91mexe$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
 		)\
@@ -276,7 +276,7 @@ help:
 version:
 	@echo $(version.major).$(version.minor).$(version.revision)
 
-lib%: odir ldir bdir
+lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 	@if [ -z $(filter $*,$(LIBS)) ]; then \
 		echo -e "\e[31mTarget [\e[1;91m$@\e[0m\e[31m] doesn't exist"; exit; fi; \
 	$(if $(lib.$*.subdir),$(MAKE) -s -f '$(MAKEFILE)' odir/$(lib.$*.subdir);,) \
@@ -284,23 +284,27 @@ lib%: odir ldir bdir
 	echo -e "\e[1;94mBuilding library [\e[1;96m$*\e[1;94m]...\e[0m"; \
 	recombine=0; \
 	$(foreach src_file, $(call GET_SOURCE_FILES,lib,$*), \
-		if  ([ -z $(NO_DYNAMIC_LIB) ] &&  [ $(src_file) -nt $(BDIR)/$@.$(DLLEXT) ]) || \
-			([ -z $(NO_STATIC_LIB)] && [ $(src_file) -nt $(LDIR)/$@.$(AR_EXT) ]) || \
-			([ ! -f $(BDIR)/$@.$(DLLEXT) ] && [ -z $(NO_DYNAMIC_LIB) ]) || \
-			([ ! -f $(LDIR)/$@.$(AR_EXT) ] && [ -z $(NO_STATIC_LIB) ]) \
-		; then \
+		$(if $(FORCE),, \
+			if  ([ -z $(NO_DYNAMIC_LIB) ] &&  [ $(src_file) -nt $(BDIR)/$@.$(DLLEXT) ]) || \
+				([ -z $(NO_STATIC_LIB)] && [ $(src_file) -nt $(LDIR)/$@.$(AR_EXT) ]) || \
+				([ ! -f $(BDIR)/$@.$(DLLEXT) ] && [ -z $(NO_DYNAMIC_LIB) ]) || \
+				([ ! -f $(LDIR)/$@.$(AR_EXT) ] && [ -z $(NO_STATIC_LIB) ]) \
+			; then \
+		) \
 			$(MAKE) -s -f '$(MAKEFILE)' $(call MANGLE,lib,$*,$(src_file)) \
 				CFLAGS="$(CFLAGS) $(lib.$*.cflags)" SDIR="$(SDIR)/$(lib.$*.subdir)" \
 				ODIR="$(ODIR)/$@" \
 			; \
 			recombine=1; \
-		else \
-			$(if $(call IS_C_SOURCE_FILE,lib,$*,$(src_file)), \
-				echo -e "\t\e[94mC source '$(src_file)' is up to date\e[0m";, \
-			$(if $(call IS_CPP_SOURCE_FILE,lib,$*,$(src_file)), \
-				echo -e "\t\e[94mC++ source '$(src_file)' is up to date\e[0m";, \
-			)) \
-		fi; \
+		$(if $(FORCE),, \
+			else \
+				$(if $(call IS_C_SOURCE_FILE,lib,$*,$(src_file)), \
+					echo -e "\t\e[94mC source '$(src_file)' is up to date\e[0m";, \
+				$(if $(call IS_CPP_SOURCE_FILE,lib,$*,$(src_file)), \
+					echo -e "\t\e[94mC++ source '$(src_file)' is up to date\e[0m";, \
+				)) \
+			fi; \
+		) \
 	) \
 	linked=1; archived=1; \
 	if [ $$recombine -eq 1 ]; then \
@@ -336,7 +340,7 @@ lib%: odir ldir bdir
 			"nothing to update\e[0m"; exit; \
 	fi; \
 	if [ $$linked -eq 1 ] && [ $$archived -eq 1 ]; then \
-		echo -e "\e[1;94mDone building library [\e[1;96m$*\e[1;94m]\e[0m"; \
+		echo -e "\e[1;92mDone building library [\e[1;96m$*\e[1;92m]\e[0m"; \
 	else \
 		echo -e "\e[1;33mDone building library [\e[1;96m$*\e[1;33m]," \
 			"with problems (see above)\e[0m"; \
@@ -352,7 +356,7 @@ clean_lib%:
 	$(RM) $(LDIR)/lib$*.$(AR_EXT); $(RM) $(BDIR)/lib$*.$(DLLEXT); \
 	echo -e "Done cleaning library [\e[1;96m$*\e[0m]"
 
-exe%: odir ldir bdir
+exe%: odir ldir bdir $(if $(CLEAN),clean_exe%,)
 	@if [ -z $(filter $*,$(EXES)) ]; then \
 		echo -e "\e[31mTarget [\e[1;91m$@\e[0m\e[31m] doesn't exist"; exit; fi; \
 	$(if $(exe.$*.subdir),$(MAKE) -s -f '$(MAKEFILE)' odir/$(exe.$*.subdir);,) \
@@ -360,19 +364,23 @@ exe%: odir ldir bdir
 	echo -e "\e[1;94mBuilding executable [\e[1;96m$*\e[1;94m]...\e[0m"; \
 	recombine=0; \
 	$(foreach src_file, $(call GET_SOURCE_FILES,exe,$*), \
-		if [ $(src_file) -nt $(BDIR)/$*$(EXEEXT) ] || [ ! -f $(BDIR)/$*$(EXEEXT) ]; then \
-			$(MAKE) -s -f '$(MAKEFILE)' $(call MANGLE,exe,$*,$(src_file)) \
-				CFLAGS="$(CFLAGS) $(exe.$*.cflags)" SDIR="$(SDIR)/$(exe.$*.subdir)" \
-				ODIR="$(ODIR)/$*"\
-			; \
-			recombine=1; \
-		else \
-			$(if $(call IS_C_SOURCE_FILE,exe,$*,$(src_file)), \
-				echo -e "\t\e[94mC source '$(src_file)' is up to date\e[0m";, \
-			$(if $(call IS_CPP_SOURCE_FILE,exe,$*,$(src_file)), \
-				echo -e "\t\e[94mC++ source '$(src_file)' is up to date\e[0m";, \
-			)) \
-		fi; \
+		$(if $(FORCE),, \
+			if [ $(src_file) -nt $(BDIR)/$*$(EXEEXT) ] || [ ! -f $(BDIR)/$*$(EXEEXT) ]; then \
+		) \
+		$(MAKE) -s -f '$(MAKEFILE)' $(call MANGLE,exe,$*,$(src_file)) \
+			CFLAGS="$(CFLAGS) $(exe.$*.cflags)" SDIR="$(SDIR)/$(exe.$*.subdir)" \
+			ODIR="$(ODIR)/$*"\
+		; \
+		recombine=1; \
+		$(if $(FORCE),, \
+			else \
+				$(if $(call IS_C_SOURCE_FILE,exe,$*,$(src_file)), \
+					echo -e "\t\e[94mC source '$(src_file)' is up to date\e[0m";, \
+				$(if $(call IS_CPP_SOURCE_FILE,exe,$*,$(src_file)), \
+					echo -e "\t\e[94mC++ source '$(src_file)' is up to date\e[0m";, \
+				)) \
+			fi; \
+		) \
 	) \
 	linked=1; \
 	if [ $$recombine -eq 1 ]; then \
@@ -398,7 +406,7 @@ exe%: odir ldir bdir
 			"nothing to update\e[0m"; exit; \
 	fi; \
 	if [ $$linked -eq 1 ]; then \
-		echo -e "\e[1;94mDone building executable [\e[1;96m$*\e[1;94m]\e[0m"; \
+		echo -e "\e[1;92mDone building executable [\e[1;96m$*\e[1;92m]\e[0m"; \
 	else \
 		echo -e "\e[1;33mDone building executable [\e[1;96m$*\e[1;33m]," \
 			"with problems (see above)\e[0m"; \
