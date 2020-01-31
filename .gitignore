@@ -22,6 +22,7 @@ include/*
 # Track relevant source code
 src/*
 !src/libsim
+!src/simtest
 
 # Only track ./.gitignore
 *.gitignore
