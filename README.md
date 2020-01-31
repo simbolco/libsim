@@ -24,7 +24,9 @@ For a more verbose and in-depth to-do list, see `TODO.txt` or visit our [Trello 
 # Building
 Install *gcc* (or *clang*) and *GNU make*, then type `make libsim` into a Bourne-compatible shell to build the library. Support for other compilers + Windows CMD.EXE will be added later on.
 
-Various options exist to customize how the SimSoft library is built and assembled. Details on what options are available, along with other build targets, can be found by typing `make help` in the shell.
+A unit test executable can be built by typing `make exesimtest` into the shell.
+
+Various options exist to customize how the SimSoft library and associated build targets are constructed. Details on what options and other build targets are available can be found by typing `make help` into the shell.
 
 # Contributor Code of Conduct
 This library's contributor Code of Conduct is adapted from the [Contributor Covenant][homepage], version 1.4,
