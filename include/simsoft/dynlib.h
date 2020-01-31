@@ -37,7 +37,7 @@ CPP_NAMESPACE_START(SimSoft)
          *         @b SIM_RC_SUCCESS      otherwise.
          */
         extern SIM_API Sim_ReturnCode C_CALL sim_load_library(
-            const char* filename,
+            const char*              filename,
             Sim_LibraryHandle *const out_library_handle
         );
 
@@ -74,8 +74,8 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern SIM_API Sim_ReturnCode C_CALL sim_find_symbol(
             Sim_LibraryHandle library_handle,
-            const char* symbol_name,
-            void* *const out_symbol_value
+            const char*       symbol_name,
+            void* *const      out_symbol_value
         );
     
     CPP_NAMESPACE_C_API_END /* end C API */
