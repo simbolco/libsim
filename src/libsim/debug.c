@@ -21,6 +21,32 @@
 #   include <execinfo.h>
 #endif
 
+// sim_get_return_code_string(1): Convert a return code to a human-readable string.
+const char* sim_get_return_code_string(
+    Sim_ReturnCode return_code
+) {
+    static const char* RETURN_CODES[] = {
+        NULL,
+        "Failure",
+        "Null pointer error",
+        "Out of memory",
+        "Zero division error",
+        "Invalid argument",
+        "Out of bounds error",
+        "Unsupported operation",
+        "Item not found in container",
+        "Unimplemented operation"
+    };
+
+    return (
+        return_code < 0 ||
+        return_code >= (sizeof(RETURN_CODES)/sizeof(const char*))
+    ) ?
+        NULL :
+        RETURN_CODES[return_code]
+    ;
+}
+
 // sim_get_backtrace_info(4): Retrieve stack backtrace information.
 Sim_ReturnCode sim_get_backtrace_info(
     Sim_BacktraceInfo backtrace_array[],

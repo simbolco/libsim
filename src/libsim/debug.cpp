@@ -35,4 +35,12 @@ size_t SimSoft::get_backtrace_info(
     return num_frames;
 }
 
+const char* SimSoft::get_return_code_string(
+    ReturnCode return_code
+) {
+    return C_API::sim_get_return_code_string(
+        (C_API::Sim_ReturnCode)return_code
+    );
+}
+
 #endif /* SIMSOFT_DEBUG_CPP_ */
