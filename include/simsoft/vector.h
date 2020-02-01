@@ -24,6 +24,7 @@ CPP_NAMESPACE_START(SimSoft)
         
         /**
          * @struct Sim_Vector
+         * @headerfile vector.h "simsoft/vector.h"
          * @brief Generic vector container / dynamically-sized array type
          * 
          * @tparam _item_properties Properties pertaining to the items stored in this vector.
@@ -40,6 +41,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_initialize(5)
+         * @relates Sim_Vector
          * @brief Initializes a new vector.
          * 
          * @param[in,out] vector_ptr    Pointer to a vector to initialize.
@@ -65,6 +67,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_Vector* sim_vector_create(4)
+         * @relates Sim_Vector
          * @brief Creates a new vector on the heap.
          * 
          * @param[in] item_size     Size of each item.
@@ -238,6 +241,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @def Sim_Vector* sim_vector_create_usertype(T, 2)
+         * @relates Sim_Vector
          * @brief Creates a new vector storing a user-defined type on the heap.
          * 
          * @tparam    TYPE          The user-defined type the vector will be storing.
@@ -259,6 +263,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_destroy(1)
+         * @relates Sim_Vector
          * @brief Destroys an initialized vector.
          * 
          * @param[in] vector_ptr Pointer to vector to destroy.
@@ -275,6 +280,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_free(1)
+         * @relates Sim_Vector
          * @brief Frees & destroys a heap-allocated vector.
          * 
          * @param[in] vector_ptr Pointer to a vector to free.
@@ -291,6 +297,7 @@ CPP_NAMESPACE_START(SimSoft)
         
         /**
          * @def bool sim_vector_is_empty(1)
+         * @relates Sim_Vector
          * @brief Checks if the vector is empty.
          * 
          * @param[in] vector_ptr Pointer to a vector to check.
@@ -303,6 +310,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_clear(1)
+         * @relates Sim_Vector
          * @brief Clears a vector of all its contents.
          * 
          * @param[in,out] vector_ptr Pointer to vector to empty.
@@ -317,6 +325,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_resize(2)
+         * @relates Sim_Vector
          * @brief Resizes the internal array of a vector.
          * 
          * @param[in,out] vector_ptr Pointer to a vector to resize.
@@ -334,6 +343,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_get(3)
+         * @relates Sim_Vector
          * @brief Get an item from the vector at a particular index.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to index into.
@@ -352,6 +362,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_get_ptr(3)
+         * @relates Sim_Vector
          * @brief Get pointer to data in the vector at a particular index.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to index into.
@@ -370,6 +381,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_index_of(5)
+         * @relates Sim_Vector
          * @brief Get the index of the first item in the vector the tests equal to given data.
          * 
          * @param[in,out] vector_ptr          Pointer to vector to search.
@@ -398,6 +410,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn bool sim_vector_contains(3)
+         * @relates Sim_Vector
          * @brief Checks if an item is contained in the vector.
          * 
          * @param[in,out] vector_ptr         Pointer to vector to search.
@@ -417,6 +430,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_push(2)
+         * @relates Sim_Vector
          * @brief Push a new item to the back of the vector.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to push item into.
@@ -434,6 +448,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_insert(3)
+         * @relates Sim_Vector
          * @brief Insert a new item into the vector at a particular index.
          * 
          * @param[in,out] vector_ptr   Pointer to the vector to insert item into.
@@ -454,6 +469,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_pop(2)
+         * @relates Sim_Vector
          * @brief Pops an item off the back of the vector.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to pop item from.
@@ -471,6 +487,7 @@ CPP_NAMESPACE_START(SimSoft)
         
         /**
          * @fn Sim_ReturnCode sim_vector_remove(3)
+         * @relates Sim_Vector
          * @brief Removes an item from the vector at a particular index.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to remove item from.
@@ -491,6 +508,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_foreach(3)
+         * @relates Sim_Vector
          * @brief Applies a given function to each item in the vector.
          * 
          * @param[in,out] vector_ptr       Pointer to vector whose items will be passed into the
@@ -510,6 +528,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_extract(4)
+         * @relates Sim_Vector
          * @brief Extracts items out of the vector based on a given function.
          * 
          * @param[in,out] vector_ptr      Pointer to vector whose items will be filtered through
@@ -537,6 +556,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_select(4)
+         * @relates Sim_Vector
          * @brief Selects items from the vector based on a given function.
          * 
          * @param[in,out] vector_ptr      Pointer to vector whose items will be selected via
@@ -564,6 +584,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_vector_sort(2)
+         * @relates Sim_Vector
          * @brief Sorts items in the vector based on initialization settings or a user-provided
          *        comparison function.
          * 

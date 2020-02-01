@@ -402,7 +402,7 @@ Sim_ReturnCode sim_vector_foreach(
     size_t item_size  = vector_ptr->_item_properties.size;
 
     for (size_t i = 0; i < count; i++) {
-        if (!(*foreach_func_ptr)(data_ptr, userdata, i))
+        if (!(*foreach_func_ptr)(data_ptr, i, userdata))
             return SIM_RC_FAILURE;
         
         data_ptr += item_size;
