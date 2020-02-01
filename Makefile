@@ -2,7 +2,7 @@
 
 version.major    = 0
 version.minor    = 5
-version.revision = 0
+version.revision = 1
 
 ifneq ($(WINCMD),)
 RMDIR = rmdir /Q $1; mkdir $1
@@ -295,6 +295,12 @@ lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 				CFLAGS="$(CFLAGS) $(lib.$*.cflags)" SDIR="$(SDIR)/$(lib.$*.subdir)" \
 				ODIR="$(ODIR)/$@" \
 			; \
+			exit_code=$$?; \
+			if [ $$exit_code -ne 0 ]; then \
+				echo -e \
+					"\e[1;31mCouldn't build library [\e[1;96m$*\e[1;31m]; see above\e[0m"; \
+				exit; \
+			fi; \
 			recombine=1; \
 		$(if $(FORCE),, \
 			else \
@@ -371,6 +377,12 @@ exe%: odir ldir bdir $(if $(CLEAN),clean_exe%,)
 			CFLAGS="$(CFLAGS) $(exe.$*.cflags)" SDIR="$(SDIR)/$(exe.$*.subdir)" \
 			ODIR="$(ODIR)/$*"\
 		; \
+		exit_code=$$?; \
+		if [ $$exit_code -ne 0 ]; then \
+			echo -e \
+				"\e[1;31mCouldn't build executable [\e[1;96m$*\e[1;31m]; see above\e[0m"; \
+			exit; \
+		fi; \
 		recombine=1; \
 		$(if $(FORCE),, \
 			else \
