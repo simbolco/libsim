@@ -19,12 +19,14 @@ CPP_NAMESPACE_START(SimSoft)
         
         /**
          * @typedef Sim_LibraryHandle
-         * @brief Dynamic library handle; varies based on platform
+         * @headerfile dynlib.h "simsoft/dynlib.h"
+         * @brief Dynamic library handle
          */
         typedef void* Sim_LibraryHandle;
 
         /**
          * @fn Sim_ReturnCode sim_load_library(2)
+         * @relates Sim_LibraryHandle
          * @brief Loads a dynamic library via filename during runtime.
          * 
          * @param[in]  filename           Filename of the dynamic library.
@@ -43,6 +45,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_unload_library(1)
+         * @relates Sim_LibraryHandle
          * @brief Unloads a dynamic library handle.
          * 
          * @param[in] library_handle Handle of a dynamic library to unload.
@@ -59,6 +62,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_find_symbol(3)
+         * @relates Sim_LibraryHandle
          * @brief Retrieves a function from a dynamic library via a symbol.
          * 
          * @param[in]  library_handle   Handle of a dynamic library.
