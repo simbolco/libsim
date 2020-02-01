@@ -24,6 +24,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @struct Sim_HashSet
+         * @headerfile hashset.h "simsoft/hashset.h"
          * @brief Generic unordered set type.
          * 
          * @tparam _item_properties Properties pertaining to the items stored in this hashset.
@@ -47,6 +48,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_hashset_initialize(7)
+         * @relates Sim_HashSet
          * @brief Initializes a new hashset.
          * 
          * @param[in,out] hashset_ptr        Pointer to a hashset to initialize.
@@ -88,6 +90,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_hashset_destroy(1)
+         * @relates Sim_HashSet
          * @brief Destroys an initialized hashset.
          * 
          * @param[in,out] hashset_ptr Pointer to a hashset to destroy.
@@ -105,6 +108,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_hashset_free(1)
+         * @relates Sim_HashSet
          * @brief Frees & destroys a heap-allocated hashset.
          * 
          * @param[in,out] hashset_ptr Pointer to a hashset to free/destroy.
@@ -122,6 +126,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @def bool sim_hashset_is_empty(1)
+         * @relates Sim_HashSet
          * @brief Checks if the hashset is empty.
          * 
          * @param[in] hashset_ptr Pointer to a hashset to check.
@@ -134,6 +139,7 @@ CPP_NAMESPACE_START(SimSoft)
         
         /**
          * @fn Sim_ReturnCode sim_hashset_clear(1)
+         * @relates Sim_HashSet
          * @brief Clears a hashset of all its contents.
          * 
          * @param[in,out] hashset_ptr Pointer to hashset to empty.
@@ -147,6 +153,7 @@ CPP_NAMESPACE_START(SimSoft)
         
         /**
          * @fn bool sim_hashset_contains(2)
+         * @relates Sim_HashSet
          * @brief Checks if an item is contained in the hashset.
          * 
          * @param[in,out] hashset_ptr Pointer to hashset to search.
@@ -163,6 +170,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_hashset_resize(2)
+         * @relates Sim_HashSet
          * @brief Resizes the hashset to a new size.
          * 
          * @param[in,out] hashset_ptr Pointer to a hashset to resize.
@@ -180,6 +188,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_hashset_insert(2)
+         * @relates Sim_HashSet
          * @brief Adds an item into a hashset.
          * 
          * @param[in,out] hashset_ptr  Pointer to a hashset to insert into.
@@ -198,6 +207,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_hashset_remove(2)
+         * @relates Sim_HashSet
          * @brief Removes an item from a hashset.
          * 
          * @param[in,out] hashset_ptr     Pointer to a hashset to remove from.
@@ -216,6 +226,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_hashset_foreach(3)
+         * @relates Sim_HashSet
          * @brief Applies a given function to each item in the hashset.
          * 
          * @param[in,out] hashset_ptr      Pointer to a hashset whose items will be iterated over.
