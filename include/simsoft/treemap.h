@@ -31,7 +31,37 @@ CPP_NAMESPACE_START(SimSoft)
             size_t count;   // amount of items stored in the treemap
         } Sim_TreeMap;
 
-        
+#       ifndef SIM_DEFINED_MAP_FOREACH_STRUCTS
+#           define SIM_DEFINED_MAP_FOREACH_STRUCTS
+            /**
+             * @struct Sim_MapConstKeyValuePair
+             * @brief Structure containing pointers for a key-value pair.
+             * 
+             * @property key   Pointer to key.
+             * @property value Pointer to value.
+             */
+            typedef struct Sim_MapConstKeyValuePair {
+                const void *const key;
+                void *const value;
+            } Sim_MapConstKeyValuePair;
+
+            /**
+             * @typedef Sim_MapForEachFuncPtr
+             * @brief Function pointer used when iterating over a map.
+             * 
+             * @param[in] key_value_pair_ptr Pointer to a key-value pair in a map.
+             * @param[in] index              The pair's index in the map it's contained in.
+             * @param[in] userdata           User-provided callback data.
+             * 
+             * @return @c false to break out of the calling foreach loop;
+             *         @c true  to continue iterating.
+             */
+            typedef bool (*Sim_MapForEachFuncPtr)(
+                Sim_MapConstKeyValuePair *const key_value_pair_ptr,
+                const size_t index,
+                Sim_Variant userdata
+            );
+#       endif /* SIM_DEFINED_MAP_FOREACH_STRUCTS */
     
     CPP_NAMESPACE_C_API_END /* end C API */
 
