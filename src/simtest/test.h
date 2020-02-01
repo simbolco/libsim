@@ -49,14 +49,14 @@ typedef struct SimT_TestInfo {
     int remaining;
 } SimT_TestInfo;
 
-typedef Sim_ReturnCode (*SimT_TestFuncPtr)(SimT_TestInfo *const);
+typedef Sim_ReturnCode (*SimT_TestFuncPtr)(void);
 
 typedef struct SimTestStruct {
-    SimT_TestFuncPtr func_ptr;
-    const char*      name;
-    const char*      description;
-    size_t           num_args;
-    size_t           num_opt_args;
+    const char*       name;
+    const char*       description;
+    int               num_tests;
+    SimT_TestFuncPtr* test_funcs;
+
 } SimTestStruct;
 
 #endif /* SIMTEST_TEST_H_ */
