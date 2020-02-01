@@ -16,17 +16,26 @@
 
 using namespace SimSoft;
 
-Exception::Exception(const char* message) noexcept : _message(message) {}
-Exception::Exception(const Exception& other) noexcept : Exception(other._message) {}
-Exception::Exception(Exception&& other) noexcept : Exception(other._message) {}
-
-Exception::Exception(ReturnCode rc) noexcept {
-    _message = get_return_code_string(rc);
-
-    if (
-        rc &&
-        get_backtrace_info(_backtrace_array, _BACKTRACE_SIZE, 1) != (size_t)-1
-    )
+Exception::Exception(const char* message) noexcept : _message(message) {
+    if (get_backtrace_info(_backtrace_array, _BACKTRACE_SIZE, 1) != (size_t)-1)
+        _has_backtrace = true;
+}
+Exception::Exception(const Exception& other) noexcept :
+    _message(other._message),
+    _has_backtrace(other._has_backtrace)
+{
+    if (_has_backtrace)
+        memcpy(_backtrace_array, other._backtrace_array, sizeof(_backtrace_array));
+}
+Exception::Exception(Exception&& other) noexcept :
+    _message(other._message),
+    _has_backtrace(other._has_backtrace)
+{
+    if (_has_backtrace)
+        memcpy(_backtrace_array, other._backtrace_array, sizeof(_backtrace_array));
+}
+Exception::Exception(ReturnCode rc) noexcept : _message(get_return_code_string(rc)) {
+    if (get_backtrace_info(_backtrace_array, _BACKTRACE_SIZE, 1) != (size_t)-1)
         _has_backtrace = true;
 }
 
@@ -37,13 +46,6 @@ Exception::~Exception() noexcept {
             free(_backtrace_array[i].file_name);
         }
     }
-}
-
-Exception& Exception::operator=(const Exception& other) noexcept {
-    _message = other._message;
-    memcpy(_backtrace_array, other._backtrace_array, sizeof(_backtrace_array));
-    _has_backtrace = other._has_backtrace;
-    return *this;
 }
 
 const char* Exception::what() noexcept {

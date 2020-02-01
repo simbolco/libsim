@@ -20,6 +20,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @class SimSoft::Exception
+         * @headerfile exception.hpp "simsoft/exception.hpp"
          * @brief C++ exception class
          */
         class SIM_API Exception {
@@ -30,15 +31,47 @@ CPP_NAMESPACE_START(SimSoft)
             BacktraceInfo _backtrace_array[_BACKTRACE_SIZE] { 0,0,0,0 };
             bool _has_backtrace { false };
         public:
+            /**
+             * @fn SimSoft::Exception::Exception(const char*)
+             * @brief Constructs a new Exception with a custom message.
+             * 
+             * @param[in] message User-specified error message.
+             */
             Exception(const char* message) noexcept;
+            /**
+             * @fn SimSoft::Exception::Exception(const SimSoft::Exception&)
+             * @brief Constructs a new Exception by copying the contents of another.
+             * 
+             * @param[in] other Exception to copy.
+             */
             Exception(const Exception& other) noexcept;
+            /**
+             * @fn SimSoft::Exception::Exception(SimSoft::Exception&&)
+             * @brief Constructs a new Exception by moving the contents of another.
+             * 
+             * @param[in] other Exception to move.
+             */
             Exception(Exception&& other) noexcept;
+            /**
+             * @fn SimSoft::Exception::Exception(SimSoft::ReturnCode)
+             * @brief Constructs a new Exception from a ReturnCode.
+             * 
+             * @param[in] rc Return code.
+             */
             Exception(ReturnCode rc) noexcept;
 
+            /**
+             * @fn SimSoft::Exception::~Exception()
+             * @brief Virtualized Exception destructor.
+             */
             virtual ~Exception() noexcept;
 
-            Exception& operator=(const Exception& other) noexcept;
-
+            /**
+             * @fn const char* SimSoft::Exception::what()
+             * @brief Retrieve an error string from the exception.
+             * 
+             * @return Error string.
+             */
             virtual const char* what() noexcept;
         };
 
