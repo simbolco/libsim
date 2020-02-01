@@ -19,6 +19,7 @@ CPP_NAMESPACE_START(SimSoft)
         
         /**
          * @struct Sim_BacktraceInfo
+         * @headerfile debug.h "simsoft/debug.h"
          * @brief Struct containing information pertaining to a call in the stack backtrace.
          */
         typedef struct Sim_BacktraceInfo {
@@ -31,6 +32,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn Sim_ReturnCode sim_get_backtrace_info(4)
+         * @relates Sim_BacktraceInfo
          * @brief Retrieve stack backtrace information.
          * 
          * @param[in,out] backtrace_array Array of Sim_BacktraceInfo structs to populate.
@@ -60,6 +62,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @fn const char* sim_get_return_code_string(1)
+         * @relates Sim_ReturnCode
          * @brief Convert a return code to a human-readable string.
          * 
          * @param[in] return_code Return code to convert to a string.
