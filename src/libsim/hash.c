@@ -250,38 +250,41 @@ static Sim_ReturnCode _sim_hash_resize(
 #define HASH_IF_CONTAIN(hashmap_ptr, key_ptr, ...)                                          \
     byte** data_ptr = hashmap_ptr->data_ptr;                                                \
     size_t attempt = 0;                                                                     \
-    byte* current_node_ptr;                                                                \
+    byte* current_node_ptr;                                                                 \
     size_t index;                                                                           \
                                                                                             \
-    const size_t hash1 = (hashmap_ptr->_key_properties.hash_func_ptr ?                      \
-        (*hashmap_ptr->_key_properties.hash_func_ptr)(key_ptr) :                            \
+    size_t hash = (hashmap_ptr->_key_properties.hash_func_ptr ?                             \
+        (*hashmap_ptr->_key_properties.hash_func_ptr)(key_ptr, 0) :                         \
         _sim_siphash(                                                                       \
             key_ptr,                                                                        \
             hashmap_ptr->_key_properties.type_info.size,                                    \
-            SIPHASH_KEY1,                                                                   \
-            SIPHASH_KEY2                                                                    \
+            SIPHASH_KEY1, SIPHASH_KEY2                                                      \
         )                                                                                   \
     ) % hashmap_ptr->_allocated;                                                            \
     size_t hash2 = 0;                                                                       \
                                                                                             \
     do {                                                                                    \
-        index = (hash1 + (attempt * (hash2 + 1))) % hashmap_ptr->_allocated;                \
+        index = hash % hashmap_ptr->_allocated;                                             \
         current_node_ptr = data_ptr[index];                                                 \
                                                                                             \
         if (                                                                                \
-            current_node_ptr != (const byte*)&hashmap_ptr->_deleted_item &&                              \
+            current_node_ptr != (const byte*)&hashmap_ptr->_deleted_item &&                 \
             (*(hashmap_ptr->_key_properties.predicate_func_ptr))(key_ptr, current_node_ptr) \
         ) {                                                                                 \
             UNPACK(__VA_ARGS__);                                                            \
         }                                                                                   \
                                                                                             \
         attempt++;                                                                          \
-        if (attempt == 1) {                                                                 \
-            hash2 = _sim_siphash(                                                           \
-                key_ptr,                                                                    \
-                hashmap_ptr->_key_properties.type_info.size,                                \
-                SIPHASH_KEY3, SIPHASH_KEY4                                                  \
-            ) % hashmap_ptr->_allocated;                                                    \
+        if (hashmap_ptr->_key_properties.hash_func_ptr)                                     \
+            hash = (*hashmap_ptr->_key_properties.hash_func_ptr)(key_ptr, attempt);         \
+        else {                                                                              \
+            if (attempt == 1)                                                               \
+                hash2 = _sim_siphash(                                                       \
+                    key_ptr,                                                                \
+                    hashmap_ptr->_key_properties.type_info.size,                            \
+                    SIPHASH_KEY3, SIPHASH_KEY4                                              \
+                ) % hashmap_ptr->_allocated;                                                \
+            hash += hash2 + 1;                                                              \
         }                                                                                   \
     } while (current_node_ptr);
 
@@ -423,15 +426,15 @@ static Sim_ReturnCode _sim_hash_foreach(
         // if the item exists...
         if (data_ptr[i] && data_ptr[i] != (const byte*)&hashmap_ptr->_deleted_item) {
             if (!(*foreach_func_ptr)(
-                is_hashmap ?
+                (is_hashmap ?
                     (void*)&((Sim_MapConstKeyValuePair){
                         .key = data_ptr[i],
                         .value = (byte*)data_ptr[i] + hashmap_ptr->_value_size
                     }) :
                     data_ptr[i]
-                ,
-                userdata,
-                item_num
+                ),
+                item_num,
+                userdata
             ))
                 return SIM_RC_FAILURE;
             
