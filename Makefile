@@ -295,12 +295,6 @@ lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 				CFLAGS="$(CFLAGS) $(lib.$*.cflags)" SDIR="$(SDIR)/$(lib.$*.subdir)" \
 				ODIR="$(ODIR)/$@" \
 			; \
-			exit_code=$$?; \
-			if [ $$exit_code -ne 0 ]; then \
-				echo -e \
-					"\e[1;31mCouldn't build library [\e[1;96m$*\e[1;31m]; see above\e[0m"; \
-				exit; \
-			fi; \
 			recombine=1; \
 		$(if $(FORCE),, \
 			else \
@@ -314,33 +308,39 @@ lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 	) \
 	linked=1; archived=1; \
 	if [ $$recombine -eq 1 ]; then \
-	$(if $(NO_DYNAMIC_LIB),, \
-		echo -e "\e[1;96mLinking...\e[0m"; \
-		$(call DLIB,$(BDIR)/$@.$(DLLEXT), \
-			$(patsubst %,$(ODIR)/$(lib.$*.subdir)/%,$(call GET_OBJECT_FILES,lib,$*)),$(LFLAGS) \
-			$(lib.$*.lflags) \
-		); \
-		EXIT_CODE=$$?; \
-		if [ $$EXIT_CODE -eq 0 ]; then \
-			echo -e "\t\e[0;32mSuccessfully linked dynamic library: '$(BDIR)/$@.$(DLLEXT)'\e[0m"; \
-		else \
-			echo -e "\e[0;31mError linking '$(BDIR)/$@.$(DLLEXT)': error code $$EXIT_CODE\e[0m"; \
-			linked=0; \
+		if [ ! -z $(NO_DYNAMIC_LIB) ]; then \
+			echo -e "\e[1;96mLinking...\e[0m"; \
+			$(call DLIB,$(BDIR)/$@.$(DLLEXT), \
+				$(patsubst %,$(ODIR)/$(lib.$*.subdir)/%,$(call GET_OBJECT_FILES,lib,$*)),$(LFLAGS) \
+				$(lib.$*.lflags) \
+			); \
+			EXIT_CODE=$$?; \
+			if [ $$EXIT_CODE -eq 0 ]; then \
+				echo -e \
+					"\t\e[0;32mSuccessfully linked dynamic library: '$(BDIR)/$@.$(DLLEXT)'\e[0m" \
+				; \
+			else \
+				echo -e \
+					"\e[0;31mError linking '$(BDIR)/$@.$(DLLEXT)': error code $$EXIT_CODE\e[0m" \
+				; \
+				linked=0; \
+			fi; \
 		fi; \
-	) \
-	$(if $(NO_STATIC_LIB),, \
-		echo -e "\e[1;96mArchiving...\e[0m"; \
-		$(call SLIB,$(LDIR)/$@.$(AR_EXT), \
-			$(patsubst %,$(ODIR)/$(lib.$*.subdir)/%,$(call GET_OBJECT_FILES,lib,$*)) \
-		); \
-		EXIT_CODE=$$?; \
-		if [ $$EXIT_CODE -eq 0 ]; then \
-			echo -e "\t\e[0;32mSuccessfully archived static library: '$(LDIR)/$@.$(AR_EXT)'\e[0m"; \
-		else \
-			echo -e "\t\e[0;31mError archiving '$(LDIR)/$@.$(AR_EXT)'\e[0m"; \
-			archived=0; \
+		if [ ! -z $(NO_STATIC_LIB)]; then \
+			echo -e "\e[1;96mArchiving...\e[0m"; \
+			$(call SLIB,$(LDIR)/$@.$(AR_EXT), \
+				$(patsubst %,$(ODIR)/$(lib.$*.subdir)/%,$(call GET_OBJECT_FILES,lib,$*)) \
+			); \
+			EXIT_CODE=$$?; \
+			if [ $$EXIT_CODE -eq 0 ]; then \
+				echo -e \
+					"\t\e[0;32mSuccessfully archived static library: '$(LDIR)/$@.$(AR_EXT)'\e[0m" \
+				; \
+			else \
+				echo -e "\t\e[0;31mError archiving '$(LDIR)/$@.$(AR_EXT)'\e[0m"; \
+				archived=0; \
+			fi; \
 		fi; \
-	) \
 	else \
 		echo -e "\e[1;90mDone building library [\e[1;96m$*\e[1;90m];" \
 			"nothing to update\e[0m"; exit; \
@@ -350,7 +350,7 @@ lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 	else \
 		echo -e "\e[1;33mDone building library [\e[1;96m$*\e[1;33m]," \
 			"with problems (see above)\e[0m"; \
-	fi;  echo
+	fi; echo;
 
 clean_lib%:
 	@if [ -z $(filter $*,$(LIBS)) ]; then \
@@ -380,7 +380,8 @@ exe%: odir ldir bdir $(if $(CLEAN),clean_exe%,)
 		exit_code=$$?; \
 		if [ $$exit_code -ne 0 ]; then \
 			echo -e \
-				"\e[1;31mCouldn't build executable [\e[1;96m$*\e[1;31m]; see above\e[0m"; \
+				"\e[1;31mCouldn't build executable [\e[1;96m$*\e[1;31m]; see above\e[0m" \
+			; \
 			exit; \
 		fi; \
 		recombine=1; \
@@ -422,7 +423,7 @@ exe%: odir ldir bdir $(if $(CLEAN),clean_exe%,)
 	else \
 		echo -e "\e[1;33mDone building executable [\e[1;96m$*\e[1;33m]," \
 			"with problems (see above)\e[0m"; \
-	fi;  echo
+	fi; echo;
 
 clean_exe%:
 	@if [ -z $(filter $*,$(EXES)) ]; then \
