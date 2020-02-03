@@ -270,7 +270,13 @@ Sim_ReturnCode sim_vector_push(
     Sim_Vector *const vector_ptr,
     const void*       new_item_ptr
 ) {
-    return sim_vector_insert(vector_ptr, new_item_ptr, vector_ptr->count);
+    return sim_vector_insert(
+        vector_ptr,
+        new_item_ptr,
+        vector_ptr ?
+            vector_ptr->count :
+            0
+    );
 }
 
 // sim_vector_insert(3):  Insert a new item into the vector at a particular index.
