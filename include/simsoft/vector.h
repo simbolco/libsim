@@ -391,9 +391,10 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * 
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr or @e predicate_func_ptr is @c NULL ;
+         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr, @e item_ptr, or @e predicate_func_ptr
+         *                                are @c NULL ;
          *         @b SIM_RC_ERR_OUTOFBND if @e starting_index >= @c vector_ptr->count ;
-         *         @b SIM_RC_FAILURE      if no item in the vector is equivalent to
+         *         @b SIM_RC_ERR_NOTFOUND if no item in the vector is equivalent to
          *                                @e item_ptr;
          *         @b SIM_RC_SUCCESS      otherwise.
          * 
@@ -417,7 +418,8 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in]     predicate_func_ptr Pointer to equality predicate function.
          * 
          * @return @c true if the item is contained within @e vector_ptr;
-         *         @c false otherwise or if @e vector_ptr or @e predicate_func_ptr are @c NULL .
+         *         @c false otherwise or if @e vector_ptr, @e item_ptr, or @e predicate_func_ptr
+         *            are @c NULL .
          * 
          * @sa sim_vector_index_of
          */

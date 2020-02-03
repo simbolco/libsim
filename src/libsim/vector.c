@@ -217,7 +217,7 @@ Sim_ReturnCode sim_vector_index_of(
     size_t *const        index_out_ptr
 ) {
     // check for nullptrs
-    if (!vector_ptr || !predicate_func_ptr)
+    if (!vector_ptr || !item_ptr || !predicate_func_ptr)
         return SIM_RC_ERR_NULLPTR;
 
     // check for out-of-bounds starting index
@@ -247,7 +247,7 @@ Sim_ReturnCode sim_vector_index_of(
     if (index_out_ptr)
         *index_out_ptr = (size_t)-1;
     
-    return SIM_RC_FAILURE;
+    return SIM_RC_ERR_NOTFOUND;
 }
 
 // sim_vector_contains(3): Checks if an item is contained in the vector.
@@ -256,13 +256,13 @@ bool sim_vector_contains(
     const void *const    item_ptr,
     Sim_PredicateFuncPtr predicate_func_ptr
 ) {
-    return sim_vector_index_of(
+    return !sim_vector_index_of(
         vector_ptr,
         item_ptr,
         predicate_func_ptr,
         0,
         NULL
-    ) == SIM_RC_SUCCESS;
+    );
 }
 
 // sim_vector_push(2): Push a new item to the back of the vector.
