@@ -26,7 +26,7 @@ const char* sim_get_return_code_string(
     Sim_ReturnCode return_code
 ) {
     static const char* RETURN_CODES[] = {
-        NULL,
+        "Success",
         "Failure",
         "Null pointer error",
         "Out of memory",

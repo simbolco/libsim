@@ -68,7 +68,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in] return_code Return code to convert to a string.
          * 
          * @return A string corresponding to the given return; @c NULL if @e return_code is
-         *         @b SIM_RC_SUCCESS or an invalid value.
+         *         an invalid value.
          */
         extern SIM_API const char* C_CALL sim_get_return_code_string(
             Sim_ReturnCode return_code
