@@ -315,7 +315,6 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in,out] vector_ptr Pointer to vector to empty.
          * 
          * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
-         *         @b SIM_RC_ERR_OUTOFMEM if the vector couldn't be cleared;
          *         @b SIM_RC_SUCCESS      otherwise.
          */
         extern SIM_API Sim_ReturnCode C_CALL sim_vector_clear(
@@ -332,7 +331,7 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
          *         @b SIM_RC_ERR_OUTOFMEM if the vector couldn't be resized;
-         *         @b SIM_RC_ERR_OUTOFBND if @e size < @c vector_ptr->count ;
+         *         @b SIM_RC_ERR_INVALARG if @e size < @c vector_ptr->count ;
          *         @b SIM_RC_SUCCESS      otherwise.
          */
         extern SIM_API Sim_ReturnCode C_CALL sim_vector_resize(
@@ -476,8 +475,9 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in,out] vector_ptr   Pointer to vector to pop item from.
          * @param[out]    item_out_ptr Pointer to memory to fill with popped item.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL ;
-         * @return @b SIM_RC_SUCCESS     otherwise.
+         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
+         *         @B SIM_RC_ERR_OUTOFBND if @c vector_ptr->count == 0;
+         *         @b SIM_RC_SUCCESS      otherwise.
          * 
          * @remarks @e item_out_ptr can be @c NULL .
          */
