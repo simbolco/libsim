@@ -102,21 +102,12 @@ Sim_ReturnCode sim_vector_clear(
     // check for nullptr
     if (!vector_ptr)
         return SIM_RC_ERR_NULLPTR;
-    
-    // allocate new internal array
-    void* data_ptr = vector_ptr->_allocator_ptr->malloc(
-        SIM_DEFAULT_VECTOR_SIZE * vector_ptr->_item_properties.size
-    );
-    if (!data_ptr)
-        return SIM_RC_ERR_OUTOFMEM;
 
     // free array & set count to 0
     vector_ptr->_allocator_ptr->free(vector_ptr->data_ptr);
+    vector_ptr->data_ptr = NULL;
+    vector_ptr->_allocated = 0;
     vector_ptr->count = 0;
-    
-    // reset _allocated & set new data_ptr
-    vector_ptr->_allocated = SIM_DEFAULT_VECTOR_SIZE;
-    vector_ptr->data_ptr = data_ptr;
 
     return SIM_RC_SUCCESS;
 }
@@ -136,16 +127,22 @@ Sim_ReturnCode sim_vector_resize(
 
     // error if size < count
     if (size < vector_ptr->count)
-        return SIM_RC_ERR_OUTOFBND;
-    
-    // realloc new internal array
-    void* data_ptr = vector_ptr->_allocator_ptr->realloc(
-        vector_ptr->data_ptr,
+        return SIM_RC_ERR_INVALARG;
+
+    // calculate how many bytes to allocate for internal array
+    size_t bytes_to_alloc =
         (size > SIM_DEFAULT_VECTOR_SIZE ?
             size :
             SIM_DEFAULT_VECTOR_SIZE
         ) * vector_ptr->_item_properties.size
-    );
+    ;
+    
+    // realloc new internal array or malloc new one if NULL
+    void* data_ptr;
+    if (vector_ptr->data_ptr)
+        data_ptr = vector_ptr->_allocator_ptr->realloc(vector_ptr->data_ptr, bytes_to_alloc);
+    else
+        data_ptr = vector_ptr->_allocator_ptr->malloc(bytes_to_alloc);
 
     if (!data_ptr)
         return SIM_RC_ERR_OUTOFMEM;
@@ -293,6 +290,12 @@ Sim_ReturnCode sim_vector_insert(
     if (index > vector_ptr->count)
         return SIM_RC_ERR_OUTOFBND;
 
+    if (!vector_ptr->data_ptr) {
+        Sim_ReturnCode rc = sim_vector_resize(vector_ptr, SIM_DEFAULT_VECTOR_SIZE);
+        if (rc)
+            return rc;
+    }
+
     const size_t item_size = vector_ptr->_item_properties.size;
     byte*  data_ptr = vector_ptr->data_ptr;
     
@@ -342,7 +345,7 @@ Sim_ReturnCode sim_vector_pop(
     return sim_vector_remove(
         vector_ptr,
         data_out_ptr,
-        vector_ptr->count ?
+        vector_ptr ?
             vector_ptr->count - 1 :
             0
     );
