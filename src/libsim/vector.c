@@ -339,7 +339,13 @@ Sim_ReturnCode sim_vector_pop(
     Sim_Vector *const vector_ptr,
     void*             data_out_ptr
 ) {
-    return sim_vector_remove(vector_ptr, data_out_ptr, vector_ptr->count - 1);
+    return sim_vector_remove(
+        vector_ptr,
+        data_out_ptr,
+        vector_ptr->count ?
+            vector_ptr->count - 1 :
+            0
+    );
 }
 
 // sim_vector_remove(3): Removes an item from the vector at a particular index.
