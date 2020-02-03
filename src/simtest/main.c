@@ -152,14 +152,16 @@ int main(int argc, char* argv[]) {
     bool exit_on_failure = false;
 
     for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[1], "-f") || !strcmp(argv[1], "--exit-on-failure"))
+        if (!strcmp(argv[i], "-f") || !strcmp(argv[i], "--exit-on-failure")) {
             exit_on_failure = true;
+            continue;
+        }
 
         // perform all tests
-        if (strlen(argv[i]) == 1 && argv[i][0] == '*') {
+        if (!strcmp(argv[i], "-a") || !strcmp(argv[i], "--perform-all-tests")) {
             for (int j = 0; j < (int)NUM_TESTS; j++)
                 perform_test(j, exit_on_failure);
-            break;
+            continue;
         }
 
         execute_test_id(argv[i], exit_on_failure);
