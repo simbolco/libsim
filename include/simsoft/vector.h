@@ -302,11 +302,10 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @param[in] vector_ptr Pointer to a vector to check.
          * 
-         * @return @c true if the vector is empty; @c false otherwise or if the
-         *         vector is @c NULL .
+         * @return @c true if the vector is empty; @c false otherwise.
          */
 #       define sim_vector_is_empty(vector_ptr) \
-            (vector_ptr ? vector_ptr->count == 0 : false)
+            ((vector_ptr)->count == 0)
 
         /**
          * @fn Sim_ReturnCode sim_vector_clear(1)
