@@ -10,13 +10,23 @@
  */
 
 #include "./test.h"
-#include "./vector_test.h"
 
-SimTestStruct tests[1] = {
+#include "./tests/vector_tests.h"
+#include "./tests/hashset_tests.h"
+//#include "./tests/hashmap_tests.h"
+
+SimTestStruct tests[] = {
     {
-        .func_ptr = vector_test,
         .name = "vector",
-        .description = "Unit tests for the Sim_Vector type and related functions."
+        .description = "Unit tests for Sim_Vector.",
+        .num_tests = sizeof(vector_tests) / sizeof(SimT_TestFuncStruct),
+        .test_funcs = vector_tests
+    },
+    {
+        .name = "hashset",
+        .description = "Unit tests for Sim_HashSet.",
+        .num_tests = sizeof(hashset_tests) / sizeof(SimT_TestFuncStruct),
+        .test_funcs = hashset_tests
     }
 };
 
@@ -46,25 +56,62 @@ void perform_test(int test_id, bool exit_on_failure) {
         printf(" - \"%s\"...", tests[test_id].name);
     printf("\n");
 
-    SimT_TestInfo test_info;
-    memset(&test_info, 0, sizeof(test_info));
-    Sim_ReturnCode test_result = (*tests[test_id].func_ptr)(&test_info);
+    int
+        total  = tests[test_id].num_tests,
+        passed = 0,
+        failed = 0,
+        remaining = total
+    ;
+    Sim_ReturnCode test_result = SIM_RC_SUCCESS;
+
+    const char** err_strs = calloc((size_t)tests[test_id].num_tests, sizeof(const char*));
+
+    for (int i = 0; i < total; i++) {
+        remaining--;
+        test_result  = (*tests[test_id].test_funcs[i].func_ptr)(&err_strs[i]);
+        if (test_result == SIM_RC_SUCCESS)
+            passed++;
+        else {
+            failed++;
+            if (test_result != SIM_RC_FAILURE)
+                break;
+        }
+    }
 
     printf(
-        "%d tests performed:\n"
-        " \33[92m✓\33[0m [%d/%d] passed\n"
-        " \33[91mX\33[0m [%d/%d] failed\n"
-        " \33[93m*\33[0m [%d/%d] remaining\n",
-        test_info.total,
-        test_info.passed, test_info.total,
-        test_info.failed, test_info.total,
-        test_info.remaining, test_info.total
+        " %d %s performed:\n"
+        "  \33[92m✓\33[0m [%d/%d] passed\n"
+        "  \33[91mX\33[0m [%d/%d] failed\n"
+        "  \33[93m*\33[0m [%d/%d] remaining\n\n",
+        total - remaining,
+        (total - remaining) == 1 ? "test" : "tests",
+        passed, total,
+        failed, total,
+        remaining, total
     );
-    
-    if (test_result) {
+
+    printf(" Test status strings:\n");
+    for (int i = 0; i < total - remaining; i++) {
         printf(
-            ERR_STR("Test %d of suite returned error: \"%s\""),
-            test_info.total - test_info.remaining,
+            "  [%d]%s%s%s%s\n",
+            i + 1,
+            (tests[test_id].test_funcs[i].name ? " - " : " "),
+            (tests[test_id].test_funcs[i].name ?
+                tests[test_id].test_funcs[i].name :
+                ""
+            ),
+            (tests[test_id].test_funcs[i].name ? " - " : ""),
+            err_strs[i] ? err_strs[i] : "(none)"
+        );
+    }
+    printf("\n");
+
+    free(err_strs);
+    
+    if (test_result != SIM_RC_FAILURE && test_result != SIM_RC_SUCCESS) {
+        printf(
+            ERR_STR(" Test %d of suite returned error: \"%s\""),
+            total - remaining,
             sim_get_return_code_string(test_result)
         );
 
@@ -73,12 +120,34 @@ void perform_test(int test_id, bool exit_on_failure) {
     }
 }
 
+void execute_test_id(const char* id_str, bool exit_on_failure) {
+    int test_id = atoi(id_str);
+    if (test_id > 0 && test_id <= (int)NUM_TESTS) {
+        perform_test(test_id-1, exit_on_failure);
+        return;
+    }
+
+    for (int i = 1; i <= (int)NUM_TESTS; i++) {
+        if (!strcmp(tests[i-1].name, id_str)) {
+            perform_test(i-1, exit_on_failure);
+            return;
+        }
+    }
+
+    printf(ERR_STR("Invalid test ID '%s'"), id_str);
+}
+
 int main(int argc, char* argv[]) {
 #   ifdef _WIN32
         _win32_ansi_setup();
 #   endif
-    setbuf(stdout, NULL);
+    setvbuf(stdout, NULL, _IONBF, 1024);
+    setvbuf(stderr, NULL, _IONBF, 1024);
     signal(SIGINT, sig_catch);
+    signal(SIGSEGV, sig_catch);
+
+    sim_set_default_allocator(&simt_allocator);
+    atexit(simt_atexit_free_all);
 
     bool exit_on_failure = false;
 
@@ -93,11 +162,7 @@ int main(int argc, char* argv[]) {
             break;
         }
 
-        int test_id = atoi(argv[i]) + 1;
-        if (test_id > 0 && test_id < (int)NUM_TESTS)
-            perform_test(test_id, exit_on_failure);
-        else
-            printf(ERR_STR("Invalid test ID '%d'"), test_id);
+        execute_test_id(argv[i], exit_on_failure);
     }
     
     char input_buffer[256];
@@ -121,28 +186,22 @@ int main(int argc, char* argv[]) {
         if (input_len == 0)
             continue;
 
+        // Test for special commands
         if (!strcmp(input_buffer, "q") || !strcmp(input_buffer, "quit"))
+            // break on q or quit
             break;
         if (
             !strcmp(input_buffer, "?") ||
             !strcmp(input_buffer, "h") ||
             !strcmp(input_buffer, "help")
         ) {
+            // list tests on ?, h, or help
             list_tests();
             continue;
         }
 
-        int test_id = atoi(input_buffer);
-        bool is_test = false;
-        for (int i = 0; i < (int)NUM_TESTS; i++) {
-            if (test_id == i + 1 || !strcmp(tests[i].name, input_buffer)) {
-                perform_test(i, exit_on_failure);
-                is_test = true;
-                break;
-            }
-        }
-        if (!is_test)
-            printf(ERR_STR("\"%s\" isn't a valid command or test suite"), input_buffer);
+        // else execute test id
+        execute_test_id(input_buffer, exit_on_failure);
     }
     return 0;
 }
