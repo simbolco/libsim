@@ -66,7 +66,7 @@ static Sim_ReturnCode _sim_hash_initialize(
     const size_t         initial_size
 ) {
     // check for nullptr
-    if (!hash_ptr.hashmap_ptr)
+    if (!hash_ptr.hashmap_ptr || !key_predicate_func_ptr)
         return SIM_RC_ERR_NULLPTR;
 
     allocator_ptr = allocator_ptr ? allocator_ptr : sim_get_default_allocator();
@@ -263,10 +263,10 @@ static Sim_ReturnCode _sim_hash_resize(
     ) % hashmap_ptr->_allocated;                                                            \
     size_t hash2 = 0;                                                                       \
                                                                                             \
-    do {                                                                                    \
-        index = hash % hashmap_ptr->_allocated;                                             \
-        current_node_ptr = data_ptr[index];                                                 \
+    index = hash % hashmap_ptr->_allocated;                                                 \
+    current_node_ptr = data_ptr[index];                                                     \
                                                                                             \
+    while (current_node_ptr) {                                                              \
         if (                                                                                \
             current_node_ptr != (const byte*)&hashmap_ptr->_deleted_item &&                 \
             (*(hashmap_ptr->_key_properties.predicate_func_ptr))(key_ptr, current_node_ptr) \
@@ -286,7 +286,9 @@ static Sim_ReturnCode _sim_hash_resize(
                 ) % hashmap_ptr->_allocated;                                                \
             hash += hash2 + 1;                                                              \
         }                                                                                   \
-    } while (current_node_ptr);
+        index = hash % hashmap_ptr->_allocated;                                             \
+        current_node_ptr = data_ptr[index];                                                 \
+    }
 
 Sim_ReturnCode _sim_hash_insert(
     _Sim_HashPtr hash_ptr,
@@ -573,7 +575,7 @@ Sim_ReturnCode sim_hashset_remove(
     const void *const  remove_item_ptr
 ) {
     // check for nullptr
-    if (!hashset_ptr)
+    if (!hashset_ptr || !remove_item_ptr)
         return SIM_RC_ERR_NULLPTR;
     
     return _sim_hash_remove(
@@ -775,7 +777,7 @@ Sim_ReturnCode sim_hashmap_remove(
     const void *const remove_key_ptr
 ) {
     // check for nullptr
-    if (!hashmap_ptr)
+    if (!hashmap_ptr || remove_key_ptr)
         return SIM_RC_ERR_NULLPTR;
     
     return _sim_hash_remove(
