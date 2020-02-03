@@ -51,17 +51,17 @@ CPP_NAMESPACE_START(SimSoft)
          * @relates Sim_HashSet
          * @brief Initializes a new hashset.
          * 
-         * @param[in,out] hashset_ptr        Pointer to a hashset to initialize.
-         * @param[in]     item_size          Size of each item.
-         * @param[in]     item_type          Type of the items stored in the hashset.
-         * @param[in]     item_hash_func_ptr Item hash function.
-         * @param[in]     item_hash_userdata User-provided data for item hash function.
-         * @param[in]     allocator_ptr      Pointer to allocator to use when resizing hash 
-         *                                   buckets.
-         * @param[in]     initial_size       The initial allocated size of the newly created
-         *                                   hashset.
+         * @param[in,out] hashset_ptr             Pointer to a hashset to initialize.
+         * @param[in]     item_size               Size of each item.
+         * @param[in]     item_type               Type of the items stored in the hashset.
+         * @param[in]     item_hash_func_ptr      Item hash function.
+         * @param[in]     item_predicate_func_ptr Item equality predicate function.
+         * @param[in]     allocator_ptr           Pointer to allocator to use when resizing hash 
+         *                                        buckets.
+         * @param[in]     initial_size            The initial allocated size of the newly created
+         *                                        hashset.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr is @c NULL ;
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e item_predicate_func_ptr @c NULL ;
          *         @b SIM_RC_ERR_OUTOFMEM if hash buckets couldn't be allocated;
          *         @b SIM_RC_SUCCESS      otherwise.
          * 
@@ -79,6 +79,26 @@ CPP_NAMESPACE_START(SimSoft)
             const size_t         initial_size
         );
 
+        /**
+         * @fn Sim_HashSet* sim_hashset_create(6)
+         * @relates Sim_HashSet
+         * @brief Initializes a new hashset.
+         * 
+         * @param[in]     item_size               Size of each item.
+         * @param[in]     item_type               Type of the items stored in the hashset.
+         * @param[in]     item_hash_func_ptr      Item hash function.
+         * @param[in]     item_predicate_func_ptr Item equality predicate function.
+         * @param[in]     allocator_ptr           Pointer to allocator to use when resizing hash 
+         *                                        buckets.
+         * @param[in]     initial_size            The initial allocated size of the newly created
+         *                                        hashset.
+         * 
+         * @return Pointer to the new hashset, @c NULL on error.
+         * 
+         * @sa sim_hashset_initialize
+         * @sa sim_hashset_destroy
+         * @sa sim_hashset_free
+         */
         extern SIM_API Sim_HashSet* C_CALL sim_hashset_create(
             const size_t         item_size,
             const Sim_DataType   item_type,
@@ -131,11 +151,10 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @param[in] hashset_ptr Pointer to a hashset to check.
          * 
-         * @return @c true if the hashset is empty; @c false otherwise or if the
-         *         hashset is @c NULL .
+         * @return @c true if the hashset is empty; @c false otherwise.
          */
 #       define sim_hashset_is_empty(hashset_ptr) \
-            (hashset_ptr ? hashset_ptr->count == 0 : false)
+            ((hashset_ptr)->count == 0)
         
         /**
          * @fn Sim_ReturnCode sim_hashset_clear(1)
@@ -197,7 +216,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @return @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e new_item_ptr are @c NULL ;
          *         @b SIM_RC_ERR_OUTOFMEM if the hashset had to resize to accomodate the newly
          *                                inserted item and was unable to;
-         *         @b SIM_RC_ERR_NOTFOUND if *new_item_ptr is already contained in the hashset;
+         *         @b SIM_RC_FAILURE      if *new_item_ptr is already contained in the hashset;
          *         @b SIM_RC_SUCCESS      otherwise.
          */
         extern SIM_API Sim_ReturnCode C_CALL sim_hashset_insert(

@@ -90,14 +90,15 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in]     key_size               Size of hashmap keys.
          * @param[in]     key_type               Type of the keys stored in the hashmap.
          * @param[in]     key_hash_func_ptr      Key hash function.
-         * @param[in]     key_predicate_func_ptr Key predicate function.
+         * @param[in]     key_predicate_func_ptr Key equality predicate function.
          * @param[in]     value_size             Size of each item.
          * @param[in]     allocator_ptr          Pointer to allocator to use when resizing hash
          *                                       buckets.
          * @param[in]     initial_size           The initial allocated size of the newly created
          *                                       hashmap.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr is @c NULL ;
+         * @return @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr or @e key_predicate_func_ptr are
+         *                                @c NULL ;
          *         @b SIM_RC_ERR_OUTOFMEM if hash buckets couldn't be allocated;
          *         @b SIM_RC_SUCCESS      otherwise.
          * 
