@@ -2,7 +2,7 @@
 
 version.major    = 0
 version.minor    = 5
-version.revision = 1
+version.revision = 2
 
 ifneq ($(WINCMD),)
 RMDIR = rmdir /Q $1; mkdir $1
@@ -308,7 +308,7 @@ lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 	) \
 	linked=1; archived=1; \
 	if [ $$recombine -eq 1 ]; then \
-		if [ ! -z $(NO_DYNAMIC_LIB) ]; then \
+		if [ -z $(NO_DYNAMIC_LIB) ]; then \
 			echo -e "\e[1;96mLinking...\e[0m"; \
 			$(call DLIB,$(BDIR)/$@.$(DLLEXT), \
 				$(patsubst %,$(ODIR)/$(lib.$*.subdir)/%,$(call GET_OBJECT_FILES,lib,$*)),$(LFLAGS) \
@@ -326,7 +326,7 @@ lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 				linked=0; \
 			fi; \
 		fi; \
-		if [ ! -z $(NO_STATIC_LIB)]; then \
+		if [ -z $(NO_STATIC_LIB)]; then \
 			echo -e "\e[1;96mArchiving...\e[0m"; \
 			$(call SLIB,$(LDIR)/$@.$(AR_EXT), \
 				$(patsubst %,$(ODIR)/$(lib.$*.subdir)/%,$(call GET_OBJECT_FILES,lib,$*)) \
@@ -409,7 +409,7 @@ exe%: odir ldir bdir $(if $(CLEAN),clean_exe%,)
 			echo -e "\t\e[0;31mError linking '$(BDIR)/$*$(EXEEXT)': error code $$EXIT_CODE\e[0m"; \
 			linked=0; \
 		fi; \
-	if [ $(OS) = Windows_NT ] && [ ! -z $(NO_SYMBOLS) ] && [ -f $(wildcard cv2pdb$(EXEEXT)) ]; \
+	if [ $(OS) = Windows_NT ] && [ -z $(NO_SYMBOLS) ] && [ -f $(wildcard cv2pdb$(EXEEXT)) ]; \
 	then \
 		echo -e "\e[1;96mGenerating .pdb...\e[0m"; \
 		./cv2pdb -C $(BDIR)/$*$(EXEEXT); \
