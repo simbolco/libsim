@@ -11,7 +11,13 @@
 
 #ifndef SIMSOFT__INTERNAL_C_
 #define SIMSOFT__INTERNAL_C_
+
 #include "./_internal.h"
+
+// sim_return_code(0): Gets the return code from SimSoft library functions.
+Sim_ReturnCode sim_return_code() {
+    return _SIM_RETURN_CODE;
+}
 
 // Debug print functions
 #ifdef DEBUG
@@ -93,10 +99,9 @@ size_t _sim_prev_prime(size_t num) {
 }
 
 size_t _sim_siphash(
-    const byte*  data_ptr,
-    const size_t data_size,
-    const uint64 k0,
-    const uint64 k1
+    const byte*        data_ptr,
+    const size_t       data_size,
+    const _Sim_HashKey key
 ) {
 #   define ROTL(x, b) (uint64)(((x) << (b)) | ((x) >> (64 - (b))))
 
@@ -149,10 +154,10 @@ size_t _sim_siphash(
     
     uint64 b = ((uint64)data_size) << 56;
 
-    v3 ^= k1;
-    v2 ^= k0;
-    v1 ^= k1;
-    v0 ^= k0;
+    v3 ^= key[1];
+    v2 ^= key[0];
+    v1 ^= key[1];
+    v0 ^= key[0];
 
     uint64 m;
     for (; data_ptr != end_ptr; data_ptr += 8) {
@@ -206,5 +211,6 @@ size_t _sim_siphash(
 #   undef U64TO8_LE
 #   undef U8TO64_LE
 }
+
 
 #endif /* SIMSOFT__INTERNAL_C_ */
