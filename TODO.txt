@@ -2,8 +2,8 @@ HIGH PRIORITY:
  - Implement TreeMap and TreeSet, with a similar API to HashMap and HashSet, respectively.
  - Fully implement C++ Vector.
  - Implement String and StringView.
- - Properly document & test C++ Exception.
- - Finish documenting HashSet, HashMap, and other files with incomplete documentation.
+ - Properly test C++ Exception.
+ - Finish documenting files lacking complete documentation.
  - Finalize & publish a style guide.
 
 LOW PRIORITY:
