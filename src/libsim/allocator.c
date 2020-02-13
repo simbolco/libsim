@@ -14,13 +14,13 @@
 
 #include "simsoft/allocator.h"
 
-static const Sim_Allocator SIM_DEFAULT_ALLOCATOR = {
+static const Sim_IAllocator SIM_DEFAULT_ALLOCATOR = {
     sim_allocator_default_malloc,
     sim_allocator_default_falloc,
     sim_allocator_default_realloc,
     sim_allocator_default_free
 };
-static const Sim_Allocator* SIM_EXTERN_DEFAULT_ALLOCATOR = &SIM_DEFAULT_ALLOCATOR;
+static const Sim_IAllocator* SIM_EXTERN_DEFAULT_ALLOCATOR = &SIM_DEFAULT_ALLOCATOR;
 
 // sim_allocator_default_malloc(1): The default memory allocation function used by the default
 //                                  allocator.
@@ -51,12 +51,12 @@ void sim_allocator_default_free(void* ptr) {
 }
 
 // sim_get_default_allocator(0): Retrieve the default allocator.
-const Sim_Allocator *const sim_get_default_allocator(void) {
+const Sim_IAllocator *const sim_get_default_allocator(void) {
     return SIM_EXTERN_DEFAULT_ALLOCATOR;
 }
 
 // sim_set_default_allocator(1): Get the default allocator.
-void sim_set_default_allocator(Sim_Allocator *const allocator) {
+void sim_set_default_allocator(Sim_IAllocator *const allocator) {
     SIM_EXTERN_DEFAULT_ALLOCATOR = allocator ?
         allocator :
         &SIM_DEFAULT_ALLOCATOR

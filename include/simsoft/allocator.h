@@ -1,7 +1,7 @@
 /**
  * @file allocator.h
  * @author Simon Struthers (snstruthers@gmail.com)
- * @brief Header for allocators
+ * @brief Header for allocator inferface
  * @version 0.1
  * @date 2020-01-06
  * 
@@ -16,11 +16,11 @@
 
 CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_START /* C API */
-        
+
         /**
          * @typedef Sim_MemAllocFuncPtr
          * @headerfile allocator.h "simsoft/allocator.h"
-         * @relates Sim_Allocator
+         * @relates Sim_IAllocator
          * @breif Function pointer for dynamic memory allocation.
          * 
          * @param[in] size How much memory to allocate.
@@ -38,7 +38,7 @@ CPP_NAMESPACE_START(SimSoft)
         /**
          * @typedef Sim_MemFilledAllocFuncPtr
          * @headerfile allocator.h "simsoft/allocator.h"
-         * @relates Sim_Allocator
+         * @relates Sim_IAllocator
          * @breif Function pointer for filled dynamic memory allocation.
          * 
          * @param[in] size How much memory to allocate.
@@ -58,7 +58,7 @@ CPP_NAMESPACE_START(SimSoft)
         /**
          * @typedef Sim_MemReallocFuncPtr
          * @headerfile allocator.h "simsoft/allocator.h"
-         * @relates Sim_Allocator
+         * @relates Sim_IAllocator
          * @brief Function pointer for dynamic memory reallocation.
          * 
          * @param[in] ptr  Pointer to malloc'd/falloc'd memory to reallocate.
@@ -78,7 +78,7 @@ CPP_NAMESPACE_START(SimSoft)
         /**
          * @typedef Sim_MemFreeFuncPtr
          * @headerfile allocator.h "simsoft/allocator.h"
-         * @relates Sim_Allocator
+         * @relates Sim_IAllocator
          * @breif Function pointer for freeing dynamically allocated memory.
          * 
          * @param[in] ptr Pointer to malloc'd/falloc'd/realloc'd memory to free.
@@ -93,7 +93,7 @@ CPP_NAMESPACE_START(SimSoft)
 
 
         /**
-         * @struct Sim_Allocator
+         * @struct Sim_IAllocator
          * @headerfile allocator.h "simsoft/allocator.h"
          * @brief Interface for a memory allocator.
          * 
@@ -102,16 +102,16 @@ CPP_NAMESPACE_START(SimSoft)
          * @var realloc Memory reallocation function.
          * @var free    Allocated memory free function.
          */
-        typedef struct Sim_Allocator {
+        typedef struct Sim_IAllocator {
             Sim_MemAllocFuncPtr       malloc;
             Sim_MemFilledAllocFuncPtr falloc;
             Sim_MemReallocFuncPtr     realloc;
             Sim_MemFreeFuncPtr        free;
-        } Sim_Allocator;
+        } Sim_IAllocator;
 
         /**
          * @fn void* sim_allocator_default_malloc(1)
-         * @relates Sim_Allocator
+         * @relates Sim_IAllocator
          * @brief The default memory allocation function used by the default allocator.
          * 
          * @param[in] size How much memory to allocate.
@@ -122,13 +122,13 @@ CPP_NAMESPACE_START(SimSoft)
          * @sa sim_allocator_default_realloc
          * @sa sim_allocator_default_free
          */
-        extern SIM_API void* C_CALL sim_allocator_default_malloc(
+        extern EXPORT void* C_CALL sim_allocator_default_malloc(
             size_t size
         );
 
         /**
          * @fn void* sim_allocator_default_falloc(2)
-         * @relates Sim_Allocator
+         * @relates Sim_IAllocator
          * @brief The default filled memory allocation function used by the default allocator.
          * 
          * @param[in] size How much memory to allocate.
@@ -140,14 +140,14 @@ CPP_NAMESPACE_START(SimSoft)
          * @sa sim_allocator_default_realloc
          * @sa sim_allocator_default_free
          */
-        extern SIM_API void* C_CALL sim_allocator_default_falloc(
+        extern EXPORT void* C_CALL sim_allocator_default_falloc(
             size_t size,
             ubyte fill
         );
 
         /**
          * @fn void* sim_allocator_default_realloc(2)
-         * @relates Sim_Allocator
+         * @relates Sim_IAllocator
          * @brief The default memory reallocation function used by the default allocator.
          * 
          * @param[in] ptr  Pointer to malloc'd/falloc'd memory to reallocate.
@@ -159,14 +159,14 @@ CPP_NAMESPACE_START(SimSoft)
          * @sa sim_allocator_default_falloc
          * @sa sim_allocator_default_free
          */
-        extern SIM_API void* C_CALL sim_allocator_default_realloc(
+        extern EXPORT void* C_CALL sim_allocator_default_realloc(
             void* ptr,
             size_t size
         );
 
         /**
          * @fn void sim_allocator_default_free(1)
-         * @relates Sim_Allocator
+         * @relates Sim_IAllocator
          * @brief The default memory free function used by the default allocator.
          * 
          * @param[in] ptr Pointer to malloc'd/falloc'd/realloc'd memory to free.
@@ -175,24 +175,24 @@ CPP_NAMESPACE_START(SimSoft)
          * @sa sim_allocator_default_falloc
          * @sa sim_allocator_default_realloc
          */
-        extern SIM_API void  C_CALL sim_allocator_default_free(
+        extern EXPORT void  C_CALL sim_allocator_default_free(
             void* ptr
         );
 
         /**
-         * @fn const Sim_Allocator *const sim_get_default_allocator(0)
-         * @relates Sim_Allocator
+         * @fn const Sim_IAllocator *const sim_get_default_allocator(0)
+         * @relates Sim_IAllocator
          * @brief Retrieve the default allocator.
          * 
          * @return Pointer to the default allocator.
          * 
          * @sa sim_set_default_allocator
          */
-        extern SIM_API const Sim_Allocator *const C_CALL sim_get_default_allocator(void);
+        extern EXPORT const Sim_IAllocator *const C_CALL sim_get_default_allocator(void);
         
         /**
          * @fn sim_set_default_allocator(1)
-         * @relates Sim_Allocator
+         * @relates Sim_IAllocator
          * @brief Set the default allocator.
          * 
          * @param[in] allocator Pointer to an allocator to use as the default or @c NULL to
@@ -200,54 +200,29 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @sa sim_get_default_allocator
          */
-        extern SIM_API void C_CALL sim_set_default_allocator(
-            Sim_Allocator *const allocator
+        extern EXPORT void C_CALL sim_set_default_allocator(
+            Sim_IAllocator *const allocator
         );
     
     CPP_NAMESPACE_C_API_END /* end C API */
 
 #   ifdef __cplusplus /* C++ API */
 
-        class Allocator {
-        protected:
-            C_API::Sim_Allocator _c_allocator;
+        class EXPORT Allocator {
+        private:
+            C_API::Sim_IAllocator _c_allocator;
         
         public:
-            Allocator(const C_API::Sim_Allocator *const c_allocator_ptr) {
-                memcpy(&c_allocator, c_allocator_ptr, sizeof(C_API::Sim_Allocator));
-            }
-            Allocator() : Allocator(sim_get_default_allocator()) {}
+            virtual void* malloc(size_t size) = 0;
+            virtual void* falloc(size_t size, ubyte fill = 0x00) = 0;
+            virtual void* realloc(void* ptr, size_t size) = 0;
+            virtual void  free(void* ptr) = 0;
 
-            ~Allocator() {}
+            Allocator();
+            virtual ~Allocator() = 0;
 
-            C_API::Sim_Allocator *const get_c_allocator() const {
+            C_API::Sim_IAllocator *const get_c_allocator() const {
                 return &_c_allocator;
-            }
-
-            template <class T>
-            T* malloc() final {
-                return _c_allocator.malloc(sizeof(T));
-            }
-            template <>
-            void* malloc(size_t size) final {
-                return _c_allocator.malloc(size);
-            }
-
-            template <class T>
-            T* falloc(ubyte fill = 0) final {
-                return _c_allocator.falloc(sizeof(T), fill);
-            }
-            template <>
-            void* falloc(size_t size, ubyte fill = 0) final {
-                return _c_allocator.falloc(size, fill);
-            }
-
-            void* realloc(void* ptr, size_t size) final {
-                return _c_allocator.realloc(ptr, size);
-            }
-
-            void free(void* ptr) final {
-                return _c_allocator.free(ptr);
             }
         }
         
