@@ -54,33 +54,33 @@
 // ---- Dynamic library / Shared object export macros ---------------------------------------------
 
 // (borrowed from SDL source code)
-#ifndef SIM_API
+#ifndef EXPORT
 #   if defined(__WIN32__) || defined(__WINRT__)
 #       ifdef __BORLANDC__
 #           ifdef SIM_BUILD
-#               define SIM_API
+#               define EXPORT
 #           else
-#               define SIM_API __declspec(dllimport)
+#               define EXPORT __declspec(dllimport)
 #           endif
 #       else
-#           define SIM_API __declspec(dllexport)
+#           define EXPORT __declspec(dllexport)
 #       endif
 #   elif defined(__OS2__)
 #       ifdef SIM_BUILD
-#           define SIM_API __declspec(dllexport)
+#           define EXPORT __declspec(dllexport)
 #       else
-#           define SIM_API
+#           define EXPORT
 #       endif
 #   else
 #       if defined(__GNUC__) && __GNUC__ >= 4
-#           define SIM_API __attribute__ ((visibility("default")))
+#           define EXPORT __attribute__ ((visibility("default")))
 #      else
-#           define SIM_API
+#           define EXPORT
 #       endif
 #   endif
 #   ifdef __SYMBIAN32__
-#       undef  SIM_API
-#       define SIM_API
+#       undef  EXPORT
+#       define EXPORT
 #   endif
 #endif
 
@@ -437,10 +437,19 @@ CPP_NAMESPACE_START(SimSoft)
             Sim_Variant userdata
         );
 
+        /**
+         * @fn Sim_ReturnCode sim_return_code(0)
+         * @headerfile common.h "simsoft/common.h"''
+         * @brief Gets the return code from SimSoft library functions.
+         * 
+         * @return A thread-local internal return code from the previous library function call.
+         */
+        extern EXPORT Sim_ReturnCode C_CALL sim_return_code(void);
+
     CPP_NAMESPACE_C_API_END /* end C API */
  
 #   ifdef __cplusplus /* C++ API */
-        typedef C_API::Sim_Variant   Variant;
+        typedef C_API::Sim_Variant Variant;
 
 #       define __ENUMERATE_RETURN_CODE(rc_name) rc_name,
         enum ReturnCode {
@@ -448,6 +457,16 @@ CPP_NAMESPACE_START(SimSoft)
             ERR_404 = ERR_NOTFOUND
         };
 #       undef __ENUMERATE_RETURN_CODE
+
+        template <class RT, class FUNCTOR, class...ARGS>
+        RT c_back_porch_functor_wrapper(ARGS... args, FUNCTOR* functor) {
+            return (*functor)(args...);
+        }
+
+        template <class RT, class FUNCTOR, class...ARGS>
+        RT c_front_porch_functor_wrapper(FUNCTOR* functor, ARGS... args) {
+            return (*functor)(args...);
+        }
 
         template <class T>
         struct Predicate_Equal {
@@ -531,7 +550,7 @@ CPP_NAMESPACE_START(SimSoft)
             typedef T argument_1_type, argument_2_type;
             typedef int return_type;
         };
-
+        
         /*
         template <bool B, class T = void>
         struct EnableIf {
