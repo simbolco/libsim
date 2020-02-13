@@ -47,16 +47,14 @@ const char* sim_get_return_code_string(
     ;
 }
 
-// sim_get_backtrace_info(4): Retrieve stack backtrace information.
-Sim_ReturnCode sim_get_backtrace_info(
+// sim_get_backtrace_info(3): Retrieve stack backtrace information.
+size_t sim_get_backtrace_info(
     Sim_BacktraceInfo backtrace_array[],
     size_t            backtrace_size,
-    size_t            skip_frames,
-    size_t *const     out_num_frames
+    size_t            skip_frames
 ) {
     // check for nullptr
-    if (!backtrace_array)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!backtrace_array, SIM_RC_ERR_NULLPTR, 0);
 
 #   ifdef _WIN32
         // get process/thread handles
@@ -76,7 +74,7 @@ Sim_ReturnCode sim_get_backtrace_info(
         if (!SymInitialize(process_handle, NULL, true))
         {
             _sim_win32_print_last_error("SymInitialize(%p, %p, true)", process_handle, NULL);
-            return SIM_RC_FAILURE;
+            RETURN(SIM_RC_FAILURE, 0);
         }
 
         // prepare stack frame struct
@@ -158,7 +156,7 @@ Sim_ReturnCode sim_get_backtrace_info(
                             free(backtrace_array[index].function_name);
                             backtrace_array[index].function_address = NULL;
                         }
-                        return SIM_RC_ERR_OUTOFMEM;
+                        RETURN(SIM_RC_ERR_OUTOFMEM, index - 1);
                     }
                     
                     // get line/file info from address
@@ -178,7 +176,7 @@ Sim_ReturnCode sim_get_backtrace_info(
                                 free(backtrace_array[index].function_name);
                                 backtrace_array[index].function_address = NULL;
                             }
-                            return SIM_RC_ERR_OUTOFMEM;
+                            RETURN(SIM_RC_ERR_OUTOFMEM, index - 1);
                         }
                     } else {
                         _sim_win32_print_last_error(
@@ -212,12 +210,8 @@ Sim_ReturnCode sim_get_backtrace_info(
         if (!SymCleanup(process_handle)) {
             _sim_win32_print_last_error("SymCleanup(%p)", process_handle);
         }
-
-        // fill in out_num_frames if provided
-        if (out_num_frames)
-            *out_num_frames = index;
-
-        return SIM_RC_SUCCESS;
+        
+        RETURN(SIM_RC_SUCCESS, index);
 
 #   elif defined(__GLIBC__)
         // get backtrace addresses
@@ -241,26 +235,22 @@ Sim_ReturnCode sim_get_backtrace_info(
                 if (!backtrace_array[i - skip_frames].function_name) {
                     for (int j = i; j >= 0; j--) {
                         free(backtrace_array[j].function_name);
-                        backtrace_array[j] = NULL;
+                        backtrace_array[j].function_address = NULL;
                     }
                     
-                    return SIM_RC_ERR_OUTOFMEM;
+                    RETURN(SIM_RC_ERR_OUTOFMEM, 0);
                 }
             } else
                 backtrace_array[i - skip_frames].function_name = NULL;
         }
 
         free(backtrace_symbol_array);
-
-        if (out_num_frames)
-            *out_num_frames = (size_t)num_entries;
-
-        return SIM_RC_SUCCESS;
+        RETURN(SIM_RC_SUCCESS, index);
 
 #   else
 #       warning("sim_get_backtrace_info(4) is unsupported")
         (void)backtrace_array; (void)backtrace_size; (void)out_num_frames; (void)skip_frames;
-        return SIM_RC_ERR_UNSUPRTD;
+        RETURN(SIM_RC_ERR_UNSUPRTD, 0);
 #   endif
 }
 

@@ -31,19 +31,20 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_BacktraceInfo;
 
         /**
-         * @fn Sim_ReturnCode sim_get_backtrace_info(4)
+         * @fn size_t sim_get_backtrace_info(3)
          * @relates Sim_BacktraceInfo
          * @brief Retrieve stack backtrace information.
          * 
          * @param[in,out] backtrace_array Array of Sim_BacktraceInfo structs to populate.
          * @param[in]     backtrace_size  Size of @e backtrace_array.
          * @param[in]     skip_frames     How many frames to skip from the top of the stack.
-         * @param[out]    out_num_frames  How much the given array was filled up to; always
-         *                                less than or equal to @e backtrace_size-skip_frames.
-         *
-         * @return @b SIM_RC_OUTOFMEM If there isn't enough memory to allocate symbol strings;
-         *         @b SIM_RC_FAILURE  If the stack backtrace couldn't be retrieved;
-         *         @b SIM_RC_SUCCSSS  otherwise.
+         * 
+         * @return The number of frames in the array that were filled.
+         * 
+         * @remarks sim_return_code() is set to one of the folliwng:
+         *     @b SIM_RC_OUTOFMEM If there isn't enough memory to allocate symbol strings;
+         *     @b SIM_RC_FAILURE  If the stack backtrace couldn't be retrieved;
+         *     @b SIM_RC_SUCCSSS  otherwise.
          *
          * @remarks Build libsim in DEBUG mode to get platform-specific error information if you
          *          find elements in @e backtrace_array to not be as populated as you'd expect.
@@ -53,11 +54,10 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          *          Strings in @e backtrace_array must be freed.
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_get_backtrace_info(
+        extern EXPORT size_t C_CALL sim_get_backtrace_info(
             Sim_BacktraceInfo backtrace_array[],
             size_t            backtrace_size,
-            size_t            skip_frames,
-            size_t *const     out_num_frames
+            size_t            skip_frames
         );
 
         /**
@@ -70,7 +70,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @return A string corresponding to the given return; @c NULL if @e return_code is
          *         an invalid value.
          */
-        extern SIM_API const char* C_CALL sim_get_return_code_string(
+        extern EXPORT const char* C_CALL sim_get_return_code_string(
             Sim_ReturnCode return_code
         );
     
@@ -80,13 +80,13 @@ CPP_NAMESPACE_START(SimSoft)
         
         typedef C_API::Sim_BacktraceInfo BacktraceInfo;
 
-        extern SIM_API size_t get_backtrace_info(
+        extern EXPORT size_t get_backtrace_info(
             BacktraceInfo backtrace_array[],
             size_t        backtrace_size,
             size_t        skip_frames = 0
         );
 
-        extern SIM_API const char* get_return_code_string(
+        extern EXPORT const char* get_return_code_string(
             ReturnCode return_code
         );
 
