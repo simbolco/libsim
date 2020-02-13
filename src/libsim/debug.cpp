@@ -13,6 +13,8 @@
 #define SIMSOFT_DEBUG_CPP_
 
 #include "simsoft/debug.h"
+#include "simsoft/exception.hpp"
+#include "./_internal.h"
 
 using namespace SimSoft;
 
@@ -22,15 +24,15 @@ size_t SimSoft::get_backtrace_info(
     size_t        skip_frames
 ) {
     size_t num_frames = 0;
-    ReturnCode rc;
 
-    if ((rc = (ReturnCode)C_API::sim_get_backtrace_info(
+    num_frames = C_API::sim_get_backtrace_info(
         backtrace_array,
         backtrace_size,
-        skip_frames,
-        &num_frames
-    )) != ReturnCode::SUCCESS)
-        return (size_t)-1;
+        skip_frames
+    );
+
+    if (_SIM_RETURN_CODE)
+        throw Exception((ReturnCode)_SIM_RETURN_CODE);
 
     return num_frames;
 }
