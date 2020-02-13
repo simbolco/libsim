@@ -24,7 +24,7 @@ CPP_NAMESPACE_START(SimSoft)
                 size_t item_size : (sizeof(size_t)*8)-2;                // size of items
                 ssize_t (*item_comparison_func_ptr)(const void *const); // item comparison function
             } _item_properties;  // properties of treeset items
-            const Sim_Allocator *const _allocator_ptr; // node allocator
+            const Sim_IAllocator *const _allocator_ptr; // node allocator
             void* _root_ptr; // pointer to tree map root
 
             size_t count;   // amount of items stored in the treeset

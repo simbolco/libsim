@@ -25,7 +25,7 @@ CPP_NAMESPACE_START(SimSoft)
                 ssize_t (*key_comparison_func_ptr)(const void *const); // key comparison function
             } _key_properties;  // properties of treemap keys
             size_t _value_size; // size of treemap values
-            const Sim_Allocator *const _allocator_ptr; // node allocator
+            const Sim_IAllocator *const _allocator_ptr; // node allocator
             void* _root_ptr; // pointer to tree map root
 
             size_t count;   // amount of items stored in the treemap
