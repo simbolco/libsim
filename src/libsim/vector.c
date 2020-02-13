@@ -15,25 +15,26 @@
 #include "simsoft/vector.h"
 #include "./_internal.h"
 
-// sim_vector_initialize(5): Initializes a new vector.
-Sim_ReturnCode sim_vector_initialize(
-    Sim_Vector*              vector_ptr,
-    const size_t             item_size,
-    const Sim_DataType item_type,
-    const Sim_Allocator*     allocator_ptr,
-    const size_t             initial_size
+// sim_vector_construct(5): Constructs a new vector.
+void sim_vector_construct(
+    Sim_Vector*           vector_ptr,
+    const size_t          item_size,
+    const Sim_DataType    item_type,
+    const Sim_IAllocator* allocator_ptr,
+    size_t                initial_size
 ) {
-    if (!vector_ptr)
-        return SIM_RC_ERR_NULLPTR;
-    
-    allocator_ptr = allocator_ptr ? allocator_ptr : sim_get_default_allocator();
+    RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR,);
+
+    if (!initial_size)
+        initial_size = SIM_DEFAULT_VECTOR_SIZE;
+        
+    // use default allocator on NULL
+    if (!allocator_ptr)
+        allocator_ptr = sim_get_default_allocator();
 
     // allocate internal array
-    void* data_ptr = allocator_ptr->malloc(
-        item_size * (initial_size ? initial_size : SIM_DEFAULT_VECTOR_SIZE)
-    );
-    if (!data_ptr)
-        return SIM_RC_ERR_OUTOFMEM;
+    void* data_ptr = allocator_ptr->malloc(item_size * initial_size);
+    RETURN_IF(!data_ptr, SIM_RC_ERR_OUTOFMEM,);
     
     // set up initial properties of Sim_Vector
     Sim_Vector vec = {
@@ -42,66 +43,35 @@ Sim_ReturnCode sim_vector_initialize(
             .size = item_size
         },
         ._allocator_ptr = allocator_ptr,
-        ._allocated = initial_size ? initial_size : SIM_DEFAULT_VECTOR_SIZE,
+        ._allocated = initial_size,
 
         .count = 0,
-        .data_ptr   = data_ptr
+        .data_ptr = data_ptr
     };
 
     // copy to vector pointer
     memcpy(vector_ptr, &vec, sizeof(Sim_Vector));
-    return SIM_RC_SUCCESS;
+    RETURN(SIM_RC_SUCCESS,);
 }
 
-// sim_vector_create(4): Creates a new vector on the heap.
-Sim_Vector* sim_vector_create(
-    const size_t         item_size,
-    const Sim_DataType   item_type,
-    const Sim_Allocator* allocator_ptr,
-    const size_t         initial_size
-) {
-    // allocate vector
-    Sim_Vector* vector_ptr = malloc(sizeof(Sim_Vector));
-    
-    // initialize vector & free if unsuccessful
-    if (!(sim_vector_initialize(
-        vector_ptr,
-        item_size,
-        item_type,
-        allocator_ptr,
-        initial_size
-    ) == SIM_RC_SUCCESS)) {
-        free(vector_ptr);
-        return NULL;
-    }
-    
-    return vector_ptr;
-}
-
-// sim_vector_destroy(1): Destroys an initialized vector.
-Sim_ReturnCode sim_vector_destroy(
+// sim_vector_destroy(1): Destroys a vector.
+void sim_vector_destroy(
     Sim_Vector *const vector_ptr
 ) {
     // check for nullptr
-    if (!vector_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR,);
 
     // free internal array
     vector_ptr->_allocator_ptr->free(vector_ptr->data_ptr);
-
-    return SIM_RC_SUCCESS;
+    RETURN(SIM_RC_SUCCESS,);
 }
 
-// sim_vector_free(1): Frees & destroys a heap-allocated vector.
-_OBJECT_FREE_FUNCTION(Sim_Vector, sim_vector)
-
 // sim_vector_clear(1): Clears a vector of all its contents.
-Sim_ReturnCode sim_vector_clear(
+void sim_vector_clear(
     Sim_Vector *const vector_ptr
 ) {
     // check for nullptr
-    if (!vector_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR,);
 
     // free array & set count to 0
     vector_ptr->_allocator_ptr->free(vector_ptr->data_ptr);
@@ -109,25 +79,22 @@ Sim_ReturnCode sim_vector_clear(
     vector_ptr->_allocated = 0;
     vector_ptr->count = 0;
 
-    return SIM_RC_SUCCESS;
+    RETURN(SIM_RC_SUCCESS,);
 }
 
-// sim_vector_resize(2): Resizes the internal array of a vector.
-Sim_ReturnCode sim_vector_resize(
+// sim_vector_resize(2): Resizes a vector to a given size.
+void sim_vector_resize(
     Sim_Vector *const vector_ptr,
     const size_t size
 ) {
     // check for nullptr
-    if (!vector_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR,);
 
     // skip if allocated & size are identical
-    if (size == vector_ptr->_allocated)
-        return SIM_RC_SUCCESS;
+    RETURN_IF(size == vector_ptr->_allocated, SIM_RC_SUCCESS,);
 
     // error if size < count
-    if (size < vector_ptr->count)
-        return SIM_RC_ERR_INVALARG;
+    RETURN_IF(size <vector_ptr->count, SIM_RC_ERR_INVALARG,);
 
     // calculate how many bytes to allocate for internal array
     size_t bytes_to_alloc =
@@ -144,82 +111,60 @@ Sim_ReturnCode sim_vector_resize(
     else
         data_ptr = vector_ptr->_allocator_ptr->malloc(bytes_to_alloc);
 
-    if (!data_ptr)
-        return SIM_RC_ERR_OUTOFMEM;
+    RETURN_IF(!data_ptr, SIM_RC_ERR_OUTOFMEM,);
     
     // reassign data_ptr and _allocated
     vector_ptr->data_ptr = data_ptr;
     vector_ptr->_allocated = size;
 
-    return SIM_RC_SUCCESS;
+    RETURN(SIM_RC_SUCCESS,);
 }
 
-// sim_vector_get(3): Get an item from the vector at a particular index.
-Sim_ReturnCode sim_vector_get(
+// sim_vector_get_ptr(2):  Get pointer to data in a vector at a given index.
+void* sim_vector_get_ptr(
     Sim_Vector *const vector_ptr,
-    const size_t      index,
-    void*             data_out_ptr
+    const size_t      index
 ) {
     // check for nullptr
-    if (!vector_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR, NULL);
 
     // check for out-of-bounds index
-    if (index >= vector_ptr->count)
-        return SIM_RC_ERR_OUTOFBND;
-
-    const size_t item_size = vector_ptr->_item_properties.size;
-
-    // fill data_out_ptr with item if provided
-    if (data_out_ptr)
-        memcpy(
-            data_out_ptr,
-            (byte*)vector_ptr->data_ptr + (item_size * index),
-            item_size
-        );
-
-    return SIM_RC_SUCCESS;
-}
-
-// sim_vector_get_ptr(3):  Get pointer to data in the vector at a particular index.
-Sim_ReturnCode sim_vector_get_ptr(
-    Sim_Vector *const vector_ptr,
-    const size_t      index,
-    void* *const      data_out_ptr
-) {
-    // check for nullptr
-    if (!vector_ptr)
-        return SIM_RC_ERR_NULLPTR;
-
-    // check for out-of-bounds index
-    if (index >= vector_ptr->count)
-        return SIM_RC_ERR_OUTOFBND;
+    RETURN_IF(index >= vector_ptr->count, SIM_RC_ERR_OUTOFBND, NULL);
 
     const size_t item_size = vector_ptr->_item_properties.size;
 
     // set data_out_ptr to pointer to data if provided
-    if (data_out_ptr)
-        *data_out_ptr = (byte*)vector_ptr->data_ptr + (item_size * index);
-    
-    return SIM_RC_SUCCESS;
+    RETURN(SIM_RC_SUCCESS, (byte*)vector_ptr->data_ptr + (item_size * index));
 }
 
-// sim_vector_index_of(5): Get the index of the first item in the vector the tests equal to given
+// sim_vector_get(3): Get an item from a vector at a given index.
+void sim_vector_get(
+    Sim_Vector *const vector_ptr,
+    const size_t      index,
+    void*             data_out_ptr
+) {
+    void* data_ptr = sim_vector_get_ptr(vector_ptr, index);
+    if (data_ptr)
+        memcpy(data_out_ptr, data_ptr, vector_ptr->_item_properties.size);
+}
+
+// sim_vector_index_of(4): Get the index of the first item in a vector that tests equal to given
 //                         data.
-Sim_ReturnCode sim_vector_index_of(
+size_t sim_vector_index_of(
     Sim_Vector *const    vector_ptr,
     const void *const    item_ptr,
     Sim_PredicateFuncPtr predicate_func_ptr,
-    const size_t         starting_index,
-    size_t *const        index_out_ptr
+    const size_t         starting_index
 ) {
     // check for nullptrs
-    if (!vector_ptr || !item_ptr || !predicate_func_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(
+        !vector_ptr || !item_ptr || !predicate_func_ptr,
+        SIM_RC_ERR_NULLPTR,
+        (size_t)-1
+    );
 
     // check for out-of-bounds starting index
-    if (starting_index >= vector_ptr->count)
-        return SIM_RC_ERR_OUTOFBND;
+    RETURN_IF(starting_index >= vector_ptr->count, SIM_RC_ERR_OUTOFBND, (size_t)-1);
     
     byte*  data_ptr = (byte*)vector_ptr->data_ptr;
     size_t count = vector_ptr->count;
@@ -228,23 +173,14 @@ Sim_ReturnCode sim_vector_index_of(
     // iterate over indexes
     for (size_t i = starting_index; i < count; i++) {
         // check if item & comparison_data compare as equal
-        if ((*predicate_func_ptr)(data_ptr, item_ptr)) {
-            // set index_out_ptr to index if provided
-            if (index_out_ptr)
-                *index_out_ptr = i;
-            
-            return SIM_RC_SUCCESS;
-        }
+        if ((*predicate_func_ptr)(data_ptr, item_ptr))
+            RETURN(SIM_RC_SUCCESS, i);
 
         // iterate data_ptr forward one item
         data_ptr += item_size;
     }
-
-    // set index_out_ptr to -1 if provided
-    if (index_out_ptr)
-        *index_out_ptr = (size_t)-1;
     
-    return SIM_RC_ERR_NOTFOUND;
+    RETURN(SIM_RC_ERR_NOTFOUND, (size_t)-1);
 }
 
 // sim_vector_contains(3): Checks if an item is contained in the vector.
@@ -253,57 +189,51 @@ bool sim_vector_contains(
     const void *const    item_ptr,
     Sim_PredicateFuncPtr predicate_func_ptr
 ) {
-    return !sim_vector_index_of(
+    return sim_vector_index_of(
         vector_ptr,
         item_ptr,
         predicate_func_ptr,
-        0,
-        NULL
-    );
+        0
+    ) != (size_t)-1;
 }
 
 // sim_vector_push(2): Push a new item to the back of the vector.
-Sim_ReturnCode sim_vector_push(
+void sim_vector_push(
     Sim_Vector *const vector_ptr,
     const void*       new_item_ptr
 ) {
-    return sim_vector_insert(
-        vector_ptr,
-        new_item_ptr,
-        vector_ptr ?
-            vector_ptr->count :
-            0
-    );
+    sim_vector_insert(vector_ptr, new_item_ptr, vector_ptr ? vector_ptr->count : 0);
 }
 
 // sim_vector_insert(3):  Insert a new item into the vector at a particular index.
-Sim_ReturnCode sim_vector_insert(
+void sim_vector_insert(
     Sim_Vector *const vector_ptr,
     const void*       new_item_ptr,
     const size_t      index
 ) {
     // check for nullptrs
-    if (!vector_ptr || !new_item_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!vector_ptr || !new_item_ptr, SIM_RC_ERR_NULLPTR,);
 
     // check for out-of-bounds index
-    if (index > vector_ptr->count)
-        return SIM_RC_ERR_OUTOFBND;
+    RETURN_IF(index > vector_ptr->count, SIM_RC_ERR_OUTOFBND,);
 
+    // reallocate data_ptr if cleared
     if (!vector_ptr->data_ptr) {
-        Sim_ReturnCode rc = sim_vector_resize(vector_ptr, SIM_DEFAULT_VECTOR_SIZE);
-        if (rc)
-            return rc;
+        sim_vector_resize(vector_ptr, SIM_DEFAULT_VECTOR_SIZE);
+        if (_SIM_RETURN_CODE)
+            return;
     }
 
     const size_t item_size = vector_ptr->_item_properties.size;
     byte*  data_ptr = vector_ptr->data_ptr;
     
-    // resize vector if needed
+    // resize vector if full
     if (vector_ptr->count == vector_ptr->_allocated) {
         // check for overflow
-        if (item_size * vector_ptr->_allocated * 2 < item_size * vector_ptr->_allocated)
-            return SIM_RC_ERR_OUTOFMEM;
+        RETURN_IF(
+            item_size * vector_ptr->_allocated * 2 < item_size * vector_ptr->_allocated,
+            SIM_RC_ERR_OUTOFMEM,
+        );
 
         data_ptr = vector_ptr->_allocator_ptr->realloc(
             data_ptr,
@@ -311,8 +241,7 @@ Sim_ReturnCode sim_vector_insert(
         );
 
         // check if resize failed
-        if (!data_ptr)
-            return SIM_RC_ERR_OUTOFMEM;
+        RETURN_IF(!data_ptr, SIM_RC_ERR_OUTOFMEM,);
 
         vector_ptr->_allocated *= 2;
         vector_ptr->data_ptr = data_ptr;
@@ -333,37 +262,28 @@ Sim_ReturnCode sim_vector_insert(
 
     // increment data count
     vector_ptr->count++;
-
-    return SIM_RC_SUCCESS;
+    RETURN(SIM_RC_SUCCESS,);
 }
 
-// sim_vector_pop(2): Pops an item off the back of the vector.
-Sim_ReturnCode sim_vector_pop(
+// sim_vector_pop(2): Pops an item off the back of a vector.
+void sim_vector_pop(
     Sim_Vector *const vector_ptr,
     void*             data_out_ptr
 ) {
-    return sim_vector_remove(
-        vector_ptr,
-        data_out_ptr,
-        vector_ptr ?
-            vector_ptr->count - 1 :
-            0
-    );
+    sim_vector_remove(vector_ptr, data_out_ptr, vector_ptr ? vector_ptr->count - 1 : 0);
 }
 
-// sim_vector_remove(3): Removes an item from the vector at a particular index.
-Sim_ReturnCode sim_vector_remove(
+// sim_vector_remove(3): Removes an item from a vector at a given index.
+void sim_vector_remove(
     Sim_Vector *const vector_ptr,
     void*             data_out_ptr,
     const size_t      index
 ) {
     // check for nullptr
-    if (!vector_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR,);
 
     // check for out-of-bounds index
-    if (index >= vector_ptr->count)
-        return SIM_RC_ERR_OUTOFBND;
+    RETURN_IF(index >= vector_ptr->count, SIM_RC_ERR_OUTOFBND,);
     
     size_t item_size  = vector_ptr->_item_properties.size;
     byte*  remove_ptr = (byte*)vector_ptr->data_ptr + (item_size * index);
@@ -392,25 +312,27 @@ Sim_ReturnCode sim_vector_remove(
             SIM_DEFAULT_VECTOR_SIZE
         ;
 
-        void* data_ptr = vector_ptr->_allocator_ptr->realloc(vector_ptr->data_ptr, new_size * item_size);
+        void* data_ptr = vector_ptr->_allocator_ptr->realloc(
+            vector_ptr->data_ptr,
+            new_size * item_size
+        );
         vector_ptr->_allocated = new_size;
 
         // use new array if successfully reallocated; else use old array
         if (data_ptr) vector_ptr->data_ptr = data_ptr;
     }
 
-    return SIM_RC_SUCCESS;
+    RETURN(SIM_RC_SUCCESS,);
 }
 
 // sim_vector_foreach(3): Applies a given function for each item in the vector.
-Sim_ReturnCode sim_vector_foreach(
+bool sim_vector_foreach(
     Sim_Vector *const  vector_ptr,
     Sim_ForEachFuncPtr foreach_func_ptr,
     Sim_Variant userdata
 ) {
     // check for nullptrs
-    if (!vector_ptr || !foreach_func_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!vector_ptr || !foreach_func_ptr, SIM_RC_ERR_NULLPTR, false);
 
     size_t count = vector_ptr->count;
     byte*  data_ptr   = vector_ptr->data_ptr;
@@ -418,15 +340,15 @@ Sim_ReturnCode sim_vector_foreach(
 
     for (size_t i = 0; i < count; i++) {
         if (!(*foreach_func_ptr)(data_ptr, i, userdata))
-            return SIM_RC_FAILURE;
+            RETURN(SIM_RC_SUCCESS, false);
         
         data_ptr += item_size;
     }
 
-    return SIM_RC_SUCCESS;
+    RETURN(SIM_RC_SUCCESS, true);
 }
 
-Sim_ReturnCode _sim_vector_filter(
+void _sim_vector_filter(
     Sim_Vector *const vector_ptr,
     Sim_FilterFuncPtr filter_func_ptr,
     Sim_Variant userdata,
@@ -434,8 +356,7 @@ Sim_ReturnCode _sim_vector_filter(
     bool remove
 ) {
     // check for nullptr
-    if (!vector_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!vector_ptr || !filter_func_ptr, SIM_RC_ERR_NULLPTR,);
 
     size_t count   = vector_ptr->count;
     byte*  data_ptr     = vector_ptr->data_ptr;
@@ -462,30 +383,28 @@ Sim_ReturnCode _sim_vector_filter(
         data_ptr += item_size;
     }
 
-    return SIM_RC_SUCCESS;
+    RETURN(SIM_RC_SUCCESS,);
 }
 
 // sim_vector_extract(4): Extracts items out of the vector based on a given function.
-Sim_ReturnCode sim_vector_extract(
+void sim_vector_extract(
     Sim_Vector *const vector_ptr,
     Sim_FilterFuncPtr filter_func_ptr,
     Sim_Variant userdata,
     Sim_Vector *const out_vector_ptr
 ) {
-    return _sim_vector_filter(vector_ptr, filter_func_ptr, userdata, out_vector_ptr, true);
+    _sim_vector_filter(vector_ptr, filter_func_ptr, userdata, out_vector_ptr, true);
 }
 
 // sim_vector_select(4): Selects items from the vector based on a given function.
-Sim_ReturnCode sim_vector_select(
+void sim_vector_select(
     Sim_Vector *const vector_ptr,
     Sim_FilterFuncPtr select_func_ptr,
     Sim_Variant userdata,
     Sim_Vector *const out_vector_ptr
 ) { 
-    return out_vector_ptr ?
-        _sim_vector_filter(vector_ptr, select_func_ptr, userdata, out_vector_ptr, false) :
-        SIM_RC_ERR_NULLPTR
-    ;
+    RETURN_IF(!out_vector_ptr, SIM_RC_ERR_NULLPTR,);
+    _sim_vector_filter(vector_ptr, select_func_ptr, userdata, out_vector_ptr, false);
 }
 
 
@@ -626,21 +545,19 @@ RADIX_FN_SORT(double)
 
 // sim_vector_sort(2): Sorts items in the vector based on initialization settings or a
 //                     user-provided comparison function.
-Sim_ReturnCode sim_vector_sort(
+void sim_vector_sort(
     Sim_Vector *const     vector_ptr,
     Sim_ComparisonFuncPtr comparison_func_ptr
 ) {
     // check for nullptr
-    if (!vector_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR,);
 
     // skip 0-sized vectors
-    if (vector_ptr->count == 0)
-        return SIM_RC_SUCCESS;
+    RETURN_IF(vector_ptr->count == 0, SIM_RC_SUCCESS,);
 
     if (comparison_func_ptr) {
         QUICK_SORT_VECTOR(vector_ptr, comparison_func_ptr);
-        return SIM_RC_SUCCESS;
+        RETURN(SIM_RC_SUCCESS,);
     }
 
     size_t count = vector_ptr->count;
@@ -729,7 +646,7 @@ Sim_ReturnCode sim_vector_sort(
         break;
     }
     
-    return SIM_RC_ERR_NULLPTR;
+    RETURN(SIM_RC_ERR_NULLPTR,);
 }
 
 #undef RADIX_FN_SORT

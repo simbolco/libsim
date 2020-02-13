@@ -32,7 +32,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         typedef struct Sim_Vector {
             const Sim_TypeInfo _item_properties; // properties of items in this vector
-            const Sim_Allocator *const _allocator_ptr; // array allocator
+            const Sim_IAllocator *const _allocator_ptr; // array allocator
             size_t _allocated; // how much has been allocated
 
             size_t count;    // amount of items stored in the vector
@@ -40,60 +40,32 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_Vector;
 
         /**
-         * @fn Sim_ReturnCode sim_vector_initialize(5)
+         * @fn void sim_vector_construct(5)
          * @relates Sim_Vector
-         * @brief Initializes a new vector.
+         * @brief Constructs a new vector.
          * 
-         * @param[in,out] vector_ptr    Pointer to a vector to initialize.
+         * @param[in,out] vector_ptr    Pointer to a vector to construct.
          * @param[in]     item_size     Size of each item.
          * @param[in]     item_type     Type of the items stored in the vector.
          * @param[in]     allocator_ptr Pointer to allocator to use when resizing internal array.
          * @param[in]     initial_size  The initial allocated size of the newly created vector.
+         *
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
+         *     @b SIM_RC_ERR_OUTOFMEM if the vector size requested couldn't be allocated;
+         *     @b SIM_RC_SUCCESS      otherwise.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
-         *         @b SIM_RC_ERR_OUTOFMEM if internal array couldn't be allocated;
-         *         @b SIM_RC_SUCCESS      otherwise.
-         * 
-         * @sa sim_vector_create
          * @sa sim_vector_destroy
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_initialize(
-            Sim_Vector*          vector_ptr,
-            const size_t         item_size,
-            const Sim_DataType   item_type,
-            const Sim_Allocator* allocator_ptr,
-            const size_t         initial_size
+        extern EXPORT void C_CALL sim_vector_construct(
+            Sim_Vector*           vector_ptr,
+            const size_t          item_size,
+            const Sim_DataType    item_type,
+            const Sim_IAllocator* allocator_ptr,
+            size_t                initial_size
         );
 
-        /**
-         * @fn Sim_Vector* sim_vector_create(4)
-         * @relates Sim_Vector
-         * @brief Creates a new vector on the heap.
-         * 
-         * @param[in] item_size     Size of each item.
-         * @param[in] item_type     Type of the items that will be stored in the vector.
-         * @param[in] allocator_ptr Pointer to allocator to use when resizing internal array.
-         * @param[in] initial_size  The initial size of the newly created vector.
-         * 
-         * @return @c NULL if the vector couldn't be allocated or initialized;
-         *         pointer to a Sim_Vector otherwise.
-         * 
-         * @remarks If @e allocator_ptr is @c NULL , then @c sim_get_default_allocator() will
-         *          be used as the vector's allocator.
-         * 
-         * @sa sim_vector_initialize
-         * @sa sim_vector_free
-         * @sa sim_vector_create_usertype
-         * 
-         */
-        extern SIM_API Sim_Vector* C_CALL sim_vector_create(
-            const size_t         item_size,
-            const Sim_DataType   item_type,
-            const Sim_Allocator* allocator_ptr,
-            const size_t         initial_size
-        );
-
-// == TODO: We need to find a better way of doing this...
+/*/ == TODO: We need to find a better way of doing this...
 #       define sim_vector_create_sint8(allocator_ptr, initial_size) \
             sim_vector_create(                                      \
                 sizeof(sint8),                                      \
@@ -239,7 +211,7 @@ CPP_NAMESPACE_START(SimSoft)
                 initial_size                                         \
             )
 
-        /**
+        *//**
          * @def Sim_Vector* sim_vector_create_usertype(T, 2)
          * @relates Sim_Vector
          * @brief Creates a new vector storing a user-defined type on the heap.
@@ -252,47 +224,30 @@ CPP_NAMESPACE_START(SimSoft)
          *         pointer to a Sim_Vector otherwise.
          * 
          * @sa sim_vector_create
-         */
+         *//*
 #       define sim_vector_create_usertype(TYPE, allocator_ptr, initial_size) \
             sim_vector_create(                                               \
                 sizeof(TYPE),                                                \
                 SIM_DATATYPE_OTHER,                                          \
                 allocator_ptr,                                               \
                 initial_size                                                 \
-            )
+            ) */
 
         /**
-         * @fn Sim_ReturnCode sim_vector_destroy(1)
+         * @fn void sim_vector_destroy(1)
          * @relates Sim_Vector
-         * @brief Destroys an initialized vector.
+         * @brief Destroys a vector.
          * 
          * @param[in] vector_ptr Pointer to vector to destroy.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL ;
-         *         @b SIM_RC_SUCCESS     otherwise.
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL;
+         *     @b SIM_RC_SUCCESS otherwise
          * 
-         * @sa sim_vector_initialize
-         * @sa sim_vector_free
+         * @sa sim_vector_construct
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_destroy(
+        extern EXPORT void C_CALL sim_vector_destroy(
             Sim_Vector *const vector_ptr
-        );
-
-        /**
-         * @fn Sim_ReturnCode sim_vector_free(1)
-         * @relates Sim_Vector
-         * @brief Frees & destroys a heap-allocated vector.
-         * 
-         * @param[in] vector_ptr Pointer to a vector to free.
-         * 
-         * @return @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL ;
-         *         @b SIM_RC_SUCCESS     otherwise.
-         * 
-         * @sa sim_vector_create
-         * @sa sim_vector_destroy
-         */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_free(
-            Sim_Vector* vector_ptr
         );
         
         /**
@@ -308,103 +263,105 @@ CPP_NAMESPACE_START(SimSoft)
             ((vector_ptr)->count == 0)
 
         /**
-         * @fn Sim_ReturnCode sim_vector_clear(1)
+         * @fn void sim_vector_clear(1)
          * @relates Sim_Vector
          * @brief Clears a vector of all its contents.
          * 
          * @param[in,out] vector_ptr Pointer to vector to empty.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
-         *         @b SIM_RC_SUCCESS      otherwise.
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
+         *     @b SIM_RC_SUCCESS      otherwise.
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_clear(
+        extern EXPORT void C_CALL sim_vector_clear(
             Sim_Vector *const vector_ptr
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_resize(2)
+         * @fn void sim_vector_resize(2)
          * @relates Sim_Vector
-         * @brief Resizes the internal array of a vector.
+         * @brief Resizes a vector to a given size.
          * 
          * @param[in,out] vector_ptr Pointer to a vector to resize.
          * @param[in]     size       The new size of the vector.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
-         *         @b SIM_RC_ERR_OUTOFMEM if the vector couldn't be resized;
-         *         @b SIM_RC_ERR_INVALARG if @e size < @c vector_ptr->count ;
-         *         @b SIM_RC_SUCCESS      otherwise.
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
+         *     @b SIM_RC_ERR_OUTOFMEM if the vector couldn't be resized;
+         *     @b SIM_RC_ERR_INVALARG if @e size < @c vector_ptr->count ;
+         *     @b SIM_RC_SUCCESS      otherwise.
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_resize(
+        extern EXPORT void C_CALL sim_vector_resize(
             Sim_Vector *const vector_ptr,
             const size_t size
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_get(3)
+         * @fn void sim_vector_get(3)
          * @relates Sim_Vector
-         * @brief Get an item from the vector at a particular index.
+         * @brief Get an item from a vector at a given index.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to index into.
          * @param[in]     index        Index into the vector.
          * @param[out]    data_out_ptr Pointer to memory to fill with indexed data.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
-         *         @b SIM_RC_ERR_OUTOFBND if @e index >= @c vector_ptr->count ;
-         *         @b SIM_RC_SUCCESS      otherwise.
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
+         *     @b SIM_RC_ERR_OUTOFBND if @e index >= @c vector_ptr->count ;
+         *     @b SIM_RC_SUCCESS      otherwise.
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_get(
+        extern EXPORT void C_CALL sim_vector_get(
             Sim_Vector *const vector_ptr,
             const size_t      index,
             void*             data_out_ptr
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_get_ptr(3)
+         * @fn void* sim_vector_get_ptr(2)
          * @relates Sim_Vector
-         * @brief Get pointer to data in the vector at a particular index.
+         * @brief Get pointer to data in a vector at a given index.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to index into.
          * @param[in]     index        Index into the vector.
-         * @param[out]    data_out_ptr Pointer to void* to fill with pointer to data.
+         *
+         * @return @c NULL on error (see remarks); pointer to data otherwise.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
-         *         @b SIM_RC_ERR_OUTOFBND if @e index >= @c vector_ptr->count ;
-         *         @b SIM_RC_SUCCESS      otherwise.
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
+         *     @b SIM_RC_ERR_OUTOFBND if @e index >= @c vector_ptr->count ;
+         *     @b SIM_RC_SUCCESS      otherwise.
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_get_ptr(
+        extern EXPORT void* C_CALL sim_vector_get_ptr(
             Sim_Vector *const vector_ptr,
-            const size_t      index,
-            void* *const      data_out_ptr
+            const size_t      index
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_index_of(5)
+         * @fn size_t sim_vector_index_of(4)
          * @relates Sim_Vector
-         * @brief Get the index of the first item in the vector the tests equal to given data.
+         * @brief Gets the index of the first item in a vector that tests equal to given data.
          * 
          * @param[in,out] vector_ptr          Pointer to vector to search.
          * @param[in]     item_ptr            Pointer to item to compare against.
          * @param[in]     predicate_func_ptr  Pointer to equality predicate function.
          * @param[in]     starting_index      Index into the vector in which to begin the search.
-         * @param[out]    index_out_ptr       Pointer to be filled with index of found item.
          * 
+         * @return (size_t)-1 on error (see remarks); vector index otherwise.
          * 
-         * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr, @e item_ptr, or @e predicate_func_ptr
-         *                                are @c NULL ;
-         *         @b SIM_RC_ERR_OUTOFBND if @e starting_index >= @c vector_ptr->count ;
-         *         @b SIM_RC_ERR_NOTFOUND if no item in the vector is equivalent to
-         *                                @e item_ptr;
-         *         @b SIM_RC_SUCCESS      otherwise.
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr, @e item_ptr, or @e predicate_func_ptr
+         *                            are @c NULL ;
+         *     @b SIM_RC_ERR_OUTOFBND if @e starting_index >= @c vector_ptr->count ;
+         *     @b SIM_RC_ERR_NOTFOUND if no item in the vector is equivalent to @e item_ptr;
+         *     @b SIM_RC_SUCCESS      otherwise.
          * 
          * @sa sim_vector_contains
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_index_of(
+        extern EXPORT size_t C_CALL sim_vector_index_of(
             Sim_Vector *const    vector_ptr,
             const void *const    item_ptr,
             Sim_PredicateFuncPtr predicate_func_ptr,
-            const size_t         starting_index,
-            size_t *const        index_out_ptr
+            const size_t         starting_index
         );
 
         /**
@@ -416,119 +373,134 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in]     item_ptr           Pointer to item to compare against.
          * @param[in]     predicate_func_ptr Pointer to equality predicate function.
          * 
-         * @return @c true if the item is contained within @e vector_ptr;
-         *         @c false otherwise or if @e vector_ptr, @e item_ptr, or @e predicate_func_ptr
-         *            are @c NULL .
+         * @return @c false on error (see remarks) or if @e item_ptr isn't contained in
+         *            @e vector_ptr;
+         *         @c true otherwise.
+         * 
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr, @e item_ptr, or @e predicate_func_ptr
+         *                            are @c NULL ;
+         *     @b SIM_RC_ERR_NOTFOUND if no item in the vector is equivalent to @e item_ptr;
+         *     @b SIM_RC_SUCCESS      otherwise.
          * 
          * @sa sim_vector_index_of
          */
-        extern SIM_API bool C_CALL sim_vector_contains(
+        extern EXPORT bool C_CALL sim_vector_contains(
             Sim_Vector *const    vector_ptr,
             const void *const    item_ptr,
             Sim_PredicateFuncPtr predicate_func_ptr
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_push(2)
+         * @fn void sim_vector_push(2)
          * @relates Sim_Vector
-         * @brief Push a new item to the back of the vector.
+         * @brief Push a new item to the back of a vector.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to push item into.
          * @param[in]     new_item_ptr Pointer to new item to push into vector.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr or @e new_item_ptr is @c NULL ;
-         *         @b SIM_RC_ERR_OUTOFMEM if @e vector_ptr failed to resize internal array to
-         *                                fit newly pushed item;
-         *         @b SIM_RC_SUCCESS      otherwise.
+         * @remarks sim_return_code() is set to one of the folliwng:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr or @e new_item_ptr is @c NULL ;
+         *     @b SIM_RC_ERR_OUTOFMEM if @e vector_ptr couldn't be resized to fit the new item;
+         *     @b SIM_RC_SUCCESS      otherwise.
+         * 
+         * @sa sim_vector_insert
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_push(
+        extern void C_CALL sim_vector_push(
             Sim_Vector *const vector_ptr,
             const void*       new_item_ptr
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_insert(3)
+         * @fn void sim_vector_insert(3)
          * @relates Sim_Vector
-         * @brief Insert a new item into the vector at a particular index.
+         * @brief Insert a new item into a vector at a given index.
          * 
          * @param[in,out] vector_ptr   Pointer to the vector to insert item into.
          * @param[in]     new_item_ptr Pointer to new item to insert into vector.
          * @param[in]     index        Index into vector in which to insert new item.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr or @e new_item_ptr is @c NULL ;
-         *         @b SIM_RC_ERR_OUTOFBND if @e index > @c vector_ptr->count ;
-         *         @b SIM_RC_ERR_OUTOFMEM if @e vector_ptr failed to resize internal array to
-         *                                fit newly inserted item; 
-         *         @b SIM_RC_SUCCESS      otherwise.
+         * @remarks sim_return_code() is set to one of the folliwng:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr or @e new_item_ptr is @c NULL ;
+         *     @b SIM_RC_ERR_OUTOFBND if @e index > vector_ptr->count ;
+         *     @b SIM_RC_ERR_OUTOFMEM if @e vector_ptr couldn't be resized to fit the new item;
+         *     @b SIM_RC_SUCCESS      otherwise.
+         * 
+         * @sa sim_vector_push
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_insert(
+        extern EXPORT void C_CALL sim_vector_insert(
             Sim_Vector *const vector_ptr,
             const void*       new_item_ptr,
             const size_t      index
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_pop(2)
+         * @fn void sim_vector_pop(2)
          * @relates Sim_Vector
-         * @brief Pops an item off the back of the vector.
+         * @brief Pops an item off the back of a vector.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to pop item from.
          * @param[out]    item_out_ptr Pointer to memory to fill with popped item.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
-         *         @B SIM_RC_ERR_OUTOFBND if @c vector_ptr->count == 0;
-         *         @b SIM_RC_SUCCESS      otherwise.
+         * @remarks sim_return_code() is set to one of the folliwng:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
+         *     @b SIM_RC_ERR_OUTOFBND if @c vector_ptr->count == 0;
+         *     @b SIM_RC_SUCCESS      otherwise.
          * 
-         * @remarks @e item_out_ptr can be @c NULL .
+         * @sa sim_vector_remove
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_pop(
+        extern EXPORT void C_CALL sim_vector_pop(
             Sim_Vector *const vector_ptr,
             void*             item_out_ptr
         );
         
         /**
-         * @fn Sim_ReturnCode sim_vector_remove(3)
+         * @fn void sim_vector_remove(3)
          * @relates Sim_Vector
-         * @brief Removes an item from the vector at a particular index.
+         * @brief Removes an item from the vector at a given index.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to remove item from.
          * @param[out]    item_out_ptr Pointer to memory to fill with removed item.
          * @param[in]     index        Index into vector in which to remove an item.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
-         *         @b SIM_RC_ERR_OUTOFBND if @e index >= @c vector_ptr->count ;
-         *         @b SIM_RC_SUCCESS      otherwise.
+         * @remarks sim_return_code() is set to one of the folliwng:
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
+         *     @b SIM_RC_ERR_OUTOFBND if @e index >= vector_ptr->count;
+         *     @b SIM_RC_SUCCESS      otherwise.
          * 
-         * @remarks @e item_out_ptr can be @c NULL .
+         * @sa sim_vector_pop
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_remove(
+        extern EXPORT void C_CALL sim_vector_remove(
             Sim_Vector *const vector_ptr,
             void*             item_out_ptr,
             const size_t      index
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_foreach(3)
+         * @fn bool sim_vector_foreach(3)
          * @relates Sim_Vector
          * @brief Applies a given function to each item in the vector.
          * 
          * @param[in,out] vector_ptr       Pointer to vector whose items will be passed into the
          *                                 given function.
-         * @param[in]     foreach_func_ptr Pointer to map function.
+         * @param[in]     foreach_func_ptr Pointer to iteration function.
          * @param[in]     userdata         User-provided data to @e foreach_func_ptr.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR if @e vector_ptr or @e foreach_func_ptr are @c NULL ;
-         *         @b SIM_RC_FAILURE     if @e foreach_func_ptr returns @c false during the loop;
-         *         @b SIM_RC_SUCCESS     otherwise.
+         * @return @c false on error (see remarks) or if the loop wasn't fully completed;
+         *         @c true  otherwise.
+         * 
+         * @remarks sim_return_code() is set to one of the folliwng:
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr or @e foreach_func_ptr are @c NULL;
+         *     @b SIM_RC_SUCCESS     otherwise.
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_foreach(
+        extern EXPORT bool C_CALL sim_vector_foreach(
             Sim_Vector *const vector_ptr,
             Sim_ForEachFuncPtr foreach_func_ptr,
             Sim_Variant userdata
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_extract(4)
+         * @fn void sim_vector_extract(4)
          * @relates Sim_Vector
          * @brief Extracts items out of the vector based on a given function.
          * 
@@ -539,8 +511,9 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in,out] out_vector_ptr  Pointer to vector where extracted items will be
          *                                inserted into.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR if @e vector_ptr or @e filter_func_ptr are @c NULL ;
-         *         @b SIM_RC_SUCCESS     otherwise.
+         * @remarks sim_return_code() is set to one of the folliwng:
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr or @e filter_func_ptr are @c NULL ;
+         *     @b SIM_RC_SUCCESS     otherwise.
          * 
          * @remarks If @e filter_func_ptr returns @c true for a given item, it will remain
          *          in the vector, otherwise the item is removed and inserted into
@@ -548,7 +521,7 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @sa sim_vector_select
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_extract(
+        extern EXPORT void C_CALL sim_vector_extract(
             Sim_Vector *const vector_ptr,
             Sim_FilterFuncPtr filter_func_ptr,
             Sim_Variant       userdata,
@@ -556,7 +529,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_select(4)
+         * @fn void sim_vector_select(4)
          * @relates Sim_Vector
          * @brief Selects items from the vector based on a given function.
          * 
@@ -567,16 +540,17 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in,out] out_vector_ptr  Pointer to vector where filtered items will be
          *                                inserted into.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR if @e vector_ptr, @e select_func_ptr, or
-         *                               @e out_vector_ptr are @c NULL ;
-         *         @b SIM_RC_SUCCESS     otherwise.
+         * @remarks sim_return_code() is set to one of the folliwng:
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr, @e select_func_ptr, or
+         *                           @e out_vector_ptr are @c NULL ;
+         *     @b SIM_RC_SUCCESS     otherwise.
          * 
          * @remarks If @e select_func_ptr returns @c true for a given item, it will be
          *          copied and inserted into @e out_vector_ptr.
          * 
          * @sa sim_vector_extract
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_select(
+        extern EXPORT void C_CALL sim_vector_select(
             Sim_Vector *const vector_ptr,
             Sim_FilterFuncPtr select_func_ptr,
             Sim_Variant       userdata,
@@ -584,7 +558,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn Sim_ReturnCode sim_vector_sort(2)
+         * @fn void sim_vector_sort(2)
          * @relates Sim_Vector
          * @brief Sorts items in the vector based on initialization settings or a user-provided
          *        comparison function.
@@ -592,9 +566,10 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in,out] vector_ptr          Pointer to vector whose items will be sorted.
          * @param[in]     comparison_func_ptr Pointer to comparison function.
          * 
-         * @return @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL or if @e comparison_func_ptr
-         *                               is @c NULL under certain conditions (see remarks);
-         *         @b SIM_RC_SUCCESS     otherwise.
+         * @remarks sim_return_code() is set to one of the folliwng:
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL or if @e comparison_func_ptr is
+         *                           @c NULL under certain conditions (see remarks);
+         *     @b SIM_RC_SUCCESS     otherwise.
          * 
          * @remarks Faster sorting procedures are used when built-in C numeric datatypes are
          *          stored in the vector. If the vector was intialized with any of the following
@@ -623,7 +598,7 @@ CPP_NAMESPACE_START(SimSoft)
          *          was initialized is required to pass in a non-NULL @e comparison_func_ptr,
          *          otherwise @b SIM_RC_ERR_NULLPTR will be returned.
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_vector_sort(
+        extern EXPORT void C_CALL sim_vector_sort(
             Sim_Vector *const     vector_ptr,
             Sim_ComparisonFuncPtr comparison_func_ptr
         );
