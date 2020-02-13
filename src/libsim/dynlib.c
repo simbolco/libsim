@@ -20,13 +20,11 @@
 #   include <dlfcn.h>
 #endif
 
-// sim_load_library(2): Loads a dynamic library via filename during runtime.
-Sim_ReturnCode sim_load_library(
-    const char*              filename,
-    Sim_LibraryHandle *const out_library_handle
+// sim_load_library(1): Loads a dynamic library via filename during runtime.
+Sim_LibraryHandle sim_load_library(
+    const char* filename
 ) {
-    if (!filename || !out_library_handle)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!filename, SIM_RC_ERR_NULLPTR, NULL);
 
 #   ifdef _WIN32
         HMODULE library_handle = LoadLibraryA(filename);
@@ -35,11 +33,10 @@ Sim_ReturnCode sim_load_library(
                 "LoadLibraryA(\"%s\")",
                 filename
             );
-            return SIM_RC_FAILURE;
+            RETURN(SIM_RC_FAILURE, NULL);
         }
 
-        *out_library_handle = (Sim_LibraryHandle)library_handle;
-        return SIM_RC_SUCCESS;
+        RETURN(SIM_RC_SUCCESS, library_handle);
 #   elif defined(__unix__)
         void* library_handle = dlopen(filename, RTLD_LAZY);
         if (!library_handle) {
@@ -48,24 +45,22 @@ Sim_ReturnCode sim_load_library(
                 filename,
                 dlerror()
             );
-            return SIM_RC_FAILURE;
+            RETURN(SIM_RC_FAILURE, NULL);
         }
 
-        *out_library_handle = library_handle;
-        return SIM_RC_SUCCESS;
+        RETURN(SIM_RC_FAILURE, library_handle);
 #   else
 #       warning("sim_load_library(2) is unsupported")
         (void)filename; (void)out_library_handle;
-        return SIM_RC_ERR_UNSUPRTD;
+        RETURN(SIM_RC_ERR_UNSUPRTD, NULL);
 #   endif
 }
 
 // sim_unload_library(1): Unloads a dynamic library handle.
-Sim_ReturnCode sim_unload_library(
+void sim_unload_library(
     Sim_LibraryHandle library_handle
 ) {
-    if (!library_handle)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!library_handle, SIM_RC_ERR_NULLPTR,);
     
 #   ifdef _WIN32
         if (!FreeLibrary((HMODULE)library_handle)) {
@@ -73,9 +68,9 @@ Sim_ReturnCode sim_unload_library(
                 "FreeLibrary(%p)",
                 library_handle
             );
-            return SIM_RC_FAILURE;
+            RETURN(SIM_RC_FAILURE,);
         }
-        return SIM_RC_SUCCESS;
+        RETURN(SIM_RC_SUCCESS,);
 #   elif defined(__unix__)
         if (dlclose((void*)library_handle)) {
             _sim_unix_print_error(
@@ -83,24 +78,22 @@ Sim_ReturnCode sim_unload_library(
                 (void*)library_handle,
                 dlerror();
             );
-            return SIM_RC_FAILURE;
+            RETURN(SIM_RC_FAILURE,);
         }
-        return SIM_RC_SUCCESS;
+        RETURN(SIM_RC_SUCCESS,);
 #   else
 #       warning("sim_unload_library(1) is unsupported")
         (void)library_handle;
-        return SIM_RC_ERR_UNSUPRTD;    
+        RETURN(SIM_RC_ERR_UNSUPRTD,);
 #   endif
 }
 
-// sim_find_symbol(3): Retrieves a function from a dynamic library via a symbol.
-Sim_ReturnCode sim_find_symbol(
+// sim_find_symbol(2): Retrieves a function from a dynamic library via a symbol.
+void* sim_find_symbol(
     Sim_LibraryHandle library_handle,
-    const char*       symbol_name,
-    void* *const      out_symbol_value
+    const char*       symbol_name
 ) {
-    if (!library_handle || !symbol_name || !out_symbol_value)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!library_handle || !symbol_name, SIM_RC_ERR_NULLPTR, NULL);
 
 #   ifdef _WIN32
         void* symbol_value = (void*)GetProcAddress(
@@ -113,11 +106,10 @@ Sim_ReturnCode sim_find_symbol(
                 library_handle,
                 symbol_name
             );
-            return SIM_RC_FAILURE;
+            RETURN(SIM_RC_FAILURE, NULL);
         }
 
-        *out_symbol_value = symbol_value;
-        return SIM_RC_SUCCESS;
+        RETURN(SIM_RC_SUCCESS, symbol_value);
 #   elif defined(__unix__)
         void* symbol_value = dlsym(library_handle, symbol_name);
         char* error_string;
@@ -129,15 +121,14 @@ Sim_ReturnCode sim_find_symbol(
                 symbol_name,
                 error_string
             );
-            return SIM_RC_FAILURE;
+            RETURN(SIM_RC_FAILURE, NULL);
         }
 
-        *out_symbol_value = symbol_value;
-        return SIM_RC_SUCCESS;
+        RETURN(SIM_RC_SUCCESS, symbol_value);
 #   else
 #       warning("sim_find_symbol(3) is unsupported")
         (void)library_handle; (void)symbol_name; (void)out_symbol_value;
-        return SIM_RC_ERR_UNSUPRTD;    
+        RETURN(SIM_RC_ERR_UNSUPRTD, NULL); 
 #   endif
 }
 
