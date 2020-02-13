@@ -24,11 +24,12 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in,out] buffer      Pointer to the buffer.
          * @param[in]     buffer_size The size of the buffer in bytes.
          *
-         * @return @b SIM_RC_ERR_NULLPTR if @e buffer is @c NULL ;
-         *         @b SIM_RC_FAILURE     if the function failed to entirely fill the buffer;
-         *         @b SIM_RC_SUCCESS     otherwise.
+         * @remarks sim_return_code() is set to one of the folliwng:
+         *     @b SIM_RC_ERR_NULLPTR if @e buffer is @c NULL ;
+         *     @b SIM_RC_FAILURE     if the function failed to entirely fill the buffer;
+         *     @b SIM_RC_SUCCESS     otherwise.
          */
-        extern SIM_API Sim_ReturnCode C_CALL sim_random_bytes(
+        extern EXPORT void C_CALL sim_random_bytes(
             void* buffer,
             size_t buffer_size
         );

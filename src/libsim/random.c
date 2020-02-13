@@ -13,10 +13,10 @@
 #define SIMSOFT_RANDOM_C_
 
 #include "simsoft/random.h"
+#include "./_internal.h"
 
 #ifdef _WIN32
 #   include "simsoft/dynlib.h"
-#   include "./_internal.h"
 
     static Sim_LibraryHandle _SIM_WIN32_ADVAPI32_LIBHANDLE = NULL;
     static BOOLEAN (*RtlGenRandom)(
@@ -32,65 +32,61 @@
 #endif
 
 // sim_random_bytes(2): Fill a buffer with a random sequence of bytes.
-Sim_ReturnCode sim_random_bytes(
+void sim_random_bytes(
     void* buffer_ptr,
     size_t buffer_size
 ) {
-    if (!buffer_ptr)
-        return SIM_RC_ERR_NULLPTR;
+    RETURN_IF(!buffer_ptr, SIM_RC_ERR_NULLPTR,);
 
 #   ifdef _WIN32
         // get library handle to Advapi32.dll
         if (!_SIM_WIN32_ADVAPI32_LIBHANDLE) {
-            if (sim_load_library(
-                "Advapi32.dll",
-                &_SIM_WIN32_ADVAPI32_LIBHANDLE
-            ))
-                return SIM_RC_ERR_UNSUPRTD;
+            RETURN_IF(
+                !(_SIM_WIN32_ADVAPI32_LIBHANDLE = sim_load_library("Advapi32.dll")),
+                SIM_RC_ERR_UNSUPRTD,
+            );
             
             // clean up library handle on exit
             atexit(_sim_win32_onexit_clean_advapi32);
         }
         
         // get function pointer if available
-        if (
+        RETURN_IF(
             !RtlGenRandom &&
-            sim_find_symbol(
+            !(RtlGenRandom = sim_find_symbol(
                 _SIM_WIN32_ADVAPI32_LIBHANDLE,
-                "SystemFunction036",
-                (void**)&RtlGenRandom
-            )
-        )
-            return SIM_RC_ERR_UNSUPRTD;
+                "SystemFunction036"
+            )),
+            SIM_RC_ERR_UNSUPRTD,
+        );
         
         // grab random bytes
-        if (!(*RtlGenRandom)(
-            buffer_ptr,
-            (ULONG)buffer_size
-        ))
-            return SIM_RC_FAILURE;
+        RETURN_IF(!(*RtlGenRandom)(
+                buffer_ptr,
+                (ULONG)buffer_size
+            ),
+            SIM_RC_FAILURE,
+        );
         
-        return SIM_RC_SUCCESS;
+        RETURN(SIM_RC_SUCCESS,);
 #   elif defined(unix) || defined(__unix__) || defined(__unix)
         // open dev/random
         FILE* urandom_handle = fopen("/dev/urandom", "r");
-        if (!urandom_handle) {
-            return SIM_RC_ERR_UNSUPRTD;
-        }
+        RETURN_IF(!urandom_handle, SIM_RC_ERR_UNSUPRTD,);
         
         // read random bytes from dev/random
         if (fread(buffer_ptr, 1, buffer_size, urandom_handle) < buffer_size) {
             // TODO: check ferror()
             fclose(urandom_handle);
-            return SIM_RC_FAILURE;
+            RETURN(SIM_RC_FAILURE,);;
         }
 
         fclose(urandom_handle);
-        return SIM_RC_SUCCESS;
+        RETURN(SIM_RC_SUCCESS,);
 #   else
 #       warning("sim_random_bytes(2) is unsupported")
         (void)buffer_ptr; (void)buffer_size;
-        return SIM_RC_ERR_UNSUPRTD;
+        RETURN(SIM_RC_ERR_UNSUPRTD,);
 #   endif
 }
 
