@@ -23,7 +23,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile exception.hpp "simsoft/exception.hpp"
          * @brief C++ exception class
          */
-        class SIM_API Exception {
+        class EXPORT Exception {
         private:
             static constexpr size_t _BACKTRACE_SIZE = 16;
 
