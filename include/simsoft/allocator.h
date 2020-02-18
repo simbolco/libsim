@@ -18,7 +18,7 @@ CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_START /* C API */
 
         /**
-         * @typedef Sim_MemAllocFuncPtr
+         * @typedef Sim_MemAllocProc
          * @headerfile allocator.h "simsoft/allocator.h"
          * @relates Sim_IAllocator
          * @breif Function pointer for dynamic memory allocation.
@@ -27,16 +27,16 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @return @c NULL if out of memory; pointer to allocated space otherwise.
          * 
-         * @sa Sim_MemFilledAllocFuncPtr
-         * @sa Sim_MemReallocFuncPtr
-         * @sa Sim_MemFreeFuncPtr
+         * @sa Sim_MemFilledAllocProc
+         * @sa Sim_MemReallocProc
+         * @sa Sim_MemFreeProc
          */
-        typedef void* (*Sim_MemAllocFuncPtr)(
+        typedef void* (*Sim_MemAllocProc)(
             size_t size
         );
 
         /**
-         * @typedef Sim_MemFilledAllocFuncPtr
+         * @typedef Sim_MemFilledAllocProc
          * @headerfile allocator.h "simsoft/allocator.h"
          * @relates Sim_IAllocator
          * @breif Function pointer for filled dynamic memory allocation.
@@ -46,17 +46,17 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @return @c NULL if out of memory; pointer to allocated space otherwise. 
          * 
-         * @sa Sim_MemAllocFuncPtr
-         * @sa Sim_MemReallocFuncPtr
-         * @sa Sim_MemFreeFuncPtr
+         * @sa Sim_MemAllocProc
+         * @sa Sim_MemReallocProc
+         * @sa Sim_MemFreeProc
          */
-        typedef void* (*Sim_MemFilledAllocFuncPtr)(
+        typedef void* (*Sim_MemFilledAllocProc)(
             size_t size,
             ubyte fill
         );
 
         /**
-         * @typedef Sim_MemReallocFuncPtr
+         * @typedef Sim_MemReallocProc
          * @headerfile allocator.h "simsoft/allocator.h"
          * @relates Sim_IAllocator
          * @brief Function pointer for dynamic memory reallocation.
@@ -66,28 +66,28 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @return @c NULL if out of memory; pointer to reallocated space otherwise.
          * 
-         * @sa Sim_MemAllocFuncPtr
-         * @sa Sim_MemFilledAllocFuncPtr
-         * @sa Sim_MemFreeFuncPtr
+         * @sa Sim_MemAllocProc
+         * @sa Sim_MemFilledAllocProc
+         * @sa Sim_MemFreeProc
          */
-        typedef void* (*Sim_MemReallocFuncPtr)(
+        typedef void* (*Sim_MemReallocProc)(
             void* ptr,
             size_t size
         );
 
         /**
-         * @typedef Sim_MemFreeFuncPtr
+         * @typedef Sim_MemFreeProc
          * @headerfile allocator.h "simsoft/allocator.h"
          * @relates Sim_IAllocator
          * @breif Function pointer for freeing dynamically allocated memory.
          * 
          * @param[in] ptr Pointer to malloc'd/falloc'd/realloc'd memory to free.
          * 
-         * @sa Sim_MemAllocFuncPtr
-         * @sa Sim_MemReallocFuncPtr
-         * @sa Sim_MemFreeFuncPtr
+         * @sa Sim_MemAllocProc
+         * @sa Sim_MemReallocProc
+         * @sa Sim_MemFreeProc
          */
-        typedef void  (*Sim_MemFreeFuncPtr)(
+        typedef void  (*Sim_MemFreeProc)(
             void* ptr
         );
 
@@ -103,10 +103,10 @@ CPP_NAMESPACE_START(SimSoft)
          * @var free    Allocated memory free function.
          */
         typedef struct Sim_IAllocator {
-            Sim_MemAllocFuncPtr       malloc;
-            Sim_MemFilledAllocFuncPtr falloc;
-            Sim_MemReallocFuncPtr     realloc;
-            Sim_MemFreeFuncPtr        free;
+            Sim_MemAllocProc       malloc;
+            Sim_MemFilledAllocProc falloc;
+            Sim_MemReallocProc     realloc;
+            Sim_MemFreeProc        free;
         } Sim_IAllocator;
 
         /**
