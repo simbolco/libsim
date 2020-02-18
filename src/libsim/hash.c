@@ -14,6 +14,7 @@
 
 #include "simsoft/hashmap.h"
 #include "simsoft/hashset.h"
+#include "simsoft/util.h"
 #include "./_internal.h"
 
 // Hashmap/hashset aliasing to allow for identical internal implementation
@@ -32,7 +33,7 @@ static void* _sim_hash_create_node(
     const size_t                val_size,
     const Sim_IAllocator *const allocator_ptr
 ) {
-    byte* node_ptr = allocator_ptr->malloc(key_size + val_size);
+    uint8* node_ptr = allocator_ptr->malloc(key_size + val_size);
     if (!node_ptr)
         return NULL;
 
@@ -57,14 +58,14 @@ static void _sim_hash_construct(
     _Sim_HashPtr          hash_ptr,
     const size_t          key_size,
     const Sim_DataType    key_type,
-    Sim_HashFuncPtr       key_hash_func_ptr,
-    Sim_PredicateFuncPtr  key_predicate_func_ptr,
+    Sim_HashProc          key_hash_proc,
+    Sim_PredicateProc     key_predicate_proc,
     const size_t          value_size,
     const Sim_IAllocator* allocator_ptr,
     const size_t          initial_size
 ) {
     // check for nullptr
-    RETURN_IF(!hash_ptr.hashmap_ptr || !key_predicate_func_ptr, SIM_RC_ERR_NULLPTR,);
+    RETURN_IF(!hash_ptr.hashmap_ptr || !key_predicate_proc, SIM_RC_ERR_NULLPTR,);
 
     allocator_ptr = allocator_ptr ? allocator_ptr : sim_get_default_allocator();
 
@@ -84,8 +85,8 @@ static void _sim_hash_construct(
                 .type = key_type,
                 .size = key_size
             },
-            .hash_func_ptr = key_hash_func_ptr,
-            .predicate_func_ptr = key_predicate_func_ptr
+            .hash_proc = key_hash_proc,
+            .predicate_proc = key_predicate_proc
         },
         ._allocator_ptr = allocator_ptr,
         ._initial_size = initial_size,
@@ -148,59 +149,60 @@ static void _sim_hash_destroy(
     RETURN(SIM_RC_SUCCESS,);
 }
 
-#define HASH_TABLE_IF_CONTAIN(                                                             \
-    key_ptr,                                                                               \
-    key_size,                                                                              \
-    hash_data_ptr,                                                                         \
-    allocated,                                                                             \
-    hash_func_ptr,                                                                         \
-    pred_func_ptr,                                                                         \
-    ...)                                                                                   \
-                                                                                           \
-    byte** data_ptr = (byte**)hash_data_ptr;                                               \
-    size_t attempt = 0;                                                                    \
-    byte* current_node_ptr;                                                                \
-    size_t index;                                                                          \
-                                                                                           \
-    size_t hash = (hash_func_ptr ?                                                         \
-        (*hash_func_ptr)(key_ptr, 0) :                                                     \
-        _sim_siphash(key_ptr, key_size, (_Sim_HashKey){SIPHASH_KEY1, SIPHASH_KEY2})        \
-    ) % allocated;                                                                         \
-    size_t hash2 = 0;                                                                      \
-                                                                                           \
-    index = hash % allocated;                                                              \
-    current_node_ptr = data_ptr[index];                                                    \
-                                                                                           \
-    while (current_node_ptr) {                                                             \
-        if (current_node_ptr != (void*)1 && (*pred_func_ptr)(key_ptr, current_node_ptr)) { \
-            UNPACK(__VA_ARGS__);                                                           \
-        }                                                                                  \
-                                                                                           \
-        attempt++;                                                                         \
-        if (hash_func_ptr)                                                                 \
-            hash = (*hash_func_ptr)(key_ptr, attempt);                                     \
-        else {                                                                             \
-            if (attempt == 1)                                                              \
-                hash2 = _sim_siphash(                                                      \
-                    key_ptr,                                                               \
-                    key_size,                                                              \
-                    (_Sim_HashKey){SIPHASH_KEY3, SIPHASH_KEY4}                             \
-                ) % allocated;                                                             \
-            hash += hash2 + attempt;                                                       \
-        }                                                                                  \
-        index = hash % allocated;                                                          \
-        current_node_ptr = data_ptr[index];                                                \
+#define HASH_TABLE_IF_CONTAIN(                                                         \
+    key_ptr,                                                                           \
+    key_size,                                                                          \
+    hash_data_ptr,                                                                     \
+    allocated,                                                                         \
+    hash_proc,                                                                         \
+    pred_proc,                                                                         \
+    ...                                                                                \
+)                                                                                      \
+                                                                                       \
+    uint8** data_ptr = (uint8**)hash_data_ptr;                                           \
+    size_t attempt = 0;                                                                \
+    uint8* current_node_ptr;                                                            \
+    size_t index;                                                                      \
+                                                                                       \
+    size_t hash = (hash_proc ?                                                         \
+        (*hash_proc)(key_ptr, 0) :                                                     \
+        sim_siphash(key_ptr, key_size, (Sim_HashKey){SIPHASH_KEY1, SIPHASH_KEY2})      \
+    ) % allocated;                                                                     \
+    size_t hash2 = 0;                                                                  \
+                                                                                       \
+    index = hash % allocated;                                                          \
+    current_node_ptr = data_ptr[index];                                                \
+                                                                                       \
+    while (current_node_ptr) {                                                         \
+        if (current_node_ptr != (void*)1 && (*pred_proc)(key_ptr, current_node_ptr)) { \
+            UNPACK(__VA_ARGS__);                                                       \
+        }                                                                              \
+                                                                                       \
+        attempt++;                                                                     \
+        if (hash_proc)                                                                 \
+            hash = (*hash_proc)(key_ptr, attempt);                                     \
+        else {                                                                         \
+            if (attempt == 1)                                                          \
+                hash2 = sim_siphash(                                                   \
+                    key_ptr,                                                           \
+                    key_size,                                                          \
+                    (Sim_HashKey){SIPHASH_KEY3, SIPHASH_KEY4}                          \
+                ) % allocated;                                                         \
+            hash += hash2 + attempt;                                                   \
+        }                                                                              \
+        index = hash % allocated;                                                      \
+        current_node_ptr = data_ptr[index];                                            \
     }
 
-#define HASH_IF_CONTAIN(hashmap_ptr, key_ptr, ...)       \
-    HASH_TABLE_IF_CONTAIN(                               \
-        key_ptr,                                         \
-        hashmap_ptr->_key_properties.type_info.size,     \
-        hashmap_ptr->data_ptr,                           \
-        hashmap_ptr->_allocated,                         \
-        hashmap_ptr->_key_properties.hash_func_ptr,      \
-        hashmap_ptr->_key_properties.predicate_func_ptr, \
-        __VA_ARGS__                                      \
+#define HASH_IF_CONTAIN(hashmap_ptr, key_ptr, ...)   \
+    HASH_TABLE_IF_CONTAIN(                           \
+        key_ptr,                                     \
+        hashmap_ptr->_key_properties.type_info.size, \
+        hashmap_ptr->data_ptr,                       \
+        hashmap_ptr->_allocated,                     \
+        hashmap_ptr->_key_properties.hash_proc,      \
+        hashmap_ptr->_key_properties.predicate_proc, \
+        __VA_ARGS__                                  \
     )
 
 // resize hash table to new size
@@ -213,16 +215,16 @@ static void _sim_hash_resize(
         Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
         // initialize new hash table
-        byte** new_data_ptr = hashmap_ptr->_allocator_ptr->falloc(
+        uint8** new_data_ptr = hashmap_ptr->_allocator_ptr->falloc(
             (sizeof *new_data_ptr) * new_size,
             0
         );
         RETURN_IF(!new_data_ptr, SIM_RC_ERR_OUTOFMEM,);
 
         // re-hash old data and move them into new hash table
-        byte** hash_data_ptr = hashmap_ptr->data_ptr;
+        uint8** hash_data_ptr = hashmap_ptr->data_ptr;
         for (size_t i = 0; i < hashmap_ptr->_allocated; i++) {
-            byte* hash_node = hash_data_ptr[i];
+            uint8* hash_node = hash_data_ptr[i];
             if (hash_node && hash_node != (void*)1) {
                 bool test = false;
                 HASH_TABLE_IF_CONTAIN(
@@ -230,8 +232,8 @@ static void _sim_hash_resize(
                     hashmap_ptr->_key_properties.type_info.size,
                     new_data_ptr,
                     new_size,
-                    hashmap_ptr->_key_properties.hash_func_ptr,
-                    hashmap_ptr->_key_properties.predicate_func_ptr,
+                    hashmap_ptr->_key_properties.hash_proc,
+                    hashmap_ptr->_key_properties.predicate_proc,
 
                     test = true;
                     break;
@@ -343,28 +345,28 @@ static bool _sim_hash_contains(
 
 // Apply a function for each item in hash table.
 static bool _sim_hash_foreach(
-    _Sim_HashPtr       hash_ptr,
-    const bool         is_hashmap,
-    Sim_ForEachFuncPtr foreach_func_ptr,
-    Sim_Variant        userdata
+    _Sim_HashPtr    hash_ptr,
+    const bool      is_hashmap,
+    Sim_ForEachProc foreach_proc,
+    Sim_Variant     userdata
 ) {
     Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
     // check for nullptrs
-    RETURN_IF(!hashmap_ptr || !foreach_func_ptr, SIM_RC_ERR_NULLPTR,false);
+    RETURN_IF(!hashmap_ptr || !foreach_proc, SIM_RC_ERR_NULLPTR,false);
 
-    byte** data_ptr = hashmap_ptr->data_ptr;
+    uint8** data_ptr = hashmap_ptr->data_ptr;
     size_t item_num = 0;
 
     // iterate through allocated
     for (size_t i = 0; i < hashmap_ptr->_allocated; i++) {
         // if the item exists...
         if (data_ptr[i] && data_ptr[i] != (void*)1) {
-            if (!(*foreach_func_ptr)(
+            if (!(*foreach_proc)(
                 (is_hashmap ?
                     (void*)&((Sim_MapConstKeyValuePair){
                         .key = data_ptr[i],
-                        .value = (byte*)data_ptr[i] + hashmap_ptr->_value_size
+                        .value = (uint8*)data_ptr[i] + hashmap_ptr->_value_size
                     }) :
                     data_ptr[i]
                 ),
@@ -388,8 +390,8 @@ void sim_hashset_construct(
     Sim_HashSet*          hashset_ptr,
     const size_t          item_size,
     const Sim_DataType    item_type,
-    Sim_HashFuncPtr       item_hash_func_ptr,
-    Sim_PredicateFuncPtr  item_predicate_func_ptr,
+    Sim_HashProc          item_hash_proc,
+    Sim_PredicateProc     item_predicate_proc,
     const Sim_IAllocator* allocator_ptr,
     const size_t          initial_size
 ) {
@@ -397,8 +399,8 @@ void sim_hashset_construct(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
         item_size,
         item_type,
-        item_hash_func_ptr,
-        item_predicate_func_ptr,
+        item_hash_proc,
+        item_predicate_proc,
         0,
         allocator_ptr,
         initial_size
@@ -479,14 +481,14 @@ void sim_hashset_remove(
 
 // sim_hashset_foreach(3): Applies a given function to each item in a hashset.
 bool sim_hashset_foreach(
-    Sim_HashSet *const      hashset_ptr,
-    Sim_ConstForEachFuncPtr foreach_func_ptr,
-    Sim_Variant             userdata
+    Sim_HashSet *const   hashset_ptr,
+    Sim_ConstForEachProc foreach_proc,
+    Sim_Variant          userdata
 ) {
     return _sim_hash_foreach(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
         false,
-        (Sim_ForEachFuncPtr)foreach_func_ptr,
+        (Sim_ForEachProc)foreach_proc,
         userdata
     );
 }
@@ -498,8 +500,8 @@ void sim_hashmap_construct(
     Sim_HashMap*          hashmap_ptr,
     const size_t          key_size,
     const Sim_DataType    key_type,
-    Sim_HashFuncPtr       key_hash_func_ptr,
-    Sim_PredicateFuncPtr  key_predicate_func_ptr,
+    Sim_HashProc          key_hash_proc,
+    Sim_PredicateProc     key_predicate_proc,
     const size_t          value_size,
     const Sim_IAllocator* allocator_ptr,
     const size_t          initial_size
@@ -508,8 +510,8 @@ void sim_hashmap_construct(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
         key_size,
         key_type,
-        key_hash_func_ptr,
-        key_predicate_func_ptr,
+        key_hash_proc,
+        key_predicate_proc,
         value_size,
         allocator_ptr,
         initial_size
@@ -620,14 +622,14 @@ void sim_hashmap_remove(
 
 // sim_hashmap_foreach(3): Applies a given function to each key-value pair in the hashmap.
 bool sim_hashmap_foreach(
-    Sim_HashMap *const    hashmap_ptr,
-    Sim_MapForEachFuncPtr foreach_func_ptr,
-    Sim_Variant           userdata
+    Sim_HashMap *const hashmap_ptr,
+    Sim_MapForEachProc foreach_proc,
+    Sim_Variant        userdata
 ) {
     return _sim_hash_foreach(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
         true,
-        (Sim_ForEachFuncPtr)foreach_func_ptr,
+        (Sim_ForEachProc)foreach_proc,
         userdata
     );
 }

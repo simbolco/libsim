@@ -17,7 +17,27 @@
 CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_START /* C API */
 
-        //
+#       ifdef __GNUC__
+            typedef uint64 Sim_HashKey __attribute__((vector_size (16)));
+#       else
+            typedef uint64 Sim_HashKey[2];
+#       endif
+
+        /**
+         * @fn size_t sim_siphash(3)
+         * @brief SipHash-2-4 implementation.
+         * 
+         * @param[in] data_ptr  Pointer to data to create a hash for.
+         * @param[in] data_size The size of the data pointed to by @e data_ptr.
+         * @param[in] key       Key used in generating the hash.
+         * 
+         * @return A hash key; 0 if @e data_ptr is @c NULL .
+         */
+        extern EXPORT size_t C_CALL sim_siphash(
+            const uint8*       data_ptr,
+            const size_t       data_size,
+            const Sim_HashKey key
+        );
     
     CPP_NAMESPACE_C_API_END /* end C API */
 

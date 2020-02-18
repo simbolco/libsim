@@ -13,6 +13,7 @@
 #define SIMSOFT__INTERNAL_C_
 
 #include "./_internal.h"
+#include "simsoft/util.h"
 
 // sim_return_code(0): Gets the return code from SimSoft library functions.
 Sim_ReturnCode sim_return_code() {
@@ -98,10 +99,10 @@ size_t _sim_prev_prime(size_t num) {
     return num;
 }
 
-size_t _sim_siphash(
-    const byte*        data_ptr,
-    const size_t       data_size,
-    const _Sim_HashKey key
+size_t sim_siphash(
+    const uint8*      data_ptr,
+    const size_t      data_size,
+    const Sim_HashKey key
 ) {
 #   define ROTL(x, b) (uint64)(((x) << (b)) | ((x) >> (64 - (b))))
 
@@ -143,13 +144,16 @@ size_t _sim_siphash(
         v2 = ROTL(v2, 32); \
     }
 
+    if (!data_ptr)
+        return 0;
+
     // constants
     uint64 v0 = 0x736f6d6570736575ULL;
     uint64 v1 = 0x646f72616e646f6dULL;
     uint64 v2 = 0x6c7967656e657261ULL;
     uint64 v3 = 0x7465646279746573ULL;
 
-    const byte* end_ptr = data_ptr + data_size - (data_size % sizeof(uint64));
+    const uint8* end_ptr = data_ptr + data_size - (data_size % sizeof(uint64));
     const int left = data_size & 7;
     
     uint64 b = ((uint64)data_size) << 56;

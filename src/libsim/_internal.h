@@ -69,19 +69,7 @@ extern bool _sim_is_prime(const size_t num);
 extern size_t _sim_next_prime(size_t num);
 extern size_t _sim_prev_prime(size_t num);
 
-// == SipHash =====================================================================================
-
-#ifdef __GNUC__
-    typedef uint64 _Sim_HashKey __attribute__((vector_size (16)));
-#else
-    typedef uint64 _Sim_HashKey[2];
-#endif
-
-extern size_t _sim_siphash(
-    const byte*        data_ptr,
-    const size_t       data_size,
-    const _Sim_HashKey key
-);
+// == SipHash keys ================================================================================
 
 // Hash keys for hash fallback + double hashing
 #define SIPHASH_KEY1 0x90d6346e7b77f546ULL
