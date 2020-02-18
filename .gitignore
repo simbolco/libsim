@@ -18,6 +18,7 @@ obj/
 # Track relevant include headers
 include/*
 !include/simsoft
+include/simsoft/*/
 
 # Track relevant source code
 src/*
