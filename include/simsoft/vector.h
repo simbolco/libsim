@@ -321,8 +321,8 @@ CPP_NAMESPACE_START(SimSoft)
          * @relates Sim_Vector
          * @brief Get pointer to data in a vector at a given index.
          * 
-         * @param[in,out] vector_ptr   Pointer to vector to index into.
-         * @param[in]     index        Index into the vector.
+         * @param[in,out] vector_ptr Pointer to vector to index into.
+         * @param[in]     index      Index into the vector.
          *
          * @return @c NULL on error (see remarks); pointer to data otherwise.
          * 
@@ -341,15 +341,15 @@ CPP_NAMESPACE_START(SimSoft)
          * @relates Sim_Vector
          * @brief Gets the index of the first item in a vector that tests equal to given data.
          * 
-         * @param[in,out] vector_ptr          Pointer to vector to search.
-         * @param[in]     item_ptr            Pointer to item to compare against.
-         * @param[in]     predicate_func_ptr  Pointer to equality predicate function.
-         * @param[in]     starting_index      Index into the vector in which to begin the search.
+         * @param[in,out] vector_ptr     Pointer to vector to search.
+         * @param[in]     item_ptr       Pointer to item to compare against.
+         * @param[in]     predicate_proc Pointer to equality predicate function.
+         * @param[in]     starting_index Index into the vector in which to begin the search.
          * 
          * @return (size_t)-1 on error (see remarks); vector index otherwise.
          * 
          * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr, @e item_ptr, or @e predicate_func_ptr
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr, @e item_ptr, or @e predicate_proc
          *                            are @c NULL ;
          *     @b SIM_RC_ERR_OUTOFBND if @e starting_index >= @c vector_ptr->count ;
          *     @b SIM_RC_ERR_NOTFOUND if no item in the vector is equivalent to @e item_ptr;
@@ -360,7 +360,7 @@ CPP_NAMESPACE_START(SimSoft)
         extern EXPORT size_t C_CALL sim_vector_index_of(
             Sim_Vector *const    vector_ptr,
             const void *const    item_ptr,
-            Sim_PredicateFuncPtr predicate_func_ptr,
+            Sim_PredicateProc predicate_proc,
             const size_t         starting_index
         );
 
@@ -369,16 +369,16 @@ CPP_NAMESPACE_START(SimSoft)
          * @relates Sim_Vector
          * @brief Checks if an item is contained in the vector.
          * 
-         * @param[in,out] vector_ptr         Pointer to vector to search.
-         * @param[in]     item_ptr           Pointer to item to compare against.
-         * @param[in]     predicate_func_ptr Pointer to equality predicate function.
+         * @param[in,out] vector_ptr     Pointer to vector to search.
+         * @param[in]     item_ptr       Pointer to item to compare against.
+         * @param[in]     predicate_proc Pointer to equality predicate function.
          * 
          * @return @c false on error (see remarks) or if @e item_ptr isn't contained in
          *            @e vector_ptr;
          *         @c true otherwise.
          * 
          * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr, @e item_ptr, or @e predicate_func_ptr
+         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr, @e item_ptr, or @e predicate_proc
          *                            are @c NULL ;
          *     @b SIM_RC_ERR_NOTFOUND if no item in the vector is equivalent to @e item_ptr;
          *     @b SIM_RC_SUCCESS      otherwise.
@@ -388,7 +388,7 @@ CPP_NAMESPACE_START(SimSoft)
         extern EXPORT bool C_CALL sim_vector_contains(
             Sim_Vector *const    vector_ptr,
             const void *const    item_ptr,
-            Sim_PredicateFuncPtr predicate_func_ptr
+            Sim_PredicateProc predicate_proc
         );
 
         /**
@@ -481,21 +481,21 @@ CPP_NAMESPACE_START(SimSoft)
          * @relates Sim_Vector
          * @brief Applies a given function to each item in the vector.
          * 
-         * @param[in,out] vector_ptr       Pointer to vector whose items will be passed into the
-         *                                 given function.
-         * @param[in]     foreach_func_ptr Pointer to iteration function.
-         * @param[in]     userdata         User-provided data to @e foreach_func_ptr.
+         * @param[in,out] vector_ptr   Pointer to vector whose items will be passed into the
+         *                             given function.
+         * @param[in]     foreach_proc Pointer to iteration function.
+         * @param[in]     userdata     User-provided data to @e foreach_proc.
          * 
          * @return @c false on error (see remarks) or if the loop wasn't fully completed;
          *         @c true  otherwise.
          * 
          * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr or @e foreach_func_ptr are @c NULL;
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr or @e foreach_proc are @c NULL;
          *     @b SIM_RC_SUCCESS     otherwise.
          */
         extern EXPORT bool C_CALL sim_vector_foreach(
             Sim_Vector *const vector_ptr,
-            Sim_ForEachFuncPtr foreach_func_ptr,
+            Sim_ForEachProc foreach_proc,
             Sim_Variant userdata
         );
 
@@ -506,16 +506,16 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @param[in,out] vector_ptr      Pointer to vector whose items will be filtered through
          *                                the given function.
-         * @param[in]     filter_func_ptr Pointer to filter function.
-         * @param[in]     userdata        User-provided data to @e filter_func_ptr.
+         * @param[in]     filter_proc     Pointer to filter function.
+         * @param[in]     userdata        User-provided data to @e filter_proc.
          * @param[in,out] out_vector_ptr  Pointer to vector where extracted items will be
          *                                inserted into.
          * 
          * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr or @e filter_func_ptr are @c NULL ;
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr or @e filter_proc are @c NULL ;
          *     @b SIM_RC_SUCCESS     otherwise.
          * 
-         * @remarks If @e filter_func_ptr returns @c true for a given item, it will remain
+         * @remarks If @e filter_proc returns @c true for a given item, it will remain
          *          in the vector, otherwise the item is removed and inserted into
          *          @e out_vector_ptr if it isn't @c NULL .
          * 
@@ -523,7 +523,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern EXPORT void C_CALL sim_vector_extract(
             Sim_Vector *const vector_ptr,
-            Sim_FilterFuncPtr filter_func_ptr,
+            Sim_FilterProc filter_proc,
             Sim_Variant       userdata,
             Sim_Vector *const out_vector_ptr
         );
@@ -535,24 +535,24 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @param[in,out] vector_ptr      Pointer to vector whose items will be selected via
          *                                the given function.
-         * @param[in]     select_func_ptr Pointer to selection function.
-         * @param[in]     userdata        User-provided data to @e select_func_ptr.
+         * @param[in]     select_proc     Pointer to selection function.
+         * @param[in]     userdata        User-provided data to @e select_proc.
          * @param[in,out] out_vector_ptr  Pointer to vector where filtered items will be
          *                                inserted into.
          * 
          * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr, @e select_func_ptr, or
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr, @e select_proc, or
          *                           @e out_vector_ptr are @c NULL ;
          *     @b SIM_RC_SUCCESS     otherwise.
          * 
-         * @remarks If @e select_func_ptr returns @c true for a given item, it will be
-         *          copied and inserted into @e out_vector_ptr.
+         * @remarks If @e select_proc returns @c true for a given item, it will be copied and
+         *          inserted into @e out_vector_ptr.
          * 
          * @sa sim_vector_extract
          */
         extern EXPORT void C_CALL sim_vector_select(
             Sim_Vector *const vector_ptr,
-            Sim_FilterFuncPtr select_func_ptr,
+            Sim_FilterProc select_proc,
             Sim_Variant       userdata,
             Sim_Vector *const out_vector_ptr
         );
@@ -563,17 +563,17 @@ CPP_NAMESPACE_START(SimSoft)
          * @brief Sorts items in the vector based on initialization settings or a user-provided
          *        comparison function.
          * 
-         * @param[in,out] vector_ptr          Pointer to vector whose items will be sorted.
-         * @param[in]     comparison_func_ptr Pointer to comparison function.
+         * @param[in,out] vector_ptr      Pointer to vector whose items will be sorted.
+         * @param[in]     comparison_proc Pointer to comparison function.
          * 
          * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL or if @e comparison_func_ptr is
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL or if @e comparison_proc is
          *                           @c NULL under certain conditions (see remarks);
          *     @b SIM_RC_SUCCESS     otherwise.
          * 
          * @remarks Faster sorting procedures are used when built-in C numeric datatypes are
          *          stored in the vector. If the vector was intialized with any of the following
-         *          initialization settings via @c sim_vector_create , @e comparison_func_ptr can
+         *          initialization settings via @c sim_vector_create , @e comparison_proc can
          *          be passed as @c NULL to use the faster sorting functions:
          *          <ul>
          *              <li> {@c char; unsigned char; sint8; uint8}
@@ -595,12 +595,12 @@ CPP_NAMESPACE_START(SimSoft)
          *              </li>
          *          </ul>
          *          Any other combination of @e item_type and @e item_size used when the vector
-         *          was initialized is required to pass in a non-NULL @e comparison_func_ptr,
+         *          was initialized is required to pass in a non-NULL @e comparison_proc,
          *          otherwise @b SIM_RC_ERR_NULLPTR will be returned.
          */
         extern EXPORT void C_CALL sim_vector_sort(
             Sim_Vector *const     vector_ptr,
-            Sim_ComparisonFuncPtr comparison_func_ptr
+            Sim_ComparisonProc comparison_proc
         );
 
     CPP_NAMESPACE_C_API_END /* end C API */

@@ -33,9 +33,9 @@ CPP_NAMESPACE_START(SimSoft)
          */
         typedef struct Sim_HashMap {
             const struct {
-                Sim_TypeInfo type_info;
-                Sim_HashFuncPtr hash_func_ptr;           // Pointer to hash function
-                Sim_PredicateFuncPtr predicate_func_ptr; // Pointer to predicate function
+                Sim_TypeInfo type_info;           // Type information
+                Sim_HashProc hash_proc;           // Pointer to hash function
+                Sim_PredicateProc predicate_proc; // Pointer to predicate function
             } _key_properties;  // properties of hashmap keys
             const Sim_IAllocator *const _allocator_ptr; // bucket allocator
             const size_t _initial_size;
@@ -63,7 +63,7 @@ CPP_NAMESPACE_START(SimSoft)
             } Sim_MapConstKeyValuePair;
 
             /**
-             * @typedef Sim_MapForEachFuncPtr
+             * @typedef Sim_MapForEachProc
              * @brief Function pointer used when iterating over a map.
              * 
              * @param[in] key_value_pair_ptr Pointer to a key-value pair in a map.
@@ -73,10 +73,10 @@ CPP_NAMESPACE_START(SimSoft)
              * @return @c false to break out of the calling foreach loop;
              *         @c true  to continue iterating.
              */
-            typedef bool (*Sim_MapForEachFuncPtr)(
+            typedef bool (*Sim_MapForEachProc)(
                 Sim_MapConstKeyValuePair *const key_value_pair_ptr,
-                const size_t index,
-                Sim_Variant userdata
+                const size_t                    index,
+                Sim_Variant                     userdata
             );
 #       endif /* SIM_DEFINED_MAP_FOREACH_STRUCTS */
 
@@ -85,19 +85,19 @@ CPP_NAMESPACE_START(SimSoft)
          * @relates Sim_HashMap
          * @brief Constructs a new hashmap.
          * 
-         * @param[in,out] hashmap_ptr            Pointer to a hashmap to construct.
-         * @param[in]     key_size               Size of hashmap keys.
-         * @param[in]     key_type               Type of the keys stored in the hashmap.
-         * @param[in]     key_hash_func_ptr      Key hash function.
-         * @param[in]     key_predicate_func_ptr Key equality predicate function.
-         * @param[in]     value_size             Size of each item.
-         * @param[in]     allocator_ptr          Pointer to allocator to use when resizing hash
-         *                                       buckets.
-         * @param[in]     initial_size           The initial allocated size of the newly created
-         *                                       hashmap.
+         * @param[in,out] hashmap_ptr        Pointer to a hashmap to construct.
+         * @param[in]     key_size           Size of hashmap keys.
+         * @param[in]     key_type           Type of the keys stored in the hashmap.
+         * @param[in]     key_hash_proc      Key hash function.
+         * @param[in]     key_predicate_proc Key equality predicate function.
+         * @param[in]     value_size         Size of each item.
+         * @param[in]     allocator_ptr      Pointer to allocator to use when resizing hash
+         *                                   buckets.
+         * @param[in]     initial_size       The initial allocated size of the newly created
+         *                                   hashmap.
          * 
          * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr or @e key_predicate_func_ptr are @c NULL ;
+         *     @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr or @e key_predicate_proc are @c NULL ;
          *     @b SIM_RC_ERR_OUTOFMEM if hash buckets couldn't be allocated;
          *     @b SIM_RC_SUCCESS      otherwise.
          * 
@@ -107,8 +107,8 @@ CPP_NAMESPACE_START(SimSoft)
             Sim_HashMap*          hashmap_ptr,
             const size_t          key_size,
             const Sim_DataType    key_type,
-            Sim_HashFuncPtr       key_hash_func_ptr,
-            Sim_PredicateFuncPtr  key_predicate_func_ptr,
+            Sim_HashProc          key_hash_proc,
+            Sim_PredicateProc     key_predicate_proc,
             const size_t          value_size,
             const Sim_IAllocator* allocator_ptr,
             const size_t          initial_size
@@ -177,7 +177,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern bool C_CALL sim_hashmap_contains_key(
             Sim_HashMap *const hashmap_ptr,
-            const void *const key_ptr
+            const void *const  key_ptr
         );
 
         /**
@@ -196,7 +196,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern EXPORT void C_CALL sim_hashmap_resize(
             Sim_HashMap *const hashmap_ptr,
-            size_t new_size
+            size_t             new_size
         );
 
         /**
@@ -260,8 +260,8 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern EXPORT void C_CALL sim_hashmap_insert(
             Sim_HashMap *const hashmap_ptr,
-            const void* new_key_ptr,
-            const void* value_ptr
+            const void*        new_key_ptr,
+            const void*        value_ptr
         );
 
         /**
@@ -281,7 +281,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern EXPORT void C_CALL sim_hashmap_remove(
             Sim_HashMap *const hashmap_ptr,
-            const void *const remove_key_ptr
+            const void *const  remove_key_ptr
         );
 
         /**
@@ -289,24 +289,24 @@ CPP_NAMESPACE_START(SimSoft)
          * @relates Sim_HashMap
          * @brief Applies a given function to each key-value pair in the hashmap.
          * 
-         * @param[in,out] hashmap_ptr      Pointer to a hashmap whose key-value pairs will be
-         *                                 iterated over.
-         * @param[in]     foreach_func_ptr Pointer to a function that will be applied to each pair
-         *                                 in the hashset.
-         * @param[in]     userdata         User-provided data for @e foreach_func_ptr
+         * @param[in,out] hashmap_ptr  Pointer to a hashmap whose key-value pairs will be iterated
+         *                             over.
+         * @param[in]     foreach_proc Pointer to a function that will be applied to each pair in
+         *                             the hashset.
+         * @param[in]     userdata     User-provided data for @e foreach_proc.
          * 
          * @return @c false on error (see remarks) or if the loop wasn't fully completed;
          *         @c true  otherwise.
          * 
          * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e hashmap_ptr or @e foreach_func_ptr are @c NULL ;
-         *     @b SIM_RC_FAILURE     if @e foreach_func_ptr returns @c false during the loop;
+         *     @b SIM_RC_ERR_NULLPTR if @e hashmap_ptr or @e foreach_proc are @c NULL ;
+         *     @b SIM_RC_FAILURE     if @e foreach_proc returns @c false during the loop;
          *     @b SIM_RC_SUCCESS     otherwise.
          */
         extern EXPORT bool C_CALL sim_hashmap_foreach(
-            Sim_HashMap *const    hashmap_ptr,
-            Sim_MapForEachFuncPtr foreach_func_ptr,
-            Sim_Variant           userdata
+            Sim_HashMap *const hashmap_ptr,
+            Sim_MapForEachProc foreach_proc,
+            Sim_Variant        userdata
         );
     
     CPP_NAMESPACE_C_API_END /* end C API */

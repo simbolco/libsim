@@ -151,14 +151,14 @@ void sim_vector_get(
 // sim_vector_index_of(4): Get the index of the first item in a vector that tests equal to given
 //                         data.
 size_t sim_vector_index_of(
-    Sim_Vector *const    vector_ptr,
-    const void *const    item_ptr,
-    Sim_PredicateFuncPtr predicate_func_ptr,
-    const size_t         starting_index
+    Sim_Vector *const vector_ptr,
+    const void *const item_ptr,
+    Sim_PredicateProc predicate_proc,
+    const size_t      starting_index
 ) {
     // check for nullptrs
     RETURN_IF(
-        !vector_ptr || !item_ptr || !predicate_func_ptr,
+        !vector_ptr || !item_ptr || !predicate_proc,
         SIM_RC_ERR_NULLPTR,
         (size_t)-1
     );
@@ -173,7 +173,7 @@ size_t sim_vector_index_of(
     // iterate over indexes
     for (size_t i = starting_index; i < count; i++) {
         // check if item & comparison_data compare as equal
-        if ((*predicate_func_ptr)(data_ptr, item_ptr))
+        if ((*predicate_proc)(data_ptr, item_ptr))
             RETURN(SIM_RC_SUCCESS, i);
 
         // iterate data_ptr forward one item
@@ -185,14 +185,14 @@ size_t sim_vector_index_of(
 
 // sim_vector_contains(3): Checks if an item is contained in the vector.
 bool sim_vector_contains(
-    Sim_Vector *const    vector_ptr,
-    const void *const    item_ptr,
-    Sim_PredicateFuncPtr predicate_func_ptr
+    Sim_Vector *const vector_ptr,
+    const void *const item_ptr,
+    Sim_PredicateProc predicate_proc
 ) {
     return sim_vector_index_of(
         vector_ptr,
         item_ptr,
-        predicate_func_ptr,
+        predicate_proc,
         0
     ) != (size_t)-1;
 }
@@ -327,19 +327,19 @@ void sim_vector_remove(
 
 // sim_vector_foreach(3): Applies a given function for each item in the vector.
 bool sim_vector_foreach(
-    Sim_Vector *const  vector_ptr,
-    Sim_ForEachFuncPtr foreach_func_ptr,
-    Sim_Variant userdata
+    Sim_Vector *const vector_ptr,
+    Sim_ForEachProc   foreach_proc,
+    Sim_Variant       userdata
 ) {
     // check for nullptrs
-    RETURN_IF(!vector_ptr || !foreach_func_ptr, SIM_RC_ERR_NULLPTR, false);
+    RETURN_IF(!vector_ptr || !foreach_proc, SIM_RC_ERR_NULLPTR, false);
 
     size_t count = vector_ptr->count;
     byte*  data_ptr   = vector_ptr->data_ptr;
     size_t item_size  = vector_ptr->_item_properties.size;
 
     for (size_t i = 0; i < count; i++) {
-        if (!(*foreach_func_ptr)(data_ptr, i, userdata))
+        if (!(*foreach_proc)(data_ptr, i, userdata))
             RETURN(SIM_RC_SUCCESS, false);
         
         data_ptr += item_size;
@@ -350,13 +350,13 @@ bool sim_vector_foreach(
 
 void _sim_vector_filter(
     Sim_Vector *const vector_ptr,
-    Sim_FilterFuncPtr filter_func_ptr,
-    Sim_Variant userdata,
+    Sim_FilterProc    filter_proc,
+    Sim_Variant       userdata,
     Sim_Vector *const out_vector_ptr,
-    bool remove
+    bool              remove
 ) {
     // check for nullptr
-    RETURN_IF(!vector_ptr || !filter_func_ptr, SIM_RC_ERR_NULLPTR,);
+    RETURN_IF(!vector_ptr || !filter_proc, SIM_RC_ERR_NULLPTR,);
 
     size_t count   = vector_ptr->count;
     byte*  data_ptr     = vector_ptr->data_ptr;
@@ -365,7 +365,7 @@ void _sim_vector_filter(
 
     // iterate over items in vector
     for (size_t i = 0; i < count; i++) {
-        bool result = !(*filter_func_ptr)(data_ptr, userdata);
+        bool result = !(*filter_proc)(data_ptr, userdata);
 
         if (result) {
             if (remove) {
@@ -389,22 +389,22 @@ void _sim_vector_filter(
 // sim_vector_extract(4): Extracts items out of the vector based on a given function.
 void sim_vector_extract(
     Sim_Vector *const vector_ptr,
-    Sim_FilterFuncPtr filter_func_ptr,
-    Sim_Variant userdata,
+    Sim_FilterProc    filter_proc,
+    Sim_Variant       userdata,
     Sim_Vector *const out_vector_ptr
 ) {
-    _sim_vector_filter(vector_ptr, filter_func_ptr, userdata, out_vector_ptr, true);
+    _sim_vector_filter(vector_ptr, filter_proc, userdata, out_vector_ptr, true);
 }
 
 // sim_vector_select(4): Selects items from the vector based on a given function.
 void sim_vector_select(
     Sim_Vector *const vector_ptr,
-    Sim_FilterFuncPtr select_func_ptr,
-    Sim_Variant userdata,
+    Sim_FilterProc    select_proc,
+    Sim_Variant       userdata,
     Sim_Vector *const out_vector_ptr
 ) { 
     RETURN_IF(!out_vector_ptr, SIM_RC_ERR_NULLPTR,);
-    _sim_vector_filter(vector_ptr, select_func_ptr, userdata, out_vector_ptr, false);
+    _sim_vector_filter(vector_ptr, select_proc, userdata, out_vector_ptr, false);
 }
 
 
@@ -546,8 +546,8 @@ RADIX_FN_SORT(double)
 // sim_vector_sort(2): Sorts items in the vector based on initialization settings or a
 //                     user-provided comparison function.
 void sim_vector_sort(
-    Sim_Vector *const     vector_ptr,
-    Sim_ComparisonFuncPtr comparison_func_ptr
+    Sim_Vector *const  vector_ptr,
+    Sim_ComparisonProc comparison_proc
 ) {
     // check for nullptr
     RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR,);
@@ -555,8 +555,8 @@ void sim_vector_sort(
     // skip 0-sized vectors
     RETURN_IF(vector_ptr->count == 0, SIM_RC_SUCCESS,);
 
-    if (comparison_func_ptr) {
-        QUICK_SORT_VECTOR(vector_ptr, comparison_func_ptr);
+    if (comparison_proc) {
+        QUICK_SORT_VECTOR(vector_ptr, comparison_proc);
         RETURN(SIM_RC_SUCCESS,);
     }
 

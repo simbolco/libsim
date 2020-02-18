@@ -32,9 +32,9 @@ CPP_NAMESPACE_START(SimSoft)
          */
         typedef struct Sim_HashSet {
             const struct {
-                Sim_TypeInfo type_info;                  // Type information
-                Sim_HashFuncPtr hash_func_ptr;           // Pointer to hash function
-                Sim_PredicateFuncPtr predicate_func_ptr; // Pointer to predicate function
+                Sim_TypeInfo type_info;           // Type information
+                Sim_HashProc hash_proc;           // Pointer to hash function
+                Sim_PredicateProc predicate_proc; // Pointer to predicate function
             } _item_properties; // properties of hashset items
             const Sim_IAllocator *const _allocator_ptr; // bucket allocator
             const size_t _initial_size; // the size of the hashset on initialization
@@ -50,18 +50,18 @@ CPP_NAMESPACE_START(SimSoft)
          * @relates Sim_HashSet
          * @brief Constructs a new hashset.
          * 
-         * @param[in,out] hashset_ptr             Pointer to a hashset to construct.
-         * @param[in]     item_size               Size of each item.
-         * @param[in]     item_type               Type of the items stored in the hashset.
-         * @param[in]     item_hash_func_ptr      Item hash function.
-         * @param[in]     item_predicate_func_ptr Item equality predicate function.
-         * @param[in]     allocator_ptr           Pointer to allocator to use when resizing hash 
-         *                                        buckets.
-         * @param[in]     initial_size            The initial allocated size of the newly created
-         *                                        hashset.
+         * @param[in,out] hashset_ptr         Pointer to a hashset to construct.
+         * @param[in]     item_size           Size of each item.
+         * @param[in]     item_type           Type of the items stored in the hashset.
+         * @param[in]     item_hash_proc      Item hash function.
+         * @param[in]     item_predicate_proc Item equality predicate function.
+         * @param[in]     allocator_ptr       Pointer to allocator to use when resizing hash
+         *                                    buckets.
+         * @param[in]     initial_size        The initial allocated size of the newly created
+         *                                    hashset.
          * 
          * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e item_predicate_func_ptr @c NULL ;
+         *     @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e item_predicate_proc @c NULL ;
          *     @b SIM_RC_ERR_OUTOFMEM if hash buckets couldn't be allocated;
          *     @b SIM_RC_SUCCESS      otherwise.
          * 
@@ -71,8 +71,8 @@ CPP_NAMESPACE_START(SimSoft)
             Sim_HashSet*          hashset_ptr,
             const size_t          item_size,
             const Sim_DataType    item_type,
-            Sim_HashFuncPtr       item_hash_func_ptr,
-            Sim_PredicateFuncPtr  item_predicate_func_ptr,
+            Sim_HashProc          item_hash_proc,
+            Sim_PredicateProc     item_predicate_proc,
             const Sim_IAllocator* allocator_ptr,
             const size_t          initial_size
         );
@@ -205,28 +205,28 @@ CPP_NAMESPACE_START(SimSoft)
          * @relates Sim_HashSet
          * @brief Applies a given function to each item in the hashset.
          * 
-         * @param[in,out] hashset_ptr      Pointer to a hashset whose items will be iterated over.
-         * @param[in]     foreach_func_ptr Pointer to a function that will be applied to each item
-         *                                 in the hashset.
-         * @param[in]     userdata         User-provided data for @e foreach_func_ptr
+         * @param[in,out] hashset_ptr  Pointer to a hashset whose items will be iterated over.
+         * @param[in]     foreach_proc Pointer to a function that will be applied to each item in
+         *                             the hashset.
+         * @param[in]     userdata     User-provided data for @e foreach_proc.
          * 
          * @return @c false on error (see remarks) or if the loop wasn't fully completed;
          *         @c true  otherwise.
          * 
          * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e hashset_ptr or @e foreach_func_ptr are @c NULL ;
+         *     @b SIM_RC_ERR_NULLPTR if @e hashset_ptr or @e foreach_proc are @c NULL ;
          *     @b SIM_RC_SUCCESS     otherwise.
          */
         extern EXPORT bool C_CALL sim_hashset_foreach(
-            Sim_HashSet *const      hashset_ptr,
-            Sim_ConstForEachFuncPtr foreach_func_ptr,
-            Sim_Variant             userdata
+            Sim_HashSet *const   hashset_ptr,
+            Sim_ConstForEachProc foreach_proc,
+            Sim_Variant          userdata
         );
     
     CPP_NAMESPACE_C_API_END /* end C API */
 
 #   ifdef __cplusplus /* C++ API */
-#       include "./exception.hh"
+#       include "./exception.hpp"
         
         template <
             class T,

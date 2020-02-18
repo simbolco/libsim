@@ -133,7 +133,7 @@
 #   endif
 #endif
 
-// ------------------------------------------------------------------------------------------------
+// -- C Deprecation statement ---------------------------------------------------------------------
 
 #ifdef __cplusplus
 #   define DEPRECATED(msg) [[deprecated(msg)]]
@@ -143,6 +143,26 @@
 #   define DEPRECATED(msg) __declspec(deprecated(msg))
 #else
 #   define DEPRECATED(msg)
+#endif
+
+// -- Machine word size check ---------------------------------------------------------------------
+
+#if defined(__uintptr_t_defined) || defined(_UINTPTR_T_DEFINED) || defined(UINTPTR_MAX)
+#   if UINTPTR_MAX == UINT64_MAX
+#       define WORD_SIZE_64
+#   elif UINTPTR_MAX == UINT32_MAX
+#       define WORD_SIZE_32
+#   endif
+#elif defined(__WORDSIZE)
+#   if __WORDSIZE == 64
+#       define WORD_SIZE_64
+#   elif __WORDSIZE == 32
+#       define WORD_SIZE_32
+#   endif
+#elif defined(__x86_64__) || defined(_WIN64)
+#   define WORD_SIZE_64
+#elif defined(__i386__) || defined(_WIN32)
+#   define WORD_SIZE_32
 #endif
 
 // ------------------------------------------------------------------------------------------------
@@ -184,27 +204,27 @@ CPP_NAMESPACE_START(SimSoft)
          * @var signed8  8-bit signed integral.
          * @var signed16 16-bit signed integral.
          * @var signed32 32-bit signed integral.
-         * @var signed64 64-bit signed integral.
+         * @var signed64 64-bit signed integral (excluded from 32-bit builds).
          * 
          * @var unsigned8  8-bit unsigned integral.
          * @var unsigned16 16-bit unsigned integral.
          * @var unsigned32 32-bit unsigned integral.
-         * @var unsigned64 64-bit unsigned integral.
+         * @var unsigned64 64-bit unsigned integral (excluded from 32-bit builds).
          * 
          * @var float32 Single-precision floating-point value.
-         * @var float64 Double-precision floating-point value.
+         * @var float64 Double-precision floating-point value (excluded from 32-bit builds).
          * 
          * @var signed_char      Signed char.
          * @var signed_short     Signed short.
          * @var signed_int       Signed int.
          * @var signed_long      Signed long.
-         * @var signed_long_long Signed long long.
+         * @var signed_long_long Signed long long (excluded if larger than word size).
          * 
          * @var unsigned_char      Unsigned char.
          * @var unsigned_short     Unsigned short.
          * @var unsigned_int       Unsigned int.
          * @var unsigned_long      Unsigned long.
-         * @var unsigned_long_long Unsigned long long.
+         * @var unsigned_long_long Unsigned long long (excluded if larger than word size).
          * 
          * @var signed_size   Signed size type.
          * @var unsigned_size Unsigned size type.
@@ -215,8 +235,6 @@ CPP_NAMESPACE_START(SimSoft)
          * @var upointer Unsigned integer pointer type.
          * @var spointer Signed integer pointer type.
          * @var ptr_diff Pointer difference type.
-         * 
-         * @var time Time type.
          */
         typedef union Sim_Variant {
             // Bytes
@@ -227,31 +245,43 @@ CPP_NAMESPACE_START(SimSoft)
             sint8  signed8;
             sint16 signed16;
             sint32 signed32;
-            sint64 signed64;
+#           ifdef WORD_SIZE_64
+                sint64 signed64;
+#           endif /* WORD_SIZE_64 */
             
             // Sized unsigned integer types
             uint8  unsigned8;
             uint16 unsigned16;
             uint32 unsigned32;
-            uint64 unsigned64;
+#           ifdef WORD_SIZE_64
+                uint64 unsigned64;
+#           endif /* WORD_SIZE_64 */
 
             // Floating point types
             float  float32;
-            double float64;
+#           ifdef WORD_SIZE_64
+                double float64;
+#           endif /* WORD_SIZE_64 */
 
             // C integral types
             char      signed_char;
             short     signed_short;
             int       signed_int;
             long      signed_long;
-            long long signed_long_long;
+#           if (LLONG_MAX > 0x7FFFFFFFl && defined(WORD_SIZE_64)) || \
+               (LLONG_MAX <= 0x7FFFFFFFl && defined(WORD_SIZE_32))
+                long long signed_long_long;
+#           endif /* LLONG_MAX */
 
             // Unsigned C integral types
             unsigned char      unsigned_char;
             unsigned short     unsigned_short;
             unsigned int       unsigned_int;
             unsigned long      unsigned_long;
-            unsigned long long unsigned_long_long;
+#           if (ULLONG_MAX > 0xFFFFFFFFul && defined(WORD_SIZE_64)) || \
+               (ULLONG_MAX <= 0xFFFFFFFFul && defined(WORD_SIZE_32))
+                unsigned long long unsigned_long_long;
+#           endif /* ULLONG_MAX */
 
             // Size types
             ssize_t signed_size;
@@ -265,9 +295,6 @@ CPP_NAMESPACE_START(SimSoft)
             uintptr_t upointer;
             intptr_t  spointer;
             ptrdiff_t ptr_diff;
-
-            // Time type
-            time_t time;
         } Sim_Variant;
 
 #       define __ENUMERATE_RETURN_CODE(rc_name) \
@@ -341,7 +368,7 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_PointerPair;
 
         /**
-         * @typedef Sim_ComparisonFunction
+         * @typedef Sim_ComparisonProc
          * @headerfile common.h "simsoft/common.h"
          * @brief Function pointer for a comparison between two values.
          * 
@@ -350,13 +377,13 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @return An int > 0 if item1 > item2; int < 0 if item2 > item1; 0 if item1 == item2.
          */
-        typedef int (*Sim_ComparisonFuncPtr)(
+        typedef int (*Sim_ComparisonProc)(
             const void* const item1,
             const void* const item2
         );
 
         /**
-         * @typedef Sim_PredicateFuncPtr
+         * @typedef Sim_PredicateProc
          * @headerfile common.h "simsoft/common.h"
          * @brief Function pointer to a predicate function that takes two values.
          * 
@@ -365,13 +392,13 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @return @c true or @c false, depending on what the predicate is used for.
          */
-        typedef bool (*Sim_PredicateFuncPtr)(
+        typedef bool (*Sim_PredicateProc)(
             const void* const item1,
             const void* const item2
         );
 
         /**
-         * @typedef Sim_ForEachFuncPtr
+         * @typedef Sim_ForEachProc
          * @headerfile common.h "simsoft/common.h"
          * @brief Function pointer used when iterating over a collection of items.
          * 
@@ -382,14 +409,14 @@ CPP_NAMESPACE_START(SimSoft)
          * @return @c false to break out of the calling foreach loop;
          *         @c true  to continue iterating.
          */
-        typedef bool (*Sim_ForEachFuncPtr)(
+        typedef bool (*Sim_ForEachProc)(
             void *const item,
             const size_t index,
             Sim_Variant userdata
         );
 
         /**
-         * @typedef Sim_ConstForEachFuncPtr
+         * @typedef Sim_ConstForEachProc
          * @headerfile common.h "simsoft/common.h"
          * @brief Function pointer used when iterating over a collection of const items.
          * 
@@ -400,14 +427,14 @@ CPP_NAMESPACE_START(SimSoft)
          * @return @c false to break out of the calling foreach loop;
          *         @c true  to continue iterating.
          */
-        typedef bool (*Sim_ConstForEachFuncPtr)(
+        typedef bool (*Sim_ConstForEachProc)(
             const void *const item,
             const size_t index,
             Sim_Variant userdata
         );
 
         /**
-         * @typedef Sim_HashFuncPtr
+         * @typedef Sim_HashProc
          * @headerfile common.h "simsoft/common.h"
          * @brief Function pointer that hashes a value.
          * 
@@ -416,13 +443,13 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @return A hash value for the given item.
          */
-        typedef size_t (*Sim_HashFuncPtr)(
+        typedef size_t (*Sim_HashProc)(
             const void *const item,
             const size_t attempt
         );
 
         /**
-         * @typedef Sim_FilterFuncPtr
+         * @typedef Sim_FilterProc
          * @headerfile common.h "simsoft/common.h"
          * @brief Function pointer used when filtering a collection of items.
          * 
@@ -432,7 +459,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @return @c true  to keep the item in the given container;
          *         @c false to remove.
          */
-        typedef bool (*Sim_FilterFuncPtr)(
+        typedef bool (*Sim_FilterProc)(
             const void *const item,
             Sim_Variant userdata
         );

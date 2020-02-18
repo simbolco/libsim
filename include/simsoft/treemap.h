@@ -20,9 +20,8 @@ CPP_NAMESPACE_START(SimSoft)
 
         typedef struct Sim_TreeMap {
             const struct {
-                size_t key_type : 2;                                   // Sim_DataType
-                size_t key_size : (sizeof(size_t)*8)-2;                // size of keys
-                ssize_t (*key_comparison_func_ptr)(const void *const); // key comparison function
+                Sim_TypeInfo type_info;
+                Sim_PredicateProc comparison_proc; // Pointer to predicate function
             } _key_properties;  // properties of treemap keys
             size_t _value_size; // size of treemap values
             const Sim_IAllocator *const _allocator_ptr; // node allocator
@@ -46,7 +45,7 @@ CPP_NAMESPACE_START(SimSoft)
             } Sim_MapConstKeyValuePair;
 
             /**
-             * @typedef Sim_MapForEachFuncPtr
+             * @typedef Sim_MapForEachProc
              * @brief Function pointer used when iterating over a map.
              * 
              * @param[in] key_value_pair_ptr Pointer to a key-value pair in a map.
@@ -56,7 +55,7 @@ CPP_NAMESPACE_START(SimSoft)
              * @return @c false to break out of the calling foreach loop;
              *         @c true  to continue iterating.
              */
-            typedef bool (*Sim_MapForEachFuncPtr)(
+            typedef bool (*Sim_MapForEachProc)(
                 Sim_MapConstKeyValuePair *const key_value_pair_ptr,
                 const size_t index,
                 Sim_Variant userdata
@@ -66,7 +65,7 @@ CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_END /* end C API */
 
 #   ifdef __cplusplus /* C++ API */
-#       include "./exception.hh"
+#       include "./exception.hpp"
         
         template <
             class K,

@@ -20,9 +20,8 @@ CPP_NAMESPACE_START(SimSoft)
 
         typedef struct Sim_TreeSet {
             const struct {
-                size_t item_type : 2;                                   // Sim_DataType
-                size_t item_size : (sizeof(size_t)*8)-2;                // size of items
-                ssize_t (*item_comparison_func_ptr)(const void *const); // item comparison function
+                Sim_TypeInfo type_info;
+                Sim_PredicateProc predicate_proc;
             } _item_properties;  // properties of treeset items
             const Sim_IAllocator *const _allocator_ptr; // node allocator
             void* _root_ptr; // pointer to tree map root
@@ -35,7 +34,7 @@ CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_END /* end C API */
 
 #   ifdef __cplusplus /* C++ API */
-#       include "./exception.hh"
+#       include "./exception.hpp"
         
         template <
             class T,
