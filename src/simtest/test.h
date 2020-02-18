@@ -32,18 +32,18 @@ extern void   simt_alloc_set_lock(bool lock);
 
 // =================================================================================================
 
-typedef Sim_ReturnCode (*SimT_TestFuncPtr)(const char* *const);
+typedef Sim_ReturnCode (*SimT_TestProc)(const char* *const);
 
-typedef struct SimT_TestFuncStruct {
-    SimT_TestFuncPtr func_ptr;
-    const char*      name;
-} SimT_TestFuncStruct;
+typedef struct SimT_TestProcStruct {
+    SimT_TestProc proc;
+    const char*   name;
+} SimT_TestProcStruct;
 
 typedef struct SimTestStruct {
     const char*          name;
     const char*          description;
     int                  num_tests;
-    SimT_TestFuncStruct* test_funcs;
+    SimT_TestProcStruct* test_procs;
 } SimTestStruct;
 
 #endif /* SIMTEST_TEST_H_ */

@@ -177,7 +177,7 @@ Sim_ReturnCode vector_test_get(const char* *const out_err_str) {
 Sim_ReturnCode vector_test_contains(const char* *const out_err_str) {
     {
         int item;
-        if (sim_vector_contains(NULL, &item, (Sim_PredicateFuncPtr)_int_eq)) {
+        if (sim_vector_contains(NULL, &item, (Sim_PredicateProc)_int_eq)) {
             *out_err_str = "contains: returned TRUE for NULLPTR vector";
             return SIM_RC_FAILURE;
         }
@@ -186,7 +186,7 @@ Sim_ReturnCode vector_test_contains(const char* *const out_err_str) {
             return SIM_RC_FAILURE;
         }
 
-        if (sim_vector_contains(&vec, NULL, (Sim_PredicateFuncPtr)_int_eq)) {
+        if (sim_vector_contains(&vec, NULL, (Sim_PredicateProc)_int_eq)) {
             *out_err_str = "contains: returned true for NULLPTR item";
             return SIM_RC_FAILURE;
         }
@@ -204,7 +204,7 @@ Sim_ReturnCode vector_test_contains(const char* *const out_err_str) {
             return SIM_RC_FAILURE;
         }
 
-        size_t ind = sim_vector_index_of(NULL, &item, (Sim_PredicateFuncPtr)_int_eq, 0);
+        size_t ind = sim_vector_index_of(NULL, &item, (Sim_PredicateProc)_int_eq, 0);
         if (sim_return_code() != SIM_RC_ERR_NULLPTR) {
             *out_err_str = "index_of: failed to check for NULLPTR vector";
             return SIM_RC_FAILURE;
@@ -213,7 +213,7 @@ Sim_ReturnCode vector_test_contains(const char* *const out_err_str) {
             *out_err_str = "index_of: failed to return -1 on error";
         }
 
-        ind = sim_vector_index_of(&vec, NULL, (Sim_PredicateFuncPtr)_int_eq, 0);
+        ind = sim_vector_index_of(&vec, NULL, (Sim_PredicateProc)_int_eq, 0);
         if (sim_return_code() != SIM_RC_ERR_NULLPTR) {
             *out_err_str = "index_of: failed to check for NULLPTR item";
             return SIM_RC_FAILURE;
@@ -234,12 +234,12 @@ Sim_ReturnCode vector_test_contains(const char* *const out_err_str) {
 
     {
         int i = 16;
-        if (!sim_vector_contains(&vec, &i, (Sim_PredicateFuncPtr)_int_eq)) {
+        if (!sim_vector_contains(&vec, &i, (Sim_PredicateProc)_int_eq)) {
             *out_err_str = "contains: returned false for item in the vector";
             return SIM_RC_FAILURE;
         }
         i = -30;
-        if (sim_vector_contains(&vec, &i, (Sim_PredicateFuncPtr)_int_eq)) {
+        if (sim_vector_contains(&vec, &i, (Sim_PredicateProc)_int_eq)) {
             *out_err_str = "contains: returned true for item not in the vector";
             return SIM_RC_FAILURE;
         }
@@ -250,7 +250,7 @@ Sim_ReturnCode vector_test_contains(const char* *const out_err_str) {
     {
         int i = rand() % vec.count, j;
 
-        size_t ind = sim_vector_index_of(&vec, &i, (Sim_PredicateFuncPtr)_int_eq, 0);
+        size_t ind = sim_vector_index_of(&vec, &i, (Sim_PredicateProc)_int_eq, 0);
         if ((rc = sim_return_code())) {
             *out_err_str = "unexpected error out on index_of";
             sim_vector_destroy(&vec);
@@ -268,7 +268,7 @@ Sim_ReturnCode vector_test_contains(const char* *const out_err_str) {
         }
 
         j = -1;
-        ind = sim_vector_index_of(&vec, &j, (Sim_PredicateFuncPtr)_int_eq, 0);
+        ind = sim_vector_index_of(&vec, &j, (Sim_PredicateProc)_int_eq, 0);
         if (sim_return_code() != SIM_RC_ERR_NOTFOUND) {
             sim_vector_destroy(&vec);
             *out_err_str = "index_of: failed to throw ERR_NOTFOUND for item not in vector";

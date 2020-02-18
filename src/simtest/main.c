@@ -11,6 +11,7 @@
 
 #include "./test.h"
 #include "simsoft/dynlib.h"
+#include "simsoft/util.h"
 
 #include "./tests/vector_tests.h"
 #include "./tests/hashset_tests.h"
@@ -232,121 +233,6 @@ typedef struct SimT_String {
     bool has_hash;
 } SimT_String;
 
-static size_t simt_siphash(
-    const byte*  data_ptr,
-    const size_t data_size,
-    const uint64 k0,
-    const uint64 k1
-) {
-#   define ROTL(x, b) (uint64)(((x) << (b)) | ((x) >> (64 - (b))))
-
-#   define U32TO8_LE(p, v)          \
-        (p)[0] = (uint8)((v));       \
-        (p)[1] = (uint8)((v) >> 8);  \
-        (p)[2] = (uint8)((v) >> 16); \
-        (p)[3] = (uint8)((v) >> 24);
-
-#   define U64TO8_LE(p, v)                  \
-        U32TO8_LE((p), (uint32)((v)));       \
-        U32TO8_LE((p)+4, (uint32)((v) >> 32));
-
-#   define U8TO64_LE(p) ( \
-        ((uint64)((p)[0])) | \
-        ((uint64)((p)[1]) << 8)  | \
-        ((uint64)((p)[2]) << 16) | \
-        ((uint64)((p)[3]) << 24) | \
-        ((uint64)((p)[4]) << 32) | \
-        ((uint64)((p)[5]) << 40) | \
-        ((uint64)((p)[6]) << 48) | \
-        ((uint64)((p)[7]) << 56)   \
-    )
-
-#   define SIPROUND {     \
-        v0 += v1;          \
-        v1 = ROTL(v1, 13); \
-        v1 ^= v0;          \
-        v0 = ROTL(v0, 32); \
-        v2 += v3;          \
-        v3 = ROTL(v3, 16); \
-        v3 ^= v2;          \
-        v0 += v3;          \
-        v3 = ROTL(v3, 21); \
-        v3 ^= v0;          \
-        v2 += v1;          \
-        v1 = ROTL(v1, 17); \
-        v1 ^= v2;          \
-        v2 = ROTL(v2, 32); \
-    }
-
-    // constants
-    uint64 v0 = 0x736f6d6570736575ULL;
-    uint64 v1 = 0x646f72616e646f6dULL;
-    uint64 v2 = 0x6c7967656e657261ULL;
-    uint64 v3 = 0x7465646279746573ULL;
-
-    const byte* end_ptr = data_ptr + data_size - (data_size % sizeof(uint64));
-    const int left = data_size & 7;
-    
-    uint64 b = ((uint64)data_size) << 56;
-
-    v3 ^= k1;
-    v2 ^= k0;
-    v1 ^= k1;
-    v0 ^= k0;
-
-    uint64 m;
-    for (; data_ptr != end_ptr; data_ptr += 8) {
-        m = U8TO64_LE(data_ptr);
-        v3 ^= m;
-
-        SIPROUND;
-        SIPROUND;
-
-        v0 ^= m;
-    }
-
-    switch (left) {
-    case 7:
-        b |= ((uint64)data_ptr[6]) << 48;
-    case 6:
-        b |= ((uint64)data_ptr[5]) << 40;
-    case 5:
-        b |= ((uint64)data_ptr[4]) << 32;
-    case 4:
-        b |= ((uint64)data_ptr[3]) << 24;
-    case 3:
-        b |= ((uint64)data_ptr[2]) << 16;
-    case 2:
-        b |= ((uint64)data_ptr[1]) << 8;
-    case 1:
-        b |= ((uint64)data_ptr[0]);
-        break;
-    case 0:
-        break;
-    }
-
-    v3 ^= b;
-
-    SIPROUND;
-    SIPROUND;
-
-    v0 ^= b;
-    v2 ^= 0xff;
-
-    SIPROUND;
-    SIPROUND;
-    SIPROUND;
-    SIPROUND;
-
-    return (size_t)(v0 ^ v1 ^ v2 ^ v3);
-
-#   undef SIPROUND
-#   undef ROTL
-#   undef U32TO8_LE
-#   undef U64TO8_LE
-#   undef U8TO64_LE
-}
-
 static size_t simt_strhash(SimT_String *const str_ptr, const size_t attempt) {
     // Hash keys for hash fallback + double hashing
 #   define SIPHASH_KEY1 0x90d6346e7b77f546ULL
@@ -355,17 +241,15 @@ static size_t simt_strhash(SimT_String *const str_ptr, const size_t attempt) {
 #   define SIPHASH_KEY4 0xe26534637479058cULL
     
     if (!str_ptr->has_hash) {
-        str_ptr->hash1 = simt_siphash(
-            (const byte*)str_ptr->str,
+        str_ptr->hash1 = sim_siphash(
+            (const uint8*)str_ptr->str,
             str_ptr->size,
-            SIPHASH_KEY1,
-            SIPHASH_KEY2
+            (Sim_HashKey){ SIPHASH_KEY1, SIPHASH_KEY2 }
         );
-        str_ptr->hash2 = simt_siphash(
-            (const byte*)str_ptr->str,
+        str_ptr->hash2 = sim_siphash(
+            (const uint8*)str_ptr->str,
             str_ptr->size,
-            SIPHASH_KEY3,
-            SIPHASH_KEY4
+            (Sim_HashKey){ SIPHASH_KEY3, SIPHASH_KEY4 }
         );
     }
 
@@ -403,7 +287,7 @@ static void simt_atexit_free_all(void) {
 
     sim_hashmap_foreach(
         &simt_dynlibs,
-        (Sim_MapForEachFuncPtr)simt_dynlibs_foreach_clean,
+        (Sim_MapForEachProc)simt_dynlibs_foreach_clean,
         (Sim_Variant)0
     );
     sim_hashmap_destroy(&simt_dynlibs);
@@ -411,35 +295,31 @@ static void simt_atexit_free_all(void) {
 
 // ================================================================================================
 
-static SimT_TestFuncStruct vector_tests[] = {
-    { vector_test_construct, "constructor" },
-    { vector_test_push, "push" },
-    { vector_test_get,  "get & get_ptr" },
-    { vector_test_contains, "contains & index_of" },
-    { vector_test_remove, "remove & pop" },
-    { vector_test_clear, "clear" },
-    { vector_test_destroy, "destructor" }
-};
-
-static SimT_TestFuncStruct hashset_tests[] = {
-    { hashset_test_construct, "constructor" },
-    { hashset_test_insert, "insert & contains" },
-    { hashset_test_remove, "remove & contains" },
-    { hashset_test_destroy, "destructor" }
-};
-
 static SimTestStruct tests[] = {
     {
         .name = "vector",
         .description = "Unit tests for Sim_Vector.",
-        .num_tests = sizeof(vector_tests) / sizeof(SimT_TestFuncStruct),
-        .test_funcs = vector_tests
+        .num_tests = 7,
+        .test_procs = (SimT_TestProcStruct []){
+            { vector_test_construct, "constructor" },
+            { vector_test_push,      "push" },
+            { vector_test_get,       "get & get_ptr" },
+            { vector_test_contains,  "contains & index_of" },
+            { vector_test_remove,    "remove & pop" },
+            { vector_test_clear,     "clear" },
+            { vector_test_destroy,   "destructor" }
+        }
     },
     {
         .name = "hashset",
         .description = "Unit tests for Sim_HashSet.",
-        .num_tests = sizeof(hashset_tests) / sizeof(SimT_TestFuncStruct),
-        .test_funcs = hashset_tests
+        .num_tests = 4,
+        .test_procs = (SimT_TestProcStruct []){
+            { hashset_test_construct, "constructor" },
+            { hashset_test_insert,    "insert & contains" },
+            { hashset_test_remove,    "remove & contains" },
+            { hashset_test_destroy,   "destructor" }
+        }
     }
 };
 
@@ -482,7 +362,7 @@ void perform_test(int test_id, bool exit_on_failure) {
 
     for (int i = 0; i < total; i++) {
         remaining--;
-        test_result  = (*tests[test_id].test_funcs[i].func_ptr)(&err_strs[i]);
+        test_result  = (*tests[test_id].test_procs[i].proc)(&err_strs[i]);
         if (test_result == SIM_RC_SUCCESS)
             passed++;
         else {
@@ -509,12 +389,12 @@ void perform_test(int test_id, bool exit_on_failure) {
         printf(
             "  [%d]%s%s%s%s\n",
             i + 1,
-            (tests[test_id].test_funcs[i].name ? " - " : " "),
-            (tests[test_id].test_funcs[i].name ?
-                tests[test_id].test_funcs[i].name :
+            (tests[test_id].test_procs[i].name ? " - " : " "),
+            (tests[test_id].test_procs[i].name ?
+                tests[test_id].test_procs[i].name :
                 ""
             ),
-            (tests[test_id].test_funcs[i].name ? " - " : ""),
+            (tests[test_id].test_procs[i].name ? " - " : ""),
             err_strs[i] ? err_strs[i] : "(none)"
         );
     }
@@ -566,8 +446,8 @@ int main(int argc, char* argv[]) {
         &simt_dynlibs,
         sizeof(const char*),
         SIM_DATATYPE_OTHER,
-        (Sim_HashFuncPtr)simt_strhash,
-        (Sim_PredicateFuncPtr)simt_streq,
+        (Sim_HashProc)simt_strhash,
+        (Sim_PredicateProc)simt_streq,
         sizeof(Sim_LibraryHandle),
         NULL,
         53
