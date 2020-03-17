@@ -276,14 +276,15 @@ static bool simt_dynlibs_foreach_clean(
     Sim_Variant userdata
 ) {
     (void)userdata; (void)index;
+    printf("This should be empty!\n");
     free(key_value_pair_ptr->key->str);
     sim_dynlib_unload(*key_value_pair_ptr->value);
     return true; 
 }
 
 static void simt_atexit_free_all(void) {
-    for (size_t i = 0; i < SIMT_ALLOCATOR.ptrs_size; i++)
-        sim_allocator_default_free(SIMT_ALLOCATOR.ptrs[i]);
+    while (SIMT_ALLOCATOR.ptrs_size > 0)
+        simt_free(SIMT_ALLOCATOR.ptrs[0]);
 
     sim_hashmap_foreach(
         &simt_dynlibs,

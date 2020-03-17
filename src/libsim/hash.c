@@ -377,7 +377,6 @@ static bool _sim_hash_foreach(
             
             item_num++;
         }
-        data_ptr++;
     }
 
     RETURN(SIM_RC_SUCCESS, true);
