@@ -224,7 +224,8 @@ size_t sim_get_backtrace_info(
             num_entries
         );
 
-        for (int i = skip_frames; i < num_entries; i++) {
+        int i;
+        for (i = skip_frames; i < num_entries; i++) {
             backtrace_array[i - skip_frames].function_address = backtrace_ptr_array[i];
             backtrace_array[i - skip_frames].line_number = 0;
             backtrace_array[i - skip_frames].file_name = NULL;
@@ -245,7 +246,7 @@ size_t sim_get_backtrace_info(
         }
 
         free(backtrace_symbol_array);
-        RETURN(SIM_RC_SUCCESS, index);
+        RETURN(SIM_RC_SUCCESS, i);
 
 #   else
 #       warning("sim_get_backtrace_info(3) is unsupported")
