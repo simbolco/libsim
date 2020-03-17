@@ -454,7 +454,7 @@ int main(int argc, char* argv[]) {
         53
     );
 
-    sim_set_default_allocator(&SIMT_ALLOCATOR.allocator);
+    sim_allocator_set_default(&SIMT_ALLOCATOR.allocator);
     atexit(simt_atexit_free_all);
 
     bool exit_on_failure = false;

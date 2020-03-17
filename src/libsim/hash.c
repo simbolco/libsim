@@ -67,7 +67,7 @@ static void _sim_hash_construct(
     // check for nullptr
     RETURN_IF(!hash_ptr.hashmap_ptr || !key_predicate_proc, SIM_RC_ERR_NULLPTR,);
 
-    allocator_ptr = allocator_ptr ? allocator_ptr : sim_get_default_allocator();
+    allocator_ptr = allocator_ptr ? allocator_ptr : sim_allocator_get_default();
 
     // allocate buckets
     size_t starting_size = _sim_next_prime(initial_size);

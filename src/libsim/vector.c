@@ -30,7 +30,7 @@ void sim_vector_construct(
         
     // use default allocator on NULL
     if (!allocator_ptr)
-        allocator_ptr = sim_get_default_allocator();
+        allocator_ptr = sim_allocator_get_default();
 
     // allocate internal array
     void* data_ptr = allocator_ptr->malloc(item_size * initial_size);

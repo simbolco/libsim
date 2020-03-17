@@ -50,13 +50,13 @@ void sim_allocator_default_free(void* ptr) {
     free(ptr);
 }
 
-// sim_get_default_allocator(0): Retrieve the default allocator.
-const Sim_IAllocator *const sim_get_default_allocator(void) {
+// sim_allocator_get_default(0): Retrieve the default allocator.
+const Sim_IAllocator *const sim_allocator_get_default(void) {
     return SIM_EXTERN_DEFAULT_ALLOCATOR;
 }
 
-// sim_set_default_allocator(1): Get the default allocator.
-void sim_set_default_allocator(Sim_IAllocator *const allocator) {
+// sim_allocator_set_default(1): Get the default allocator.
+void sim_allocator_set_default(Sim_IAllocator *const allocator) {
     SIM_EXTERN_DEFAULT_ALLOCATOR = allocator ?
         allocator :
         &SIM_DEFAULT_ALLOCATOR

@@ -180,27 +180,27 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn const Sim_IAllocator *const sim_get_default_allocator(0)
+         * @fn const Sim_IAllocator *const sim_allocator_get_default(0)
          * @relates Sim_IAllocator
          * @brief Retrieve the default allocator.
          * 
          * @return Pointer to the default allocator.
          * 
-         * @sa sim_set_default_allocator
+         * @sa sim_allocator_set_default
          */
-        extern EXPORT const Sim_IAllocator *const C_CALL sim_get_default_allocator(void);
+        extern EXPORT const Sim_IAllocator *const C_CALL sim_allocator_get_default(void);
         
         /**
-         * @fn sim_set_default_allocator(1)
+         * @fn sim_allocator_set_default(1)
          * @relates Sim_IAllocator
          * @brief Set the default allocator.
          * 
          * @param[in] allocator Pointer to an allocator to use as the default or @c NULL to
          *                      use the original default allocator.
          * 
-         * @sa sim_get_default_allocator
+         * @sa sim_allocator_get_default
          */
-        extern EXPORT void C_CALL sim_set_default_allocator(
+        extern EXPORT void C_CALL sim_allocator_set_default(
             Sim_IAllocator *const allocator
         );
     
