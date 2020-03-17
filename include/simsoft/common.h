@@ -20,6 +20,7 @@
 #include <float.h>
 #include <limits.h>
 #include <math.h>
+#include <stdatomic.h>
 
 // Include C stdbool when not in C++ mode
 #ifndef __cplusplus
@@ -284,17 +285,27 @@ CPP_NAMESPACE_START(SimSoft)
 #           endif /* ULLONG_MAX */
 
             // Size types
-            ssize_t signed_size;
-            size_t  unsigned_size;
+#           ifdef SSIZE_MAX
+                ssize_t signed_size;
+#           endif
+#           ifdef SIZE_MAX
+                size_t  unsigned_size;
+#           endif
 
             // Pointer types
             char* string;
             void* pointer;
             
             // Pointer math types
-            uintptr_t upointer;
-            intptr_t  spointer;
-            ptrdiff_t ptr_diff;
+#           ifdef UINTPTR_MAX
+                uintptr_t upointer;
+#           endif
+#           ifdef INTPTR_MAX
+                intptr_t  spointer;
+#           endif
+#           ifdef PTRDIFF_MAX
+                ptrdiff_t ptr_diff;
+#           endif
         } Sim_Variant;
 
 #       define __ENUMERATE_RETURN_CODE(rc_name) \
@@ -302,7 +313,7 @@ CPP_NAMESPACE_START(SimSoft)
 
         /**
          * @enum Sim_ReturnCode
-         * @headerfile common.n "simsoft/common.h"
+         * @headerfile common.h "simsoft/common.h"
          * @brief C enumeration of return values of library functions.
          * 
          * @var SIM_RC_SUCCESS      The function did what it was supposed to do without any issues.
