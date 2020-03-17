@@ -277,7 +277,7 @@ static bool simt_dynlibs_foreach_clean(
 ) {
     (void)userdata; (void)index;
     free(key_value_pair_ptr->key->str);
-    sim_unload_library(*key_value_pair_ptr->value);
+    sim_dynlib_unload(*key_value_pair_ptr->value);
     return true; 
 }
 
@@ -482,7 +482,7 @@ int main(int argc, char* argv[]) {
     // main loop
     while (true) {
         printf("> ");
-        fgets(input_buffer, sizeof(input_buffer), stdin);
+        (void)fgets(input_buffer, sizeof(input_buffer), stdin);
 
         char* pos;
         if (!(pos = memchr(input_buffer, '\n', sizeof(input_buffer)))) {

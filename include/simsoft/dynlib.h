@@ -25,7 +25,7 @@ CPP_NAMESPACE_START(SimSoft)
         typedef void* Sim_LibraryHandle;
 
         /**
-         * @fn void sim_load_library(1)
+         * @fn void sim_dynlib_load(1)
          * @relates Sim_LibraryHandle
          * @brief Loads a dynamic library via filename during runtime.
          * 
@@ -41,12 +41,12 @@ CPP_NAMESPACE_START(SimSoft)
          *         (TODO: Use more specific error codes in future);
          *     @b SIM_RC_SUCCESS      otherwise.
          */
-        extern EXPORT Sim_LibraryHandle C_CALL sim_load_library(
+        extern EXPORT Sim_LibraryHandle C_CALL sim_dynlib_load(
             const char* filename
         );
 
         /**
-         * @fn void sim_unload_library(1)
+         * @fn void sim_dynlib_unload(1)
          * @relates Sim_LibraryHandle
          * @brief Unloads a dynamic library handle.
          * 
@@ -59,12 +59,12 @@ CPP_NAMESPACE_START(SimSoft)
          *         (TODO: Use more specific error codes in future);
          *     @b SIM_RC_SUCCESS      otherwise.
          */
-        extern void C_CALL sim_unload_library(
+        extern void C_CALL sim_dynlib_unload(
             Sim_LibraryHandle library_handle
         );
 
         /**
-         * @fn void* sim_find_symbol(2)
+         * @fn void* sim_dynlib_find_symbol(2)
          * @relates Sim_LibraryHandle
          * @brief Retrieves a function from a dynamic library via a symbol.
          * 
@@ -81,7 +81,7 @@ CPP_NAMESPACE_START(SimSoft)
          *         (TODO: Use more specific error codes in future);
          *     @b SIM_RC_SUCCESS      otherwise.
          */
-        extern EXPORT void* C_CALL sim_find_symbol(
+        extern EXPORT void* C_CALL sim_dynlib_find_symbol(
             Sim_LibraryHandle library_handle,
             const char*       symbol_name
         );

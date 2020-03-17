@@ -26,7 +26,7 @@
 
     // 
     static void _sim_win32_onexit_clean_advapi32(void) {
-        sim_unload_library(_SIM_WIN32_ADVAPI32_LIBHANDLE);
+        sim_dynlib_unload(_SIM_WIN32_ADVAPI32_LIBHANDLE);
     }
 
 #endif
@@ -42,7 +42,7 @@ void sim_random_bytes(
         // get library handle to Advapi32.dll
         if (!_SIM_WIN32_ADVAPI32_LIBHANDLE) {
             RETURN_IF(
-                !(_SIM_WIN32_ADVAPI32_LIBHANDLE = sim_load_library("Advapi32.dll")),
+                !(_SIM_WIN32_ADVAPI32_LIBHANDLE = sim_dynlib_load("Advapi32.dll")),
                 SIM_RC_ERR_UNSUPRTD,
             );
             
