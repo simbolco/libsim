@@ -25,7 +25,7 @@ size_t SimSoft::get_backtrace_info(
 ) {
     size_t num_frames = 0;
 
-    num_frames = C_API::sim_get_backtrace_info(
+    num_frames = C_API::sim_debug_get_backtrace_info(
         backtrace_array,
         backtrace_size,
         skip_frames
@@ -40,7 +40,7 @@ size_t SimSoft::get_backtrace_info(
 const char* SimSoft::get_return_code_string(
     ReturnCode return_code
 ) {
-    return C_API::sim_get_return_code_string(
+    return C_API::sim_debug_get_return_code_string(
         (C_API::Sim_ReturnCode)return_code
     );
 }
