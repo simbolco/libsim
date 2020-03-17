@@ -21,8 +21,8 @@
 #   include <execinfo.h>
 #endif
 
-// sim_get_return_code_string(1): Convert a return code to a human-readable string.
-const char* sim_get_return_code_string(
+// sim_debug_get_return_code_string(1): Convert a return code to a human-readable string.
+const char* sim_debug_get_return_code_string(
     Sim_ReturnCode return_code
 ) {
     static const char* RETURN_CODES[] = {
@@ -47,8 +47,8 @@ const char* sim_get_return_code_string(
     ;
 }
 
-// sim_get_backtrace_info(3): Retrieve stack backtrace information.
-size_t sim_get_backtrace_info(
+// sim_debug_get_backtrace_info(3): Retrieve stack backtrace information.
+size_t sim_debug_get_backtrace_info(
     Sim_BacktraceInfo backtrace_array[],
     size_t            backtrace_size,
     size_t            skip_frames

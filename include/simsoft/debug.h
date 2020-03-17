@@ -31,7 +31,7 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_BacktraceInfo;
 
         /**
-         * @fn size_t sim_get_backtrace_info(3)
+         * @fn size_t sim_debug_get_backtrace_info(3)
          * @relates Sim_BacktraceInfo
          * @brief Retrieve stack backtrace information.
          * 
@@ -54,14 +54,14 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          *          Strings in @e backtrace_array must be freed.
          */
-        extern EXPORT size_t C_CALL sim_get_backtrace_info(
+        extern EXPORT size_t C_CALL sim_debug_get_backtrace_info(
             Sim_BacktraceInfo backtrace_array[],
             size_t            backtrace_size,
             size_t            skip_frames
         );
 
         /**
-         * @fn const char* sim_get_return_code_string(1)
+         * @fn const char* sim_debug_get_return_code_string(1)
          * @relates Sim_ReturnCode
          * @brief Convert a return code to a human-readable string.
          * 
@@ -70,7 +70,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @return A string corresponding to the given return; @c NULL if @e return_code is
          *         an invalid value.
          */
-        extern EXPORT const char* C_CALL sim_get_return_code_string(
+        extern EXPORT const char* C_CALL sim_debug_get_return_code_string(
             Sim_ReturnCode return_code
         );
     
