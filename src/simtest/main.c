@@ -103,7 +103,7 @@ static void sigsegv_catch(int signal_number) {
     memset(backtrace_info, 0, sizeof(backtrace_info));
     size_t num_frames;
     
-    if ((num_frames =sim_get_backtrace_info(backtrace_info, 32, 0))) {
+    if ((num_frames = sim_debug_get_backtrace_info(backtrace_info, 32, 0))) {
         printf("Backtrace:\n");
         for (size_t i = 0; i < num_frames; i++) {
             printf(" %p - %s%s%s%s\n",
@@ -406,7 +406,7 @@ void perform_test(int test_id, bool exit_on_failure) {
         printf(
             ERR_STR(" Test %d of suite returned error: \"%s\""),
             total - remaining,
-            sim_get_return_code_string(test_result)
+            sim_debug_get_return_code_string(test_result)
         );
 
         if (exit_on_failure)

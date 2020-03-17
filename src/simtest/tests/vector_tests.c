@@ -33,7 +33,7 @@ Sim_ReturnCode vector_test_construct(const char* *const out_err_str) {
         NULL,
         256
     );
-    printf("%s\n", sim_get_return_code_string(sim_return_code()));
+    printf("%s\n", sim_debug_get_return_code_string(sim_return_code()));
     if (sim_return_code() != SIM_RC_ERR_NULLPTR) {
         *out_err_str = "construct: failed to check for NULLPTR vector";
         return SIM_RC_ERR_NULLPTR;
