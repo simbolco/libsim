@@ -25,7 +25,7 @@ uint32 sim_utf8_to_codepoint(
 
     if ((uint8)utf8_char_ptr[0] <= 0x7F)
         codepoint = (uint32)*utf8_char_ptr;
-    else if (utf8_char_ptr[0] & 0xE0 == 0xC0)
+    else if ((utf8_char_ptr[0] & 0xE0) == 0xC0)
         codepoint = ((uint8)utf8_char_ptr[0] & 0x1F) * 64 +
                     ((uint8)utf8_char_ptr[1] & 0x3F)
         ;
@@ -33,12 +33,12 @@ uint32 sim_utf8_to_codepoint(
         utf8_char_ptr[0] == 0xED && (utf8_char_ptr[1] & 0xA0) == 0xA0,
         SIM_RC_FAILURE, codepoint
     )
-    else if (utf8_char_ptr[0] & 0xF0 == 0xE0)
+    else if ((utf8_char_ptr[0] & 0xF0) == 0xE0)
         codepoint = ((uint8)utf8_char_ptr[0] & 0x0F) * 4096 +
                     ((uint8)utf8_char_ptr[1] & 0x3F) * 64   +
                     ((uint8)utf8_char_ptr[2] & 0x3F)
         ;
-    else if (utf8_char_ptr[0] & 0xF8 == 0xF0)
+    else if ((utf8_char_ptr[0] & 0xF8) == 0xF0)
         codepoint = ((uint8)utf8_char_ptr[0] & 0x07) * 262144 +
                     ((uint8)utf8_char_ptr[1] & 0x3F) * 4096   +
                     ((uint8)utf8_char_ptr[2] & 0x3F) * 64     +
@@ -78,9 +78,9 @@ size_t sim_utf8_get_char_size(const char* utf8_char_ptr) {
     RETURN_IF(!utf8_char_ptr, SIM_RC_ERR_NULLPTR, 0);
     
     RETURN_IF(*utf8_char_ptr <= 0x7F, SIM_RC_SUCCESS, 1)
-    else RETURN_IF(*utf8_char_ptr & 0xE0 == 0xC0, SIM_RC_SUCCESS, 2)
-    else RETURN_IF(*utf8_char_ptr & 0xF0 == 0xE0, SIM_RC_SUCCESS, 3)
-    else RETURN_IF(*utf8_char_ptr & 0xF8 == 0xF0, SIM_RC_SUCCESS, 4)
+    else RETURN_IF((*utf8_char_ptr & 0xE0) == 0xC0, SIM_RC_SUCCESS, 2)
+    else RETURN_IF((*utf8_char_ptr & 0xF0) == 0xE0, SIM_RC_SUCCESS, 3)
+    else RETURN_IF((*utf8_char_ptr & 0xF8) == 0xF0, SIM_RC_SUCCESS, 4)
     else RETURN(SIM_RC_ERR_INVALARG, 0);
 }
 
