@@ -1,7 +1,7 @@
 /**
  * @file random.c
  * @author Simon Struthers (snstruthers@gmail.com)
- * @brief Header for random number generation functions
+ * @brief Source file/implementation for simsoft/random.h
  * @version 0.1
  * @date 2020-01-23
  * 

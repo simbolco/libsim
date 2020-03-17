@@ -293,7 +293,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern EXPORT void C_CALL sim_vector_resize(
             Sim_Vector *const vector_ptr,
-            const size_t size
+            const size_t      size
         );
 
         /**
@@ -358,10 +358,10 @@ CPP_NAMESPACE_START(SimSoft)
          * @sa sim_vector_contains
          */
         extern EXPORT size_t C_CALL sim_vector_index_of(
-            Sim_Vector *const    vector_ptr,
-            const void *const    item_ptr,
+            Sim_Vector *const vector_ptr,
+            const void *const item_ptr,
             Sim_PredicateProc predicate_proc,
-            const size_t         starting_index
+            const size_t      starting_index
         );
 
         /**
@@ -386,8 +386,8 @@ CPP_NAMESPACE_START(SimSoft)
          * @sa sim_vector_index_of
          */
         extern EXPORT bool C_CALL sim_vector_contains(
-            Sim_Vector *const    vector_ptr,
-            const void *const    item_ptr,
+            Sim_Vector *const vector_ptr,
+            const void *const item_ptr,
             Sim_PredicateProc predicate_proc
         );
 
@@ -495,8 +495,8 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern EXPORT bool C_CALL sim_vector_foreach(
             Sim_Vector *const vector_ptr,
-            Sim_ForEachProc foreach_proc,
-            Sim_Variant userdata
+            Sim_ForEachProc   foreach_proc,
+            Sim_Variant       userdata
         );
 
         /**
@@ -523,7 +523,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern EXPORT void C_CALL sim_vector_extract(
             Sim_Vector *const vector_ptr,
-            Sim_FilterProc filter_proc,
+            Sim_FilterProc    filter_proc,
             Sim_Variant       userdata,
             Sim_Vector *const out_vector_ptr
         );
@@ -552,7 +552,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern EXPORT void C_CALL sim_vector_select(
             Sim_Vector *const vector_ptr,
-            Sim_FilterProc select_proc,
+            Sim_FilterProc    select_proc,
             Sim_Variant       userdata,
             Sim_Vector *const out_vector_ptr
         );
@@ -599,7 +599,7 @@ CPP_NAMESPACE_START(SimSoft)
          *          otherwise @b SIM_RC_ERR_NULLPTR will be returned.
          */
         extern EXPORT void C_CALL sim_vector_sort(
-            Sim_Vector *const     vector_ptr,
+            Sim_Vector *const  vector_ptr,
             Sim_ComparisonProc comparison_proc
         );
 

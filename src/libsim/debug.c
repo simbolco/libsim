@@ -248,8 +248,8 @@ size_t sim_get_backtrace_info(
         RETURN(SIM_RC_SUCCESS, index);
 
 #   else
-#       warning("sim_get_backtrace_info(4) is unsupported")
-        (void)backtrace_array; (void)backtrace_size; (void)out_num_frames; (void)skip_frames;
+#       warning("sim_get_backtrace_info(3) is unsupported")
+        (void)backtrace_array; (void)backtrace_size; (void)skip_frames;
         RETURN(SIM_RC_ERR_UNSUPRTD, 0);
 #   endif
 }
