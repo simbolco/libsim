@@ -177,9 +177,6 @@ typedef uint32_t uint32;
 typedef int64_t  sint64;
 typedef uint64_t uint64;
 
-typedef sint8 byte;
-typedef uint8 ubyte;
-
 #define ENUMERATE_RETURN_CODES            \
     __ENUMERATE_RETURN_CODE(SUCCESS)      \
     __ENUMERATE_RETURN_CODE(FAILURE)      \
@@ -190,7 +187,8 @@ typedef uint8 ubyte;
     __ENUMERATE_RETURN_CODE(ERR_OUTOFBND) \
     __ENUMERATE_RETURN_CODE(ERR_UNSUPRTD) \
     __ENUMERATE_RETURN_CODE(ERR_NOTFOUND) \
-    __ENUMERATE_RETURN_CODE(ERR_UNIMPLTD)
+    __ENUMERATE_RETURN_CODE(ERR_UNIMPLTD) \
+    __ENUMERATE_RETURN_CODE(ERR_BADFILE)
 
 CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_START /* C API */
@@ -199,49 +197,42 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile common.h "simsoft/common.h"
          * @brief Union of different C data types.
          * 
-         * @var byte  Signed byte.
-         * @var ubyte Unsigned byte.
+         * @property signed8  8-bit signed integral.
+         * @property signed16 16-bit signed integral.
+         * @property signed32 32-bit signed integral.
+         * @property signed64 64-bit signed integral (excluded from 32-bit builds).
          * 
-         * @var signed8  8-bit signed integral.
-         * @var signed16 16-bit signed integral.
-         * @var signed32 32-bit signed integral.
-         * @var signed64 64-bit signed integral (excluded from 32-bit builds).
+         * @property unsigned8  8-bit unsigned integral.
+         * @property unsigned16 16-bit unsigned integral.
+         * @property unsigned32 32-bit unsigned integral.
+         * @property unsigned64 64-bit unsigned integral (excluded from 32-bit builds).
          * 
-         * @var unsigned8  8-bit unsigned integral.
-         * @var unsigned16 16-bit unsigned integral.
-         * @var unsigned32 32-bit unsigned integral.
-         * @var unsigned64 64-bit unsigned integral (excluded from 32-bit builds).
+         * @property float32 Single-precision floating-point value.
+         * @property float64 Double-precision floating-point value (excluded from 32-bit builds).
          * 
-         * @var float32 Single-precision floating-point value.
-         * @var float64 Double-precision floating-point value (excluded from 32-bit builds).
+         * @property signed_char      Signed char.
+         * @property signed_short     Signed short.
+         * @property signed_int       Signed int.
+         * @property signed_long      Signed long.
+         * @property signed_long_long Signed long long (excluded if larger than word size).
          * 
-         * @var signed_char      Signed char.
-         * @var signed_short     Signed short.
-         * @var signed_int       Signed int.
-         * @var signed_long      Signed long.
-         * @var signed_long_long Signed long long (excluded if larger than word size).
+         * @property unsigned_char      Unsigned char.
+         * @property unsigned_short     Unsigned short.
+         * @property unsigned_int       Unsigned int.
+         * @property unsigned_long      Unsigned long.
+         * @property unsigned_long_long Unsigned long long (excluded if larger than word size).
          * 
-         * @var unsigned_char      Unsigned char.
-         * @var unsigned_short     Unsigned short.
-         * @var unsigned_int       Unsigned int.
-         * @var unsigned_long      Unsigned long.
-         * @var unsigned_long_long Unsigned long long (excluded if larger than word size).
+         * @property signed_size   Signed size type.
+         * @property unsigned_size Unsigned size type.
          * 
-         * @var signed_size   Signed size type.
-         * @var unsigned_size Unsigned size type.
+         * @property string  C string.
+         * @property pointer Void pointer.
          * 
-         * @var string  C string.
-         * @var pointer Void pointer.
-         * 
-         * @var upointer Unsigned integer pointer type.
-         * @var spointer Signed integer pointer type.
-         * @var ptr_diff Pointer difference type.
+         * @property upointer Unsigned integer pointer type.
+         * @property spointer Signed integer pointer type.
+         * @property ptr_diff Pointer difference type.
          */
         typedef union Sim_Variant {
-            // Bytes
-            sint8 byte;
-            uint8 ubyte;
-
             // Sized signed integer types
             sint8  signed8;
             sint16 signed16;
@@ -316,16 +307,19 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile common.h "simsoft/common.h"
          * @brief C enumeration of return values of library functions.
          * 
-         * @var SIM_RC_SUCCESS      The function did what it was supposed to do without any issues.
-         * @var SIM_RC_FAILURE      The function did what it was supposed to do, but unsuccessfully.
-         * @var SIM_RC_ERR_NULLPTR  A nullptr was passed into the function.
-         * @var SIM_RC_ERR_OUTOFMEM Ran out of memory when attempting to allocate something.
-         * @var SIM_RC_ERR_ZERODIV  Arithmetic zero-division error.
-         * @var SIM_RC_ERR_INVALARG Invalid argument passed into function.
-         * @var SIM_RC_ERR_OUTOFBND Index argument out of bounds of container.
-         * @var SIM_RC_ERR_UNSUPRTD Unsupported operation on given platform.
-         * @var SIM_RC_ERR_NOTFOUND Item not found in container.
-         * @var SIM_RC_ERR_UNIMPLTD Unimplemented/unfinished operation.
+         * @property SIM_RC_SUCCESS      The function did what it was supposed to do without any
+         *                               issues.
+         * @property SIM_RC_FAILURE      The function did what it was supposed to do, but
+         *                               unsuccessfully.
+         * @property SIM_RC_ERR_NULLPTR  A nullptr was passed into the function.
+         * @property SIM_RC_ERR_OUTOFMEM Ran out of memory when attempting to allocate something.
+         * @property SIM_RC_ERR_ZERODIV  Arithmetic zero-division error.
+         * @property SIM_RC_ERR_INVALARG Invalid argument passed into function.
+         * @property SIM_RC_ERR_OUTOFBND Index argument out of bounds of container.
+         * @property SIM_RC_ERR_UNSUPRTD Unsupported operation on given platform.
+         * @property SIM_RC_ERR_NOTFOUND Item not found in container.
+         * @property SIM_RC_ERR_UNIMPLTD Unimplemented/unfinished operation.
+         * @property SIM_RC_ERR_BADFILE  Bad or invalid file.
          */
         typedef enum Sim_ReturnCode {
             ENUMERATE_RETURN_CODES

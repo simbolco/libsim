@@ -134,7 +134,7 @@ void* sim_vector_get_ptr(
     const size_t item_size = vector_ptr->_item_properties.size;
 
     // set data_out_ptr to pointer to data if provided
-    RETURN(SIM_RC_SUCCESS, (byte*)vector_ptr->data_ptr + (item_size * index));
+    RETURN(SIM_RC_SUCCESS, (uint8*)vector_ptr->data_ptr + (item_size * index));
 }
 
 // sim_vector_get(3): Get an item from a vector at a given index.
@@ -166,7 +166,7 @@ size_t sim_vector_index_of(
     // check for out-of-bounds starting index
     RETURN_IF(starting_index >= vector_ptr->count, SIM_RC_ERR_OUTOFBND, (size_t)-1);
     
-    byte*  data_ptr = (byte*)vector_ptr->data_ptr;
+    uint8*  data_ptr = (uint8*)vector_ptr->data_ptr;
     size_t count = vector_ptr->count;
     const size_t item_size = vector_ptr->_item_properties.size;
 
@@ -225,7 +225,7 @@ void sim_vector_insert(
     }
 
     const size_t item_size = vector_ptr->_item_properties.size;
-    byte*  data_ptr = vector_ptr->data_ptr;
+    uint8*  data_ptr = vector_ptr->data_ptr;
     
     // resize vector if full
     if (vector_ptr->count == vector_ptr->_allocated) {
@@ -248,7 +248,7 @@ void sim_vector_insert(
     }
 
     // pointer to insert new item into
-    byte* insert_ptr = data_ptr + (item_size * index);
+    uint8* insert_ptr = data_ptr + (item_size * index);
 
     // move items ahead of index forward
     memmove(
@@ -286,7 +286,7 @@ void sim_vector_remove(
     RETURN_IF(index >= vector_ptr->count, SIM_RC_ERR_OUTOFBND,);
     
     size_t item_size  = vector_ptr->_item_properties.size;
-    byte*  remove_ptr = (byte*)vector_ptr->data_ptr + (item_size * index);
+    uint8*  remove_ptr = (uint8*)vector_ptr->data_ptr + (item_size * index);
 
     // fill data_out_ptr with removed item if provided
     if (data_out_ptr)
@@ -335,7 +335,7 @@ bool sim_vector_foreach(
     RETURN_IF(!vector_ptr || !foreach_proc, SIM_RC_ERR_NULLPTR, false);
 
     size_t count = vector_ptr->count;
-    byte*  data_ptr   = vector_ptr->data_ptr;
+    uint8*  data_ptr   = vector_ptr->data_ptr;
     size_t item_size  = vector_ptr->_item_properties.size;
 
     for (size_t i = 0; i < count; i++) {
@@ -359,8 +359,8 @@ void _sim_vector_filter(
     RETURN_IF(!vector_ptr || !filter_proc, SIM_RC_ERR_NULLPTR,);
 
     size_t count   = vector_ptr->count;
-    byte*  data_ptr     = vector_ptr->data_ptr;
-    byte*  reinsert_ptr = vector_ptr->data_ptr;
+    uint8*  data_ptr     = vector_ptr->data_ptr;
+    uint8*  reinsert_ptr = vector_ptr->data_ptr;
     size_t item_size    = vector_ptr->_item_properties.size;
 
     // iterate over items in vector
