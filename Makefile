@@ -105,9 +105,11 @@ else
 
 ifeq ($(UNAME_S),Linux)
 	CFLAGS += -DLinux
+	OS = Unix
 endif
 ifeq ($(UNAME_S),Darwin)
 	CFLAGS += -DmacOS
+	OS = Unix
 endif
 
 	UNAME_P := $(shell uname -p)
@@ -208,10 +210,12 @@ cxx.%.o: odir
 
 LIBS += sim
 lib.sim.desc    = The SimSoft library (work in progress)
-lib.sim.subdirs = libsim
+lib.sim.subdirs = libsim \
+				  $(if $(filter-out Windows_NT,$(OS)),,libsim/win32) \
+				  $(if $(filter-out Unix,$(OS)),,libsim/unix)
 lib.sim.cflags  = -DSIM_BUILD
-lib.sim.lflags  = $(if $(filter-out $(OS),"Windows_NT"),$(if $(MINGW),"-lmingw32",),) \
-			      $(if $(filter-out $(OS),"Windows_NT"),"-ldbghelp",)
+lib.sim.lflags  = $(if $(filter-out Windows_NT,$(OS)),$(if $(MINGW),,-lmingw32),) \
+			      $(if $(filter-out Windows_NT,$(OS)),,-ldbghelp)
 
 EXES += simtest
 exe.simtest.desc    = Unit tests for the SimSoft library (work in progress)
