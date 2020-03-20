@@ -162,7 +162,7 @@ void* simt_malloc(size_t size) {
     return ptr;
 }
 
-void* simt_falloc(size_t size, ubyte fill) {
+void* simt_falloc(size_t size, uint8 fill) {
     if (SIMT_ALLOCATOR.locked)
         return NULL;
 

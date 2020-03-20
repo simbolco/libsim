@@ -24,7 +24,7 @@
 #define ERR_STR(str) "\33[1;91mError: \33[0;31m" str "\33[0m\n"
 
 extern void*  simt_malloc(size_t size);
-extern void*  simt_falloc(size_t size, ubyte fill);
+extern void*  simt_falloc(size_t size, uint8 fill);
 extern void*  simt_realloc(void* ptr, size_t size);
 extern void   simt_free(void* ptr);
 extern size_t simt_alloc_size(void);
