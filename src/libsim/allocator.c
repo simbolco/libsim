@@ -30,7 +30,7 @@ void* sim_allocator_default_malloc(size_t size) {
 
 // sim_allocator_default_falloc(2): The default filled memory allocation function used by the
 //                                  default allocator.
-void* sim_allocator_default_falloc(size_t size, ubyte fill) {
+void* sim_allocator_default_falloc(size_t size, uint8 fill) {
     void* ptr = malloc(size);
 
     if (ptr)

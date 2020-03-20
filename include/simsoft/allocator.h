@@ -142,7 +142,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         extern EXPORT void* C_CALL sim_allocator_default_falloc(
             size_t size,
-            ubyte fill
+            uint8 fill
         );
 
         /**
