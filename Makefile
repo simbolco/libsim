@@ -428,7 +428,7 @@ exe%: odir ldir bdir $(if $(CLEAN),clean_exe%,)
 			linked=0; \
 		fi; \
 	if [ $(OS) = Windows_NT ] && [ -z "$(NO_SYMBOLS)" ] && [ -f $(wildcard cv2pdb$(EXEEXT)) ] && \
-		[ ! -z "$(WINDOWS_NO_PDB)" ]; \
+		[ -z "$(WINDOWS_NO_PDB)" ]; \
 	then \
 		echo -e "\e[1;96mGenerating .pdb...\e[0m"; \
 		./cv2pdb -C $(BDIR)/$*$(EXEEXT); \
