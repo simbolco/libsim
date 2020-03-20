@@ -52,7 +52,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         typedef void* (*Sim_MemFilledAllocProc)(
             size_t size,
-            ubyte fill
+            uint8 fill
         );
 
         /**
