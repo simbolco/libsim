@@ -219,7 +219,8 @@ lib.sim.desc    = The SimSoft library (work in progress)
 lib.sim.subdirs = libsim \
 				  $(if $(filter-out Windows_NT,$(OS)),,libsim/win32) \
 				  $(if $(filter-out Unix,$(OS)),,libsim/unix)
-lib.sim.cflags  = -DSIM_BUILD
+lib.sim.cflags  = -DSIM_BUILD \
+				  $(if $(filter-out Unix,$(OS)),,-D_POSIX_C_SOURCE)
 lib.sim.lflags  = $(if $(MINGW),-lmingw32,) \
 			      $(if $(filter-out Windows_NT,$(OS)),,-ldbghelp)
 
