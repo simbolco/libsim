@@ -1,8 +1,8 @@
 # == Front porch ===================================================================================
 
 version.major    = 0
-version.minor    = 6
-version.revision = 2
+version.minor    = 7
+version.revision = 0
 
 ifneq ($(WINCMD),)
 RMDIR = rmdir /Q $1; mkdir $1
@@ -29,16 +29,16 @@ ifeq ($(CC),cc)
 endif
 CXX ?= g++
 
-# Compile C
+# Compile C; $1 = output; $2 = source file; $3 = cflags
 OCC  = $(CC) -c -o $1 $2 $3
-# Compile C++
+# Compile C++; $1 = output; $2 = source file; $3 = cflags
 OCXX = $(CXX) -c -o $1 $2 $3
 
-# Dynmaic library linker
+# Dynmaic library linker; $1 = output; $2 = source file; $3 = cflags
 DLIB = $(CXX) -shared -o $1 $2 $3
-# Static library linker / archiver
+# Static library linker / archiver; $1 = output; $2 = source file
 SLIB = ar rcs $1 $2
-# Executable linker
+# Executable linker; $1 = output; $2 = source file; $3 = lflags
 EXE = $(CXX) -o $1 $2 $3
 
 # General compilation flags
@@ -52,7 +52,7 @@ override CFLAGS += -I$(IDIR) -I$(SDIR) \
 	-Wwrite-strings \
 	-Wno-expansion-to-defined \
 	-Wpointer-arith \
-	-fPIC
+	-fpic
 ifndef ($(NO_SYMBOLS))
 override CFLAGS += -ggdb
 endif
@@ -72,42 +72,36 @@ override CFLAGS += $(RFLAGS)
 endif
 
 # OS and processor detection
-ifeq ($(OS),Win32)
+UNAME_S = $(shell uname -s 2> /dev/null)
+
+ifeq ($(OS),Win32) # Win32 detection
 	OS = Windows_NT
 endif
-ifeq ($(OS),Windows_NT)
+
+ifeq ($(OS),Windows_NT) # Windows-specific file-extensions & vars
 	DLLEXT = dll
 	AR_EXT ?= a
 	EXEEXT = .exe
 
-	CFLAGS += -DWIN32
-
-	WIN32_PDB ?= TRUE
-
 ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
-	CFLAGS += -DAMD64 -DWIN64
+	CFLAGS += -DAMD64
+	PROCESSOR = x64
 endif
 ifeq ($(PROCESSOR_ARCHITECTURE),x86)
 	CFLAGS += -DIA32
+	PROCESSOR = x86
 endif
-
-ifdef MINGW
-	CFLAGS += -DMinGW32
-ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
-	CFLAGS += -DMinGW64
-endif
-endif
-
+#						  Unix vars
 else
 	DLLEXT = so
 	AR_EXT ?= a
 	EXEEXT = 
 
-ifeq ($(UNAME_S),Linux)
+ifeq ($(UNAME_S),Linux) # Linux
 	CFLAGS += -DLinux
 	OS = Unix
 endif
-ifeq ($(UNAME_S),Darwin)
+ifeq ($(UNAME_S),Darwin) # MacOS
 	CFLAGS += -DmacOS
 	OS = Unix
 endif
@@ -115,13 +109,34 @@ endif
 	UNAME_P := $(shell uname -p)
 ifeq ($(UNAME_P),x86_64)
 	CFLAGS += -DAMD64
+	PROCESSOR = x64
 endif
 ifneq ($(filter %86,$(UNAME_P)),)
 	CFLAGS += -DIA32
+	PROCESSOR = x86
 endif
 ifneq ($(filter arm%,$(UNAME_P)),)
 	CFLAGS += -DARM
+	PROCESSOR = ARM
 endif
+endif
+
+ifeq ($(findstring MINGW,$(UNAME_S)),MINGW) # Test for MinGW
+	MINGW := 1
+endif
+ifeq ($(findstring MSYS_NT,$(UNAME_S)),MSYS_NT) # Test for MSYS
+	OS = Unix
+endif
+
+ifeq ($(OS),Windows_NT) # Move Windows cflags to after MSYS detection
+	CFLAGS += -DWIN32
+ifeq ($(PROCESSOR),x64)
+	CFLAGS += -DWIN64
+endif
+endif
+
+ifeq ($(OS),Unix) # General Unix flag for all Unix-likes
+	CFLAGS += -DUnix
 endif
 
 # Equality function
@@ -158,19 +173,10 @@ MANGLE = $(if $(call IS_C_SOURCE_FILE,$1,$2,$3), \
 # Get object files
 GET_OBJECT_FILES = $(foreach file, $(call GET_SOURCE_FILES,$1,$2), $(call MANGLE,$1,$2,$(file)))
 
-# Demangle object filename to source filename
-DEMANGLE_FORMAT = \
-$(subst $(space),/,$(filter-out $(firstword $(subst ., ,$1)), \
-	$(filter-out $(lastword $(subst ., ,$1)), $(subst ., ,$1))))
-DEMANGLE = $(subst $(space),,$(if $(call eq,$(firstword $(subst ., ,$1)),cc), \
-	$(call DEMANGLE_FORMAT,$1).c \
-, $(if $(call eq,$(firstword $(subst ., ,$1)),cxx), \
-	$(call DEMANGLE_FORMAT,$1).cpp \
-)))
-
 default:
 	@echo -e "Makefile: missing build target\nTry 'make help' for more info."
 
+# Directory structure
 bdir:
 	@$(call MKDIR,$(BDIR))
 ldir:
@@ -180,31 +186,31 @@ odir:
 odir/%:
 	@$(call MKDIR,$(ODIR)/$*)
 
-cc.%.o: odir
-	@$(if $(wildcard $(SDIR)/$(call DEMANGLE,$@)),,\
-		$(error Source file $(SDIR)/$(call DEMANGLE,$@) not found))
-	@echo -e "\t\e[96mCompiling C source $(SDIR)/$(call DEMANGLE,$@)...\e[0m"
-	@$(call OCC,$(ODIR)/$@,$(SDIR)/$(call DEMANGLE,$@),$(CFLAGS) $(CCFLAGS)); \
-		EXIT_CODE=$$?; \
-		if [ $$EXIT_CODE -eq 0 ]; then \
-			echo -e "\t\t\e[0;32mSuccessfully compiled '$(SDIR)/$(call DEMANGLE,$@)'\e[0m"; \
-		else \
-			echo -e "\t\t\e[0;31m$$EXIT_CODE error(s) compiling" \
-				"'$(SDIR)/$(call DEMANGLE,$@)'\e[0m"; \
-		fi; exit $$EXIT_CODE
+# == C compilation function =============================================================
+define compile.c # $1 = build target type; $2 = build target name; $3 = source file
+echo -e "\t\e[96mCompiling C source $(SDIR)/$3...\e[0m"; \
+$(call OCC,"$(subst $(space),,$(ODIR)/$(call MANGLE,$1,$2,$3))",$(SDIR)/$3,$(CFLAGS) \
+	$(CCFLAGS) $($1.$2.cflags) $($1.$2.ccflags)); \
+EXIT_CODE=$$?; \
+if [ $$EXIT_CODE -eq 0 ]; then \
+	echo -e "\t\t\e[0;32mSuccessfully compiled '$(SDIR)/$3'\e[0m"; \
+else \
+	echo -e "\t\t\e[0;31m$$EXIT_CODE error(s) compiling '$(SDIR)/$3'\e[0m"; \
+fi
+endef
 
-cxx.%.o: odir
-	@$(if $(wildcard $(SDIR)/$(call DEMANGLE,$@)),,\
-		$(error Source file $(SDIR)/$(call DEMANGLE,$@) not found))
-	@echo -e "\t\e[96mCompiling C++ source $(SDIR)/$(call DEMANGLE,$@)...\e[0m"
-	@$(call OCXX,$(ODIR)/$@,$(SDIR)/$(call DEMANGLE,$@),$(CFLAGS) $(CXXFLAGS)); \
-		EXIT_CODE=$$?; \
-		if [ $$EXIT_CODE -eq 0 ]; then \
-			echo -e "\t\t\e[0;32mSuccessfully compiled '$(SDIR)/$(call DEMANGLE,$@)'\e[0m"; \
-		else \
-			echo -e "\t\t\e[0;31m$$EXIT_CODE error(s) compiling" \
-				"'$(SDIR)/$(call DEMANGLE,$@)'\e[0m"; \
-		fi; exit $$EXIT_CODE
+# == C++ compilation function ===========================================================
+define compile.cpp # $1 = build target type; $2 = build target name; $3 = source file
+echo -e "\t\e[96mCompiling C++ source $(SDIR)/$3...\e[0m"; \
+$(call OCXX,"$(subst $(space),,$(ODIR)/$(call MANGLE,$1,$2,$3))",$(SDIR)/$3,$(CFLAGS) \
+	$(CXXFLAGS) $($1.$2.cflags) $($1.$2.cxxflags)); \
+EXIT_CODE=$$?; \
+if [ $$EXIT_CODE -eq 0 ]; then \
+	echo -e "\t\t\e[0;32mSuccessfully compiled '$(SDIR)/$3'\e[0m"; \
+else \
+	echo -e "\t\t\e[0;31m$$EXIT_CODE error(s) compiling '$(SDIR)/$3'\e[0m"; \
+fi
+endef
 
 # == Target declarations ===========================================================================
 
@@ -214,7 +220,7 @@ lib.sim.subdirs = libsim \
 				  $(if $(filter-out Windows_NT,$(OS)),,libsim/win32) \
 				  $(if $(filter-out Unix,$(OS)),,libsim/unix)
 lib.sim.cflags  = -DSIM_BUILD
-lib.sim.lflags  = $(if $(filter-out Windows_NT,$(OS)),$(if $(MINGW),,-lmingw32),) \
+lib.sim.lflags  = $(if $(MINGW),-lmingw32,) \
 			      $(if $(filter-out Windows_NT,$(OS)),,-ldbghelp)
 
 EXES += simtest
@@ -247,19 +253,27 @@ help:
 	"\t'make clean_{lib|exe}{target}' - Clean specific target\n" \
 	"\n" \
 	"\t'make version' - This Makefile's version number\n" \
+	"\t'make os' - The operating system detected by this Makefile\n" \
 	"\n" \
 	"\e[1;97mOptions:\e[0m\n" \
 	"\t\e[3;1mFORCE\e[0m - force all source files in target to recompile when building\n" \
 	"\t\e[3;1mCLEAN\e[0m - clean before rebuilding a target\n" \
 	"\t\e[3;1mDEBUG\e[0m - compile with debug compiler flags & settings\n" \
-	"\t\e[3;1mMINGW\e[0m - build using MinGW (for Windows only)\n" \
+	$(if $(filter-out Windows_NT,$(OS)),, \
+		"\t\e[3;1mMINGW\e[0m - force building with MinGW (Windows only)\n" \
+	) \
 	"\t\e[3;1mNO_DYNAMIC_LIB\e[0m - don't output dynamic libraries for library targets\n" \
 	"\t\e[3;1mNO_STATIC_LIB\e[0m - don't output static library for library targets\n" \
 	"\t\e[3;1mNO_SYMBOLS\e[0m - build without debugging symbols\n" \
+	$(if $(filter-out Windows_NT,$(OS)),, \
+		"\t\e[3;1mWINDOWS_NO_PDB\e[0m - don't generate a .pdb file (Windows only)\n" \
+	) \
 	"\n" \
 	"\e[1;97mExamples:\e[0m\n" \
 	"\t\e[3mmake libsim NO_SYMBOLS=1 NO_DYNAMIC_LIB=1\e[0m - Build library target\n" \
 	"\t\t'libsim' as a static library without debugging symbols\n" \
+	"\t\e[3mmake help PAGER=\"less -r\"\e[0m - Pages the output of this help screen\n" \
+	"\t\tto pager less\n" \
 	"\n" \
 	"\e[1;94mLibrary targets:\e[0m\n" \
 	$(foreach name, $(LIBS),\
@@ -278,10 +292,13 @@ help:
 			"\t\e[31m[\e[1;91mexe$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
 		)\
 	) \
-	$(if $(PAGER),> $$tempfile; $(PAGER) $$tempfile $(RM) $$tempfile,;)
+	$(if $(PAGER),> $$tempfile; $(PAGER) $$tempfile; $(RM) $$tempfile,;)
 
 version:
 	@echo $(version.major).$(version.minor).$(version.revision)
+
+os:
+	@echo "OS = '$(OS)'"; echo "UNAME_S = '$(UNAME_S)'"
 
 lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 	@if [ -z "$(filter $*,$(LIBS))" ]; then \
@@ -293,16 +310,14 @@ lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 	$(foreach src_file, $(call GET_SOURCE_FILES,lib,$*), \
 		$(if $(FORCE),, \
 			if ([ -z "$(NO_DYNAMIC_LIB)" ] && \
-					[ $(SDIR)/$(src_file) -nt $(BDIR)/$@.$(DLLEXT) ]) || \
+					[ "$(SDIR)/$(src_file)" -nt "$(BDIR)/$@.$(DLLEXT)" ]) || \
 				([ -z "$(NO_STATIC_LIB)" ] && \
-					[ $(SDIR)/$(src_file) -nt $(LDIR)/$@.$(AR_EXT) ]) || \
-				([ ! -f $(BDIR)/$@.$(DLLEXT) ] && [ -z "$(NO_DYNAMIC_LIB)" ]) || \
-				([ ! -f $(LDIR)/$@.$(AR_EXT) ] && [ -z "$(NO_STATIC_LIB)" ]) \
+					[ "$(SDIR)/$(src_file)" -nt "$(LDIR)/$@.$(AR_EXT)" ]) || \
+				([ ! -f "$(BDIR)/$@.$(DLLEXT)" ] && [ -z "$(NO_DYNAMIC_LIB)" ]) || \
+				([ ! -f "$(LDIR)/$@.$(AR_EXT)" ] && [ -z "$(NO_STATIC_LIB)" ]) \
 			; then \
 		) \
-			$(MAKE) -s -f '$(MAKEFILE)' $(call MANGLE,lib,$*,$(src_file)) \
-				CFLAGS="$(lib.$*.cflags)" SDIR="$(SDIR)" ODIR="$(ODIR)" \
-			; \
+			$(call compile.$(lastword $(subst ., ,$(src_file))),lib,$*,$(src_file)); \
 			recombine=1; \
 		$(if $(FORCE),, \
 			else \
@@ -378,9 +393,7 @@ exe%: odir ldir bdir $(if $(CLEAN),clean_exe%,)
 			if [ $(SDIR)/$(src_file) -nt $(BDIR)/$*$(EXEEXT) ] || \
 				[ ! -f $(BDIR)/$*$(EXEEXT) ]; then \
 		) \
-		$(MAKE) -s -f '$(MAKEFILE)' $(call MANGLE,exe,$*,$(src_file)) \
-			CFLAGS="$(exe.$*.cflags)" SDIR="$(SDIR)" ODIR="$(ODIR)"\
-		; \
+		$(call compile.$(lastword $(subst ., ,$(src_file))),exe,$*,$(src_file)); \
 		exit_code=$$?; \
 		if [ $$exit_code -ne 0 ]; then \
 			echo -e \
@@ -413,7 +426,8 @@ exe%: odir ldir bdir $(if $(CLEAN),clean_exe%,)
 			echo -e "\t\e[0;31mError linking '$(BDIR)/$*$(EXEEXT)': error code $$EXIT_CODE\e[0m"; \
 			linked=0; \
 		fi; \
-	if [ $(OS) = Windows_NT ] && [ -z $(NO_SYMBOLS) ] && [ -f $(wildcard cv2pdb$(EXEEXT)) ]; \
+	if [ $(OS) = Windows_NT ] && [ -z "$(NO_SYMBOLS)" ] && [ -f $(wildcard cv2pdb$(EXEEXT)) ] && \
+		[ ! -z "$(WINDOWS_NO_PDB)" ]; \
 	then \
 		echo -e "\e[1;96mGenerating .pdb...\e[0m"; \
 		./cv2pdb -C $(BDIR)/$*$(EXEEXT); \
