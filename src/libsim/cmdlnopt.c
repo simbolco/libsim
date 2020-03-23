@@ -19,6 +19,7 @@
 struct _Sim_CmdLnOptArgs {
     int *const argc_ptr;
     char** *const argv_ptr;
+    const char* program_name;
 };
 
 // deals with handling a given command line option + gets next argstring if necessary
@@ -29,7 +30,7 @@ static bool _sim_cmdlnopt_handle_option(
     char*                            option_argument_string,
     int *const                       exit_code_out_ptr,
     Sim_CmdLnOptErrorProc            error_proc,
-    const char*                      program_string,
+    Sim_CmdLnOptArgs *const          args_state_ptr,
     Sim_Variant                      userdata
 ) {
     // get argument from next argstring if an argument is required/optional and no argument was
@@ -56,7 +57,7 @@ static bool _sim_cmdlnopt_handle_option(
         char short_option_buf[5] = { 0 };
         sim_utf8_from_codepoint(option_handler_ptr->short_codepoint, short_option_buf);
         return error_proc(
-            program_string,
+            args_state_ptr->program_name,
             option_handler_ptr->long_name ? option_handler_ptr->long_name : short_option_buf,
             SIM_CMDLNOPT_ERR_MISSING_ARGUMENT,
             exit_code_out_ptr,
@@ -67,14 +68,9 @@ static bool _sim_cmdlnopt_handle_option(
     // set option_argument to NULL if option explicitly says no argument is needed.
     if (option_handler_ptr->has_argument == SIM_CMDLNOPT_NO_ARGUMENT)
         option_argument_string = NULL;
-        
-    Sim_CmdLnOptArgs args_state = {
-        .argc_ptr = arguments_count_ptr,
-        .argv_ptr = arguments_array_ptr
-    };
     
     return option_handler_ptr->handler_proc(
-        &args_state,
+        args_state_ptr,
         option_handler_ptr->long_name,
         option_handler_ptr->short_codepoint,
         option_argument_string,
@@ -134,6 +130,12 @@ const char* sim_cmdlnopt_next_argstring(Sim_CmdLnOptArgs *const args_state_ptr) 
     RETURN(SIM_RC_SUCCESS, NULL);
 }
 
+// sim_cmdlnopt_get_program_name(1): Retrieves the program name as entered from the command line.
+const char* sim_cmdlnopt_get_program_name(Sim_CmdLnOptArgs *const args_state_ptr) {
+    RETURN_IF(!args_state_ptr, SIM_RC_ERR_NULLPTR, NULL);
+    RETURN(SIM_RC_SUCCESS, args_state_ptr->program_name);
+}
+
 // sim_cmdlnopt_handle_options(5): Handles POSIX-esque command line options.
 int sim_cmdlnopt_handle_options(
     int *const                arguments_count_ptr,
@@ -160,6 +162,11 @@ int sim_cmdlnopt_handle_options(
     uint32 codepoint = 0;
     
     const char* program_name = (*arguments_array_ptr)[0];
+    Sim_CmdLnOptArgs args_state = {
+        .argc_ptr = arguments_count_ptr,
+        .argv_ptr = arguments_array_ptr,
+        .program_name = program_name
+    };
     
     do {
         (*arguments_count_ptr)--;
@@ -210,7 +217,7 @@ int sim_cmdlnopt_handle_options(
                                 option_argument,
                                 &exit_code,
                                 error_proc,
-                                program_name,
+                                &args_state,
                                 userdata
                             );
                             break;
@@ -262,7 +269,7 @@ int sim_cmdlnopt_handle_options(
                                 option_argument,
                                 &exit_code,
                                 error_proc,
-                                program_name,
+                                &args_state,
                                 userdata
                             );
                             break;
@@ -314,7 +321,7 @@ int sim_cmdlnopt_handle_options(
                                         NULL,
                                         &exit_code,
                                         error_proc,
-                                        program_name,
+                                        &args_state,
                                         userdata
                                     );
                                     break;

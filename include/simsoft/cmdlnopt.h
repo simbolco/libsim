@@ -115,13 +115,33 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in] args_state_ptr Opaque pointer provided to option handler callbacks.
          * 
          * @returns The next argstring in the @e argv provided to @e sim_cmdlnopt_handle_options;
-         *          @c NULL if no more argstrings are available or on error (see remarks);
+         *          @c NULL if no more argstrings are available or on error (see remarks).
          * 
          * @remarks sim_return_code() is set to one of the following:
          *     @b SIM_RC_ERR_NULLPTR if @e args_state_ptr is @c NULL;
          *     @b SIM_RC_SUCCESS     otherwise.
          */
         extern EXPORT const char* C_CALL sim_cmdlnopt_next_argstring(
+            Sim_CmdLnOptArgs *const args_state_ptr
+        );
+
+        /**
+         * @brief const char* sim_cmdlnopt_get_program_name(1)
+         * @headerfile cmdlnopt.h "simsoft/cmdlnopt.h"
+         * @relates Sim_CmdLnOptArgs
+         * @brief Retrieves the program name as entered from the command line.
+         * A command line option handler callback function is provided with an @e args_state_ptr
+         * specifically for use in this function.
+         * 
+         * @param[in] args_state_ptr Opaque pointer provided to option handler callbacks.
+         * 
+         * @returns The program name as entered in the command line; @c NULL on error (see remarks).
+         * 
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR if @e args_state_ptr is @c NULL;
+         *     @b SIM_RC_SUCCESS     otherwise.
+         */
+        extern EXPORT const char* sim_cmdlnopt_get_program_name(
             Sim_CmdLnOptArgs *const args_state_ptr
         );
 
