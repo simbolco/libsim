@@ -2,19 +2,7 @@
 
 version.major    = 0
 version.minor    = 7
-version.revision = 0
-
-ifneq ($(WINCMD),)
-RMDIR = rmdir /Q $1; mkdir $1
-RM    = del
-MKDIR = if not exist "$1" mkdir "$1"
-SHELL = cmd
-else
-RMDIR = rm -r -f $1
-RM    = rm -f
-MKDIR = mkdir -p $1
-SHELL = sh
-endif
+version.revision = 1
 
 # Directories
 BDIR ?= bin
@@ -139,6 +127,14 @@ ifeq ($(OS),Unix) # General Unix flag for all Unix-likes
 	CFLAGS += -DUnix
 endif
 
+# Add Windows GUI build c/lflags when enabled and MinGW lflag when on MinGW
+ifeq ($(OS),Windows_NT)
+override LFLAGS += $(if $(WINDOWS_GUI_BUILD),-mwindows,) \
+				   $(if $(MINGW),-lmingw32,)
+override CFLAGS += $(if $(WINDOWS_GUI_BUILD),-DWIN32_GUI_BUILD,) \
+			       $(if $(WINDOWS_UNICODE),-DUNICODE,)
+endif
+
 # Equality function
 eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
 space :=
@@ -164,32 +160,30 @@ IS_C_SOURCE_FILE = $(if $(filter $3,$(call GET_C_SOURCE_FILES,$1,$2)),1,)
 IS_CPP_SOURCE_FILE = $(if $(filter $3,$(call GET_CPP_SOURCE_FILES,$1,$2)),1,)
 
 # Mangle source filename to object filename
-MANGLE = $(if $(call IS_C_SOURCE_FILE,$1,$2,$3), \
+MANGLE = $(subst $(space),,$(if $(call IS_C_SOURCE_FILE,$1,$2,$3), \
 	$(patsubst %.c.,cc.%.o,$(subst $(space),,$(foreach word, $(subst /,  ,$3), $(word).))) \
 ,$(if $(call IS_CPP_SOURCE_FILE,$1,$2,$3), \
 	$(patsubst %.cpp.,cxx.%.o,$(subst $(space),,$(foreach word, $(subst /,  ,$3), $(word).))) \
-,))
+,)))
 
 # Get object files
 GET_OBJECT_FILES = $(foreach file, $(call GET_SOURCE_FILES,$1,$2), $(call MANGLE,$1,$2,$(file)))
 
-default:
+default: # Empty build target - direct users to 'make help'
 	@echo -e "Makefile: missing build target\nTry 'make help' for more info."
 
 # Directory structure
 bdir:
-	@$(call MKDIR,$(BDIR))
+	@mkdir -p "$(BDIR)"
 ldir:
-	@$(call MKDIR,$(LDIR))
+	@mkdir -p "$(LDIR)"
 odir:
-	@$(call MKDIR,$(ODIR))
-odir/%:
-	@$(call MKDIR,$(ODIR)/$*)
+	@mkdir -p "$(ODIR)"
 
 # == C compilation function =============================================================
 define compile.c # $1 = build target type; $2 = build target name; $3 = source file
 echo -e "\t\e[96mCompiling C source $(SDIR)/$3...\e[0m"; \
-$(call OCC,"$(subst $(space),,$(ODIR)/$(call MANGLE,$1,$2,$3))",$(SDIR)/$3,$(CFLAGS) \
+$(call OCC,"$(ODIR)/$(call MANGLE,$1,$2,$3)",$(SDIR)/$3,$(CFLAGS) \
 	$(CCFLAGS) $($1.$2.cflags) $($1.$2.ccflags)); \
 EXIT_CODE=$$?; \
 if [ $$EXIT_CODE -eq 0 ]; then \
@@ -202,7 +196,7 @@ endef
 # == C++ compilation function ===========================================================
 define compile.cpp # $1 = build target type; $2 = build target name; $3 = source file
 echo -e "\t\e[96mCompiling C++ source $(SDIR)/$3...\e[0m"; \
-$(call OCXX,"$(subst $(space),,$(ODIR)/$(call MANGLE,$1,$2,$3))",$(SDIR)/$3,$(CFLAGS) \
+$(call OCXX,"$(ODIR)/$(call MANGLE,$1,$2,$3)",$(SDIR)/$3,$(CFLAGS) \
 	$(CXXFLAGS) $($1.$2.cflags) $($1.$2.cxxflags)); \
 EXIT_CODE=$$?; \
 if [ $$EXIT_CODE -eq 0 ]; then \
@@ -221,8 +215,7 @@ lib.sim.subdirs = libsim \
 				  $(if $(filter-out Unix,$(OS)),,libsim/unix)
 lib.sim.cflags  = -DSIM_BUILD \
 				  $(if $(filter-out Unix,$(OS)),,-D_POSIX_C_SOURCE)
-lib.sim.lflags  = $(if $(MINGW),-lmingw32,) \
-			      $(if $(filter-out Windows_NT,$(OS)),,-ldbghelp)
+lib.sim.lflags  = $(if $(filter-out Windows_NT,$(OS)),,-ldbghelp)
 
 EXES += simtest
 exe.simtest.desc    = Unit tests for the SimSoft library (work in progress)
@@ -254,7 +247,10 @@ help:
 	"\t'make clean_{lib|exe}{target}' - Clean specific target\n" \
 	"\n" \
 	"\t'make version' - This Makefile's version number\n" \
+	"\n" \
 	"\t'make os' - The operating system detected by this Makefile\n" \
+	"\t'make cflags' - List the default compiler flags for this Makefile\n" \
+	"\t'make lflags' - List the default linker flags for this Makefile\n" \
 	"\n" \
 	"\e[1;97mOptions:\e[0m\n" \
 	"\t\e[3;1mFORCE\e[0m - force all source files in target to recompile when building\n" \
@@ -269,6 +265,12 @@ help:
 	$(if $(filter-out Windows_NT,$(OS)),, \
 		"\t\e[3;1mWINDOWS_NO_PDB\e[0m - don't generate a .pdb file (Windows only)\n" \
 	) \
+	$(if $(filter-out Windows_NT,$(OS)),, \
+		"\t\e[3;1mWINDOWS_GUI_BUILD\e[0m - build Windows GUI applications (Windows only)\n" \
+	) \
+	$(if $(filter-out Windows_NT,$(OS)),, \
+		"\t\e[3;1mWINDOWS_UNICODE\e[0m - build w/ Windows unicode support (Windows only)\n" \
+	) \
 	"\n" \
 	"\e[1;97mExamples:\e[0m\n" \
 	"\t\e[3mmake libsim NO_SYMBOLS=1 NO_DYNAMIC_LIB=1\e[0m - Build library target\n" \
@@ -280,7 +282,7 @@ help:
 	$(foreach name, $(LIBS),\
 		$(if $(wildcard $(SDIR)/$(lib.$(name).subdir)/.*),\
 			"\t[\e[1;96mlib$(name)\e[0m]" \
-				$(if $(lib.$(name).desc), "- $(lib.$(name).desc)",),\
+				$(if $(lib.$(name).desc), "- $(lib.$(name).desc)",) "\n",\
 			"\t\e[31m[\e[1;91mlib$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
 		)\
 	)\
@@ -289,17 +291,23 @@ help:
 	$(foreach name, $(EXES),\
 		$(if $(wildcard $(SDIR)/$(exe.$(name).subdir)/.*),\
 			"\t[\e[1;96mexe$(name)\e[0m]" \
-				$(if $(exe.$(name).desc), "- $(exe.$(name).desc)",),\
+				$(if $(exe.$(name).desc), "- $(exe.$(name).desc)",) "\n",\
 			"\t\e[31m[\e[1;91mexe$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
 		)\
 	) \
-	$(if $(PAGER),> $$tempfile; $(PAGER) $$tempfile; $(RM) $$tempfile,;)
+	$(if $(PAGER),> $$tempfile; $(PAGER) $$tempfile; rm -f $$tempfile,;)
 
 version:
 	@echo $(version.major).$(version.minor).$(version.revision)
 
 os:
 	@echo "OS = '$(OS)'"; echo "UNAME_S = '$(UNAME_S)'"
+
+cflags:
+	@echo "$(CFLAGS)"
+
+lflags:
+	@echo "$(LFLAGS)"
 
 lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 	@if [ -z "$(filter $*,$(LIBS))" ]; then \
@@ -310,7 +318,8 @@ lib%: odir ldir bdir $(if $(CLEAN),clean_lib%,)
 	recombine=0; \
 	$(foreach src_file, $(call GET_SOURCE_FILES,lib,$*), \
 		$(if $(FORCE),, \
-			if ([ -z "$(NO_DYNAMIC_LIB)" ] && \
+			if [ "$(SDIR)/$(src_file)" -nt "$(ODIR)/$(call MANGLE,lib,$*,$(src_file))" ] || \
+				([ -z "$(NO_DYNAMIC_LIB)" ] && \
 					[ "$(SDIR)/$(src_file)" -nt "$(BDIR)/$@.$(DLLEXT)" ]) || \
 				([ -z "$(NO_STATIC_LIB)" ] && \
 					[ "$(SDIR)/$(src_file)" -nt "$(LDIR)/$@.$(AR_EXT)" ]) || \
@@ -378,9 +387,9 @@ clean_lib%:
 		echo -e "\e[31mTarget [\e[1;91mlib$*\e[0;31m] doesn't exist"; exit; \
 	else \
 		echo -e "Cleaning library [\e[1;96mlib$*\e[0m]..."; fi; \
-	$(RM) $(patsubst %,$(ODIR)/%,$(call GET_OBJECT_FILES,lib,$*)); \
-	$(if $(lib.$*.subdir),$(call RMDIR,$(ODIR)/$(lib.$*.subdir));,) \
-	$(RM) $(LDIR)/lib$*.$(AR_EXT); $(RM) $(BDIR)/lib$*.$(DLLEXT); \
+	rm -f $(patsubst %,$(ODIR)/%,$(call GET_OBJECT_FILES,lib,$*)); \
+	$(if $(lib.$*.subdir),rm -r -f $(ODIR)/$(lib.$*.subdir);,) \
+	rm -f $(LDIR)/lib$*.$(AR_EXT); rm -f $(BDIR)/lib$*.$(DLLEXT); \
 	echo -e "Done cleaning library [\e[1;96m$*\e[0m]"
 
 exe%: odir ldir bdir $(if $(CLEAN),clean_exe%,)
@@ -391,7 +400,8 @@ exe%: odir ldir bdir $(if $(CLEAN),clean_exe%,)
 	recombine=0; \
 	$(foreach src_file, $(call GET_SOURCE_FILES,exe,$*), \
 		$(if $(FORCE),, \
-			if [ $(SDIR)/$(src_file) -nt $(BDIR)/$*$(EXEEXT) ] || \
+			if [ "$(SDIR)/$(src_file)" -nt "$(ODIR)/$(call MANGLE,exe,$*,$(src_file))" ] || \
+				[ $(SDIR)/$(src_file) -nt $(BDIR)/$*$(EXEEXT) ] || \
 				[ ! -f $(BDIR)/$*$(EXEEXT) ]; then \
 		) \
 		$(call compile.$(lastword $(subst ., ,$(src_file))),exe,$*,$(src_file)); \
@@ -449,9 +459,9 @@ clean_exe%:
 		echo -e "\e[31mTarget [\e[1;91mexe$*\e[0;31m] doesn't exist"; exit; \
 	else \
 		echo -e "Cleaning executable [\e[1;96mexe$*\e[0m]..."; fi; \
-	$(RM) $(patsubst %,$(ODIR)/%,$(call GET_OBJECT_FILES,exe,$*)); \
-	$(if $(exe.$*.subdir),$(call RMDIR,$(ODIR)/$(exe.$*.subdir));,) \
-	$(RM) $(BDIR)/$*$(EXEEXT); $(RM) $(BDIR)/$*.pdb; \
+	rm -f $(patsubst %,$(ODIR)/%,$(call GET_OBJECT_FILES,exe,$*)); \
+	$(if $(exe.$*.subdir),rm -r -f $(ODIR)/$(exe.$*.subdir);,) \
+	rm -f $(BDIR)/$*$(EXEEXT); rm -f $(BDIR)/$*.pdb; \
 	echo -e "Done cleaning executable [\e[1;96m$*\e[0m]"
 
 clean: $(foreach lib, $(LIBS), clean_lib$(lib)) $(foreach exe, $(EXES), clean_exe$(exe))
