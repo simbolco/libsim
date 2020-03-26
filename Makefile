@@ -2,7 +2,7 @@
 
 version.major    = 0
 version.minor    = 7
-version.revision = 1
+version.revision = 2
 
 # Directories
 BDIR ?= bin
@@ -135,14 +135,9 @@ override CFLAGS += $(if $(WINDOWS_GUI_BUILD),-DWIN32_GUI_BUILD,) \
 			       $(if $(WINDOWS_UNICODE),-DUNICODE,)
 endif
 
-# Equality function
-eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
+# Space
 space :=
 space +=
-
-# Makefile location
-location = $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
-MAKEFILE := $(location)
 
 # Get source filenames from directory
 GET_C_SOURCE_FILES = $(foreach subdir, $($1.$2.subdirs), \
@@ -235,8 +230,7 @@ all: $(patsubst %,lib%,$(LIBS)) $(patsubst %,exe%,$(EXES))
 	@echo -e "\e[1;92mBuilt all targets:\e[97m" $(patsubst %,"[\e[96m%\e[97m]",$^) "\e[0m"
 
 help:
-	@$(if $(PAGER),tempfile=$(call RUNTIME_SHELL,mktemp);,) \
-	echo -e "SimSoft Makefile version $(version.major).$(version.minor).$(version.revision)\n" \
+	@echo -e "SimSoft Makefile version $(version.major).$(version.minor).$(version.revision)\n" \
 	"===========================================================================\n" \
 	"\e[1;97mUsage:\e[0m\n" \
 	"\t'make lib{target} [options]' - Build library target\n" \
@@ -295,7 +289,7 @@ help:
 			"\t\e[31m[\e[1;91mexe$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
 		)\
 	) \
-	$(if $(PAGER),> $$tempfile; $(PAGER) $$tempfile; rm -f $$tempfile,;)
+	$(if $(PAGER),| $(PAGER),)
 
 version:
 	@echo $(version.major).$(version.minor).$(version.revision)
