@@ -269,8 +269,6 @@ help:
 	"\e[1;97mExamples:\e[0m\n" \
 	"\t\e[3mmake libsim NO_SYMBOLS=1 NO_DYNAMIC_LIB=1\e[0m - Build library target\n" \
 	"\t\t'libsim' as a static library without debugging symbols\n" \
-	"\t\e[3mmake help PAGER=\"less -r\"\e[0m - Pages the output of this help screen\n" \
-	"\t\tto pager less\n" \
 	"\n" \
 	"\e[1;94mLibrary targets:\e[0m\n" \
 	$(foreach name, $(LIBS),\
@@ -288,8 +286,7 @@ help:
 				$(if $(exe.$(name).desc), "- $(exe.$(name).desc)",) "\n",\
 			"\t\e[31m[\e[1;91mexe$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
 		)\
-	) \
-	$(if $(PAGER),| $(PAGER),)
+	)
 
 version:
 	@echo $(version.major).$(version.minor).$(version.revision)
