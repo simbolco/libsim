@@ -27,11 +27,11 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile vector.h "simsoft/vector.h"
          * @brief Generic vector container / dynamically-sized array type
          * 
-         * @tparam _item_properties Properties pertaining to the items stored in this vector.
-         * @tparam _allocator_ptr   Pointer to allocator used when resizing internal array.
+         * @tparam _item_size     How large the items stored in the vector are.
+         * @tparam _allocator_ptr Pointer to allocator used when resizing internal array.
          */
         typedef struct Sim_Vector {
-            const Sim_TypeInfo _item_properties; // properties of items in this vector
+            const size_t _item_size; // properties of items in this vector
             const Sim_IAllocator *const _allocator_ptr; // array allocator
             size_t _allocated; // how much has been allocated
 
@@ -40,13 +40,12 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_Vector;
 
         /**
-         * @fn void sim_vector_construct(5)
+         * @fn void sim_vector_construct(4)
          * @relates Sim_Vector
          * @brief Constructs a new vector.
          * 
          * @param[in,out] vector_ptr    Pointer to a vector to construct.
          * @param[in]     item_size     Size of each item.
-         * @param[in]     item_type     Type of the items stored in the vector.
          * @param[in]     allocator_ptr Pointer to allocator to use when resizing internal array.
          * @param[in]     initial_size  The initial allocated size of the newly created vector.
          *
@@ -60,178 +59,9 @@ CPP_NAMESPACE_START(SimSoft)
         extern EXPORT void C_CALL sim_vector_construct(
             Sim_Vector*           vector_ptr,
             const size_t          item_size,
-            const Sim_DataType    item_type,
             const Sim_IAllocator* allocator_ptr,
             size_t                initial_size
         );
-
-/*/ == TODO: We need to find a better way of doing this...
-#       define sim_vector_create_sint8(allocator_ptr, initial_size) \
-            sim_vector_create(                                      \
-                sizeof(sint8),                                      \
-                SIM_DATATYPE_INTEGRAL,                              \
-                allocator_ptr,                                      \
-                initial_size                                        \
-            )
-#       define sim_vector_create_sint16(allocator_ptr, initial_size) \
-            sim_vector_create(                                       \
-                sizeof(sint16),                                      \
-                SIM_DATATYPE_INTEGRAL,                               \
-                allocator_ptr,                                       \
-                initial_size                                         \
-            )
-#       define sim_vector_create_sint32(allocator_ptr, initial_size) \
-            sim_vector_create(                                       \
-                sizeof(sint32),                                      \
-                SIM_DATATYPE_INTEGRAL,                               \
-                allocator_ptr,                                       \
-                initial_size                                         \
-            )
-#       define sim_vector_create_sint64(allocator_ptr, initial_size) \
-            sim_vector_create(                                       \
-                sizeof(sint64),                                      \
-                SIM_DATATYPE_INTEGRAL,                               \
-                allocator_ptr,                                       \
-                initial_size                                         \
-            )
-
-#       define sim_vector_create_char(allocator_ptr, initial_size) \
-            sim_vector_create(                                     \
-                sizeof(char),                                      \
-                SIM_DATATYPE_INTEGRAL,                             \
-                allocator_ptr,                                     \
-                initial_size                                       \
-            )
-#       define sim_vector_create_short(allocator_ptr, initial_size) \
-            sim_vector_create(                                      \
-                sizeof(short),                                      \
-                SIM_DATATYPE_INTEGRAL,                              \
-                allocator_ptr,                                      \
-                initial_size                                        \
-            )
-#       define sim_vector_create_int(allocator_ptr, initial_size) \
-            sim_vector_create(                                    \
-                sizeof(int),                                      \
-                SIM_DATATYPE_INTEGRAL,                            \
-                allocator_ptr,                                    \
-                initial_size                                      \
-            )
-#       define sim_vector_create_long(allocator_ptr, initial_size) \
-            sim_vector_create(                                     \
-                sizeof(long),                                      \
-                SIM_DATATYPE_INTEGRAL,                             \
-                allocator_ptr,                                     \
-                initial_size                                       \
-            )
-#       define sim_vector_create_longlong(allocator_ptr, initial_size) \
-            sim_vector_create(                                         \
-                sizeof(long long),                                     \
-                SIM_DATATYPE_INTEGRAL,                                 \
-                allocator_ptr,                                         \
-                initial_size                                           \
-            )
-
-#       define sim_vector_create_uint8(allocator_ptr, initial_size) \
-            sim_vector_create(                                      \
-                sizeof(uint8),                                      \
-                SIM_DATATYPE_UNSIGNED,                              \
-                allocator_ptr,                                      \
-                initial_size                                        \
-            )
-#       define sim_vector_create_uint16(allocator_ptr, initial_size) \
-            sim_vector_create(                                       \
-                sizeof(uint16),                                      \
-                SIM_DATATYPE_UNSIGNED,                               \
-                allocator_ptr,                                       \
-                initial_size                                         \
-            )
-#       define sim_vector_create_uint32(allocator_ptr, initial_size) \
-            sim_vector_create(                                       \
-                sizeof(uint32),                                      \
-                SIM_DATATYPE_UNSIGNED,                               \
-                allocator_ptr,                                       \
-                initial_size                                         \
-            )
-#       define sim_vector_create_uint64(allocator_ptr, initial_size) \
-            sim_vector_create(                                       \
-                sizeof(uint64),                                      \
-                SIM_DATATYPE_UNSIGNED,                               \
-                allocator_ptr,                                       \
-                initial_size                                         \
-            )
-
-#       define sim_vector_create_uchar(allocator_ptr, initial_size) \
-            sim_vector_create(                                      \
-                sizeof(unsigned char),                              \
-                SIM_DATATYPE_UNSIGNED,                              \
-                allocator_ptr,                                      \
-                initial_size                                        \
-            )
-#       define sim_vector_create_ushort(allocator_ptr, initial_size) \
-            sim_vector_create(                                       \
-                sizeof(unsigned short),                              \
-                SIM_DATATYPE_UNSIGNED,                               \
-                allocator_ptr,                                       \
-                initial_size                                         \
-            )
-#       define sim_vector_create_uint(allocator_ptr, initial_size) \
-            sim_vector_create(                                     \
-                sizeof(unsigned int),                              \
-                SIM_DATATYPE_UNSIGNED,                             \
-                allocator_ptr,                                     \
-                initial_size                                       \
-            )
-#       define sim_vector_create_ulong(allocator_ptr, initial_size) \
-            sim_vector_create(                                      \
-                sizeof(unsigned long),                              \
-                SIM_DATATYPE_UNSIGNED,                              \
-                allocator_ptr,                                      \
-                initial_size                                        \
-            )
-#       define sim_vector_create_ulonglong(allocator_ptr, initial_size) \
-            sim_vector_create(                                          \
-                sizeof(unsigned long long),                             \
-                SIM_DATATYPE_UNSIGNED,                                  \
-                allocator_ptr,                                          \
-                initial_size                                            \
-            )
-
-#       define sim_vector_create_float(allocator_ptr, initial_size) \
-            sim_vector_create(                                      \
-                sizeof(float),                                      \
-                SIM_DATATYPE_FLOAT,                                 \
-                allocator_ptr,                                      \
-                initial_size                                        \
-            )
-#       define sim_vector_create_double(allocator_ptr, initial_size) \
-            sim_vector_create(                                       \
-                sizeof(double),                                      \
-                SIM_DATATYPE_FLOAT,                                  \
-                allocator_ptr,                                       \
-                initial_size                                         \
-            )
-
-        *//**
-         * @def Sim_Vector* sim_vector_create_usertype(T, 2)
-         * @relates Sim_Vector
-         * @brief Creates a new vector storing a user-defined type on the heap.
-         * 
-         * @tparam    TYPE          The user-defined type the vector will be storing.
-         * @param[in] allocator_ptr Pointer to allocator to use when resizing internal array.
-         * @param[in] initial_size  The initial size of the newly created vector.
-         * 
-         * @return @c NULL if the vector couldn't be allocated;
-         *         pointer to a Sim_Vector otherwise.
-         * 
-         * @sa sim_vector_create
-         *//*
-#       define sim_vector_create_usertype(TYPE, allocator_ptr, initial_size) \
-            sim_vector_create(                                               \
-                sizeof(TYPE),                                                \
-                SIM_DATATYPE_OTHER,                                          \
-                allocator_ptr,                                               \
-                initial_size                                                 \
-            ) */
 
         /**
          * @fn void sim_vector_destroy(1)
@@ -242,7 +72,7 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @remarks sim_return_code() is set to one of the following:
          *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL;
-         *     @b SIM_RC_SUCCESS otherwise
+         *     @b SIM_RC_SUCCESS otherwise.
          * 
          * @sa sim_vector_construct
          */
@@ -251,16 +81,21 @@ CPP_NAMESPACE_START(SimSoft)
         );
         
         /**
-         * @def bool sim_vector_is_empty(1)
+         * @fn bool sim_vector_is_empty(1)
          * @relates Sim_Vector
-         * @brief Checks if the vector is empty.
+         * @brief Checks if a vector is empty.
          * 
          * @param[in] vector_ptr Pointer to a vector to check.
          * 
          * @return @c true if the vector is empty; @c false otherwise.
+         * 
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL;
+         *     @b SIM_RC_SUCCESS otherwise.
          */
-#       define sim_vector_is_empty(vector_ptr) \
-            ((vector_ptr)->count == 0)
+        extern EXPORT bool C_CALL sim_vector_is_empty(
+            Sim_Vector *const vector_ptr
+        );
 
         /**
          * @fn void sim_vector_clear(1)
@@ -555,52 +390,6 @@ CPP_NAMESPACE_START(SimSoft)
             Sim_FilterProc    select_proc,
             Sim_Variant       userdata,
             Sim_Vector *const out_vector_ptr
-        );
-
-        /**
-         * @fn void sim_vector_sort(2)
-         * @relates Sim_Vector
-         * @brief Sorts items in the vector based on initialization settings or a user-provided
-         *        comparison function.
-         * 
-         * @param[in,out] vector_ptr      Pointer to vector whose items will be sorted.
-         * @param[in]     comparison_proc Pointer to comparison function.
-         * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr is @c NULL or if @e comparison_proc is
-         *                           @c NULL under certain conditions (see remarks);
-         *     @b SIM_RC_SUCCESS     otherwise.
-         * 
-         * @remarks Faster sorting procedures are used when built-in C numeric datatypes are
-         *          stored in the vector. If the vector was intialized with any of the following
-         *          initialization settings via @c sim_vector_create , @e comparison_proc can
-         *          be passed as @c NULL to use the faster sorting functions:
-         *          <ul>
-         *              <li> {@c char; unsigned char; sint8; uint8}
-         *                  <ul><li> @e item_size: 1 </li>
-         *                  <li> @e item_type: @b INTEGRAL, @b UNSIGNED </li></ul>
-         *              </li>
-         *              <li> {@c short; unsigned short; sint16; uint16}
-         *                  <ul><li> @e item_size: 2 </li>
-         *                  <li> @e item_type: @b INTEGRAL, @b UNSIGNED </li></ul>
-         *              </li>
-         *              <li> {@c int; unsigned int; float; sint32; uint32}
-         *                  <ul><li> @e item_size: 4 </li>
-         *                  <li> @e item_type: @b INTEGRAL, @b UNSIGNED, @b FLOAT </li></ul>
-         *              </li>
-         *              <li> {@c long; long long; unsigned long; unsigned long long; double;
-         *              sint64; uint64}
-         *                  <ul><li> @e item_size: 8 </li>
-         *                  <li> @e item_type: @b INTEGRAL, @b UNSIGNED, @b FLOAT </li></ul>
-         *              </li>
-         *          </ul>
-         *          Any other combination of @e item_type and @e item_size used when the vector
-         *          was initialized is required to pass in a non-NULL @e comparison_proc,
-         *          otherwise @b SIM_RC_ERR_NULLPTR will be returned.
-         */
-        extern EXPORT void C_CALL sim_vector_sort(
-            Sim_Vector *const  vector_ptr,
-            Sim_ComparisonProc comparison_proc
         );
 
     CPP_NAMESPACE_C_API_END /* end C API */

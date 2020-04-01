@@ -15,11 +15,10 @@
 #include "simsoft/vector.h"
 #include "./_internal.h"
 
-// sim_vector_construct(5): Constructs a new vector.
+// sim_vector_construct(4): Constructs a new vector.
 void sim_vector_construct(
     Sim_Vector*           vector_ptr,
     const size_t          item_size,
-    const Sim_DataType    item_type,
     const Sim_IAllocator* allocator_ptr,
     size_t                initial_size
 ) {
@@ -38,10 +37,7 @@ void sim_vector_construct(
     
     // set up initial properties of Sim_Vector
     Sim_Vector vec = {
-        ._item_properties = {
-            .type = item_type,
-            .size = item_size
-        },
+        ._item_size = item_size,
         ._allocator_ptr = allocator_ptr,
         ._allocated = initial_size,
 
@@ -55,9 +51,7 @@ void sim_vector_construct(
 }
 
 // sim_vector_destroy(1): Destroys a vector.
-void sim_vector_destroy(
-    Sim_Vector *const vector_ptr
-) {
+void sim_vector_destroy(Sim_Vector *const vector_ptr) {
     // check for nullptr
     RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR,);
 
@@ -66,10 +60,16 @@ void sim_vector_destroy(
     RETURN(SIM_RC_SUCCESS,);
 }
 
+// sim_vector_is_empty(1):  Checks if a vector is empty.
+bool sim_vector_is_empty(Sim_Vector *const vector_ptr) {
+    // check for nullptr
+    RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR, false);
+
+    RETURN(SIM_RC_SUCCESS, vector_ptr->count == 0);
+}
+
 // sim_vector_clear(1): Clears a vector of all its contents.
-void sim_vector_clear(
-    Sim_Vector *const vector_ptr
-) {
+void sim_vector_clear(Sim_Vector *const vector_ptr) {
     // check for nullptr
     RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR,);
 
@@ -101,7 +101,7 @@ void sim_vector_resize(
         (size > SIM_DEFAULT_VECTOR_SIZE ?
             size :
             SIM_DEFAULT_VECTOR_SIZE
-        ) * vector_ptr->_item_properties.size
+        ) * vector_ptr->_item_size
     ;
     
     // realloc new internal array or malloc new one if NULL
@@ -131,7 +131,7 @@ void* sim_vector_get_ptr(
     // check for out-of-bounds index
     RETURN_IF(index >= vector_ptr->count, SIM_RC_ERR_OUTOFBND, NULL);
 
-    const size_t item_size = vector_ptr->_item_properties.size;
+    const size_t item_size = vector_ptr->_item_size;
 
     // set data_out_ptr to pointer to data if provided
     RETURN(SIM_RC_SUCCESS, (uint8*)vector_ptr->data_ptr + (item_size * index));
@@ -145,7 +145,7 @@ void sim_vector_get(
 ) {
     void* data_ptr = sim_vector_get_ptr(vector_ptr, index);
     if (data_ptr)
-        memcpy(data_out_ptr, data_ptr, vector_ptr->_item_properties.size);
+        memcpy(data_out_ptr, data_ptr, vector_ptr->_item_size);
 }
 
 // sim_vector_index_of(4): Get the index of the first item in a vector that tests equal to given
@@ -168,7 +168,7 @@ size_t sim_vector_index_of(
     
     uint8*  data_ptr = (uint8*)vector_ptr->data_ptr;
     size_t count = vector_ptr->count;
-    const size_t item_size = vector_ptr->_item_properties.size;
+    const size_t item_size = vector_ptr->_item_size;
 
     // iterate over indexes
     for (size_t i = starting_index; i < count; i++) {
@@ -224,7 +224,7 @@ void sim_vector_insert(
             return;
     }
 
-    const size_t item_size = vector_ptr->_item_properties.size;
+    const size_t item_size = vector_ptr->_item_size;
     uint8*  data_ptr = vector_ptr->data_ptr;
     
     // resize vector if full
@@ -285,7 +285,7 @@ void sim_vector_remove(
     // check for out-of-bounds index
     RETURN_IF(index >= vector_ptr->count, SIM_RC_ERR_OUTOFBND,);
     
-    size_t item_size  = vector_ptr->_item_properties.size;
+    size_t item_size  = vector_ptr->_item_size;
     uint8*  remove_ptr = (uint8*)vector_ptr->data_ptr + (item_size * index);
 
     // fill data_out_ptr with removed item if provided
@@ -336,7 +336,7 @@ bool sim_vector_foreach(
 
     size_t count = vector_ptr->count;
     uint8*  data_ptr   = vector_ptr->data_ptr;
-    size_t item_size  = vector_ptr->_item_properties.size;
+    size_t item_size  = vector_ptr->_item_size;
 
     for (size_t i = 0; i < count; i++) {
         if (!(*foreach_proc)(data_ptr, i, userdata))
@@ -361,7 +361,7 @@ void _sim_vector_filter(
     size_t count   = vector_ptr->count;
     uint8*  data_ptr     = vector_ptr->data_ptr;
     uint8*  reinsert_ptr = vector_ptr->data_ptr;
-    size_t item_size    = vector_ptr->_item_properties.size;
+    size_t item_size    = vector_ptr->_item_size;
 
     // iterate over items in vector
     for (size_t i = 0; i < count; i++) {
@@ -406,254 +406,5 @@ void sim_vector_select(
     RETURN_IF(!out_vector_ptr, SIM_RC_ERR_NULLPTR,);
     _sim_vector_filter(vector_ptr, select_proc, userdata, out_vector_ptr, false);
 }
-
-
-#define RADIX_GET_MAX(TYPE)                   \
-    inline TYPE _sim_vector_get_max_ ##TYPE ( \
-        TYPE arr[],                           \
-        size_t n                              \
-    ) {                                       \
-        TYPE mx = arr[0];                     \
-        for (size_t i = 1; i < n; i++)        \
-            if (arr[i] > mx)                  \
-                mx = arr[i];                  \
-        return mx;                            \
-}
-
-#define RADIX_COUNT_SORT(TYPE)                            \
-    inline void _sim_vector_count_sort_ ##TYPE (          \
-        TYPE arr[],                                       \
-        size_t n,                                         \
-        TYPE exp                                          \
-    ) {                                                   \
-        TYPE out[n]; /* output array */                   \
-        size_t i;                                         \
-        size_t count[10] = {0};                           \
-                                                          \
-        /* store count of occurences in count[] */        \
-        for (i = 0; i < n; i++)                           \
-            count[ (arr[i]/exp) % 10 ]++;                 \
-                                                          \
-        for (i = 1; i < 10; i++)                          \
-            count[i] += count[i - 1];                     \
-                                                          \
-        /* Build output array */                          \
-        for (i = n - 1; i != (size_t)-1; i--) {           \
-            out[count[ (arr[i]/exp) % 10 ] - 1] = arr[i]; \
-            count[ (arr[i]/exp) % 10 ]--;                 \
-        }                                                 \
-                                                          \
-        /* Copy out[] to arr[] */                         \
-        memcpy(arr, out, sizeof(TYPE) * n);               \
-}
-
-#define RADIX_FN_SORT(TYPE)                               \
-    inline void _sim_vector_radix_sort_ ##TYPE (          \
-        TYPE arr[],                                       \
-        size_t n                                          \
-    ) {                                                   \
-        /* Find max number to know of digits */           \
-        TYPE m = _sim_vector_get_max_ ##TYPE (arr, n);    \
-                                                          \
-        /* Do counting sort for every digit */            \
-        for (TYPE exp = 1; m / exp > 0; exp *= 10)        \
-            _sim_vector_count_sort_ ##TYPE (arr, n, exp); \
-}
-
-#define RADIX_SORT(TYPE)   \
-    RADIX_GET_MAX(TYPE)    \
-    RADIX_COUNT_SORT(TYPE) \
-    RADIX_FN_SORT(TYPE)
-
-// unsigned integral radix sort functions
-RADIX_SORT(uint8)
-RADIX_SORT(uint16)
-RADIX_SORT(uint32)
-RADIX_SORT(uint64)
-
-// 32-bit floating point radix sort functions
-RADIX_GET_MAX(float)
-inline void _sim_vector_count_sort_float (
-    float arr[],
-    size_t n,
-    float exp
-) {
-    float out[n]; /* output array */
-    size_t i;
-    size_t count[10] = {0.0f};
-
-    /* store count of occurences in count[] */
-    for (i = 0; i < n; i++)
-        count[ (size_t)floorf(fabsf(fmodf((arr[0]/exp), 10.0f))) ]++;
-
-    for (i = 1; i < 10; i++)
-        count[i] += count[i - 1];
-
-    /* Build output array */
-    for (i = n - 1; i != (size_t)-1; i--) {
-        out[count[ (size_t)floorf(fabsf(fmodf((arr[0]/exp), 10.0f))) ] - 1] = arr[i];
-        count[ (size_t)floorf(fabsf(fmodf((arr[0]/exp), 10.0f))) ]--;
-    }
-
-    /* Copy out[] to arr[] */
-    memcpy(arr, out, sizeof(float) * n);
-}
-RADIX_FN_SORT(float)
-
-// 64-bit floating point radix sort functions
-RADIX_GET_MAX(double)
-inline void _sim_vector_count_sort_double (
-    double arr[],
-    size_t n,
-    double exp
-) {
-    double out[n]; /* output array */
-    size_t i;
-    size_t count[10] = {0.0};
-
-    /* store count of occurences in count[] */
-    for (i = 0; i < n; i++)
-        count[ (size_t)floor(fabs(fmod((arr[i]/exp), 10.0))) ]++;
-
-    for (i = 1; i < 10; i++)
-        count[i] += count[i - 1];
-
-    /* Build output array */
-    for (i = n - 1; i != (size_t)-1; i--) {
-        out[count[ (size_t)floor(fabs(fmod((arr[i]/exp), 10.0))) ] - 1] = arr[i];
-        count[ (size_t)floor(fabs(fmod((arr[i]/exp), 10.0))) ]--;
-    }
-
-    /* Copy out[] to arr[] */
-    memcpy(arr, out, sizeof(double) * n);
-}
-RADIX_FN_SORT(double)
-
-#define RADIX_SORT_VECTOR(TYPE, vector_ptr) \
-    _sim_vector_radix_sort_ ##TYPE (vector_ptr->data_ptr, vector_ptr->count)
-#define QUICK_SORT_VECTOR(vector_ptr, cmp_func) \
-    qsort( \
-        vector_ptr->data_ptr, \
-        vector_ptr->count, \
-        vector_ptr->_item_properties.size, \
-        (int (*)(const void*, const void*)) cmp_func \
-    )
-
-#define SIGNED_RADIX_XOR(bitsize, vector_ptr, n) \
-    for (size_t i = 0; i < count; i++)        \
-        ((sint ##bitsize *)(vector_ptr->data_ptr))[i] ^= n
-
-// sim_vector_sort(2): Sorts items in the vector based on initialization settings or a
-//                     user-provided comparison function.
-void sim_vector_sort(
-    Sim_Vector *const  vector_ptr,
-    Sim_ComparisonProc comparison_proc
-) {
-    // check for nullptr
-    RETURN_IF(!vector_ptr, SIM_RC_ERR_NULLPTR,);
-
-    // skip 0-sized vectors
-    RETURN_IF(vector_ptr->count == 0, SIM_RC_SUCCESS,);
-
-    if (comparison_proc) {
-        QUICK_SORT_VECTOR(vector_ptr, comparison_proc);
-        RETURN(SIM_RC_SUCCESS,);
-    }
-
-    size_t count = vector_ptr->count;
-
-    switch (vector_ptr->_item_properties.type) {
-    case SIM_DATATYPE_INTEGRAL:
-        switch (vector_ptr->_item_properties.size) {
-        // 8-bit signed
-        case 1:
-            SIGNED_RADIX_XOR(8, vector_ptr, -128);
-            RADIX_SORT_VECTOR(uint8, vector_ptr);
-            SIGNED_RADIX_XOR(8, vector_ptr, -128);
-            break;
-
-        // 16-bit signed
-        case 2:
-            SIGNED_RADIX_XOR(16, vector_ptr, -32768);
-            RADIX_SORT_VECTOR(uint16, vector_ptr);
-            SIGNED_RADIX_XOR(16, vector_ptr, -32768);
-            break;
-
-        // 32-bit signed
-        case 4:
-            SIGNED_RADIX_XOR(32, vector_ptr, -2147483648);
-            RADIX_SORT_VECTOR(uint32, vector_ptr);
-            SIGNED_RADIX_XOR(32, vector_ptr, -2147483648);
-            break;
-
-        // 64-bit signed
-        case 8:
-            SIGNED_RADIX_XOR(64, vector_ptr, -2147483648LL);
-            RADIX_SORT_VECTOR(uint64, vector_ptr);
-            SIGNED_RADIX_XOR(64, vector_ptr, -2147483648LL);
-            break;
-
-        default:
-            break;
-        }
-        break;
-
-    case SIM_DATATYPE_UNSIGNED:
-        switch (vector_ptr->_item_properties.size) {
-        // 8-bit unsigned
-        case 1:
-            RADIX_SORT_VECTOR(uint8, vector_ptr);
-            break;
-
-        // 16-bit unsigned
-        case 2:
-            RADIX_SORT_VECTOR(uint16, vector_ptr);
-            break;
-
-        // 32-bit unsigned
-        case 4:
-            RADIX_SORT_VECTOR(uint32, vector_ptr);
-            break;
-
-        // 64-bit unsigned
-        case 8:
-            RADIX_SORT_VECTOR(uint64, vector_ptr);
-            break;
-
-        default:
-            break;
-        }
-        break;
-
-    case SIM_DATATYPE_FLOAT:
-        switch (vector_ptr->_item_properties.size) {
-        // 32-bit floating point
-        case 4:
-            RADIX_SORT_VECTOR(float, vector_ptr);
-            break;
-
-        // 64-bit floating point
-        case 8:
-            RADIX_SORT_VECTOR(double, vector_ptr);
-            break;
-
-        default:
-            break;
-        }
-        break;
-
-    case SIM_DATATYPE_OTHER:
-        break;
-    }
-    
-    RETURN(SIM_RC_ERR_NULLPTR,);
-}
-
-#undef RADIX_FN_SORT
-#undef RADIX_COUNT_SORT
-#undef RADIX_GET_MAX
-#undef RADIX_SORT_VECTOR
-#undef QUICK_SORT_VECTOR
-#undef SIGNED_RADIX_XOR
 
 #endif /* SIMSOFT_VECTOR_C_ */

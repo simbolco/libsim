@@ -29,7 +29,6 @@ Sim_ReturnCode vector_test_construct(const char* *const out_err_str) {
     sim_vector_construct(
         NULL,
         sizeof(void*),
-        SIM_DATATYPE_OTHER,
         NULL,
         256
     );
@@ -42,7 +41,6 @@ Sim_ReturnCode vector_test_construct(const char* *const out_err_str) {
     sim_vector_construct(
         &vec,
         sizeof(int),
-        SIM_DATATYPE_INTEGRAL,
         NULL,
         256
     );
