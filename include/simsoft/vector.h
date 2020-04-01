@@ -27,16 +27,19 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile vector.h "simsoft/vector.h"
          * @brief Generic vector container / dynamically-sized array type
          * 
-         * @tparam _item_size     How large the items stored in the vector are.
+         * @tparam _item_size     How large the items contained in the vector are.
          * @tparam _allocator_ptr Pointer to allocator used when resizing internal array.
+         * 
+         * @property count    The number of items contained in the vector.
+         * @property data_ptr Pointer to the internal array used by the vector.
          */
         typedef struct Sim_Vector {
-            const size_t _item_size; // properties of items in this vector
-            const Sim_IAllocator *const _allocator_ptr; // array allocator
+            const size_t _item_size;
+            const Sim_IAllocator *const _allocator_ptr;
             size_t _allocated; // how much has been allocated
 
-            size_t count;    // amount of items stored in the vector
-            void*  data_ptr; // pointer to internal array
+            size_t count;
+            void*  data_ptr;
         } Sim_Vector;
 
         /**
