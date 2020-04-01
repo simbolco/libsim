@@ -329,37 +329,6 @@ CPP_NAMESPACE_START(SimSoft)
 #       undef __ENUMERATE_RETURN_CODE
 
         /**
-         * @enum Sim_DataType
-         * @headerfile common.h "simsoft/common.h"
-         * @brief C enumeration of data type info.
-         * 
-         * @var SIM_DATATYPE_OTHER    User-defined type.
-         * @var SIM_DATATYPE_INTEGRAL Signed integral type.
-         * @var SIM_DATATYPE_UNSIGNED Unsigned integral type.
-         * @var SIM_DATATYPE_FLOAT    Floating-point type.
-         */
-        typedef enum Sim_DataType {
-            SIM_DATATYPE_OTHER    = 0x0,
-            SIM_DATATYPE_INTEGRAL = 0x1,
-            SIM_DATATYPE_UNSIGNED = 0x2,
-            SIM_DATATYPE_FLOAT    = 0x3
-        } Sim_DataType;
-
-        /**
-         * @struct Sim_TypeInfo
-         * @headerfile common.h "simsoft/common.h"
-         * @brief Structure used by collections to optimize sorting when using built-in C
-         *        numeric types.
-         * 
-         * @property type The data type being represented; one of four Sim_DataType values.
-         * @property size The size of the type in bytes.
-         */
-        typedef struct Sim_TypeInfo {
-            size_t type : 2;
-            size_t size : (sizeof (size_t) * 8) - 2;
-        } Sim_TypeInfo;
-
-        /**
          * @struct Sim_PointerPair
          * @headerfile common.h "simsoft/common.h"
          * @brief Structure containing two generic pointers.
