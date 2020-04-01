@@ -446,7 +446,6 @@ int main(int argc, char* argv[]) {
     sim_hashmap_construct(
         &simt_dynlibs,
         sizeof(const char*),
-        SIM_DATATYPE_OTHER,
         (Sim_HashProc)simt_strhash,
         (Sim_PredicateProc)simt_streq,
         sizeof(Sim_LibraryHandle),
