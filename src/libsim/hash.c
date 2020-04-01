@@ -57,7 +57,6 @@ inline void _sim_hash_destroy_node(
 static void _sim_hash_construct(
     _Sim_HashPtr          hash_ptr,
     const size_t          key_size,
-    const Sim_DataType    key_type,
     Sim_HashProc          key_hash_proc,
     Sim_PredicateProc     key_predicate_proc,
     const size_t          value_size,
@@ -81,10 +80,7 @@ static void _sim_hash_construct(
 
     Sim_HashMap hashmap = {
         ._key_properties = {
-            .type_info = {
-                .type = key_type,
-                .size = key_size
-            },
+            .size = key_size,
             .hash_proc = key_hash_proc,
             .predicate_proc = key_predicate_proc
         },
@@ -159,9 +155,9 @@ static void _sim_hash_destroy(
     ...                                                                                \
 )                                                                                      \
                                                                                        \
-    uint8** data_ptr = (uint8**)hash_data_ptr;                                           \
+    uint8** data_ptr = (uint8**)hash_data_ptr;                                         \
     size_t attempt = 0;                                                                \
-    uint8* current_node_ptr;                                                            \
+    uint8* current_node_ptr;                                                           \
     size_t index;                                                                      \
                                                                                        \
     size_t hash = (hash_proc ?                                                         \
@@ -197,7 +193,7 @@ static void _sim_hash_destroy(
 #define HASH_IF_CONTAIN(hashmap_ptr, key_ptr, ...)   \
     HASH_TABLE_IF_CONTAIN(                           \
         key_ptr,                                     \
-        hashmap_ptr->_key_properties.type_info.size, \
+        hashmap_ptr->_key_properties.size,           \
         hashmap_ptr->data_ptr,                       \
         hashmap_ptr->_allocated,                     \
         hashmap_ptr->_key_properties.hash_proc,      \
@@ -229,7 +225,7 @@ static void _sim_hash_resize(
                 bool test = false;
                 HASH_TABLE_IF_CONTAIN(
                     hash_node,
-                    hashmap_ptr->_key_properties.type_info.size,
+                    hashmap_ptr->_key_properties.size,
                     new_data_ptr,
                     new_size,
                     hashmap_ptr->_key_properties.hash_proc,
@@ -280,7 +276,7 @@ void _sim_hash_insert(
     // insert new item
     void* node = _sim_hash_create_node(
         key_ptr,
-        hashmap_ptr->_key_properties.type_info.size,
+        hashmap_ptr->_key_properties.size,
         value_ptr,
         value_ptr ?
             hashmap_ptr->_value_size :
@@ -384,11 +380,10 @@ static bool _sim_hash_foreach(
 
 // == HASHSET PUBLIC API ==========================================================================
 
-// sim_hashset_construct(7): Constructs a new hashset.
+// sim_hashset_construct(6): Constructs a new hashset.
 void sim_hashset_construct(
     Sim_HashSet*          hashset_ptr,
     const size_t          item_size,
-    const Sim_DataType    item_type,
     Sim_HashProc          item_hash_proc,
     Sim_PredicateProc     item_predicate_proc,
     const Sim_IAllocator* allocator_ptr,
@@ -397,7 +392,6 @@ void sim_hashset_construct(
     _sim_hash_construct(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
         item_size,
-        item_type,
         item_hash_proc,
         item_predicate_proc,
         0,
@@ -494,11 +488,10 @@ bool sim_hashset_foreach(
 
 // == HASHMAP PUBLIC API ==========================================================================
 
-// sim_hashmap_construct(8): Initializes a new hashmap.
+// sim_hashmap_construct(7): Initializes a new hashmap.
 void sim_hashmap_construct(
     Sim_HashMap*          hashmap_ptr,
     const size_t          key_size,
-    const Sim_DataType    key_type,
     Sim_HashProc          key_hash_proc,
     Sim_PredicateProc     key_predicate_proc,
     const size_t          value_size,
@@ -508,7 +501,6 @@ void sim_hashmap_construct(
     _sim_hash_construct(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
         key_size,
-        key_type,
         key_hash_proc,
         key_predicate_proc,
         value_size,
@@ -560,7 +552,7 @@ void* sim_hashmap_get_ptr(
     RETURN_IF(!hashmap_ptr || !key_ptr, SIM_RC_ERR_NULLPTR, NULL);
 
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr,
-        RETURN(SIM_RC_SUCCESS, current_node_ptr + hashmap_ptr->_key_properties.type_info.size);
+        RETURN(SIM_RC_SUCCESS, current_node_ptr + hashmap_ptr->_key_properties.size);
     );
 
     RETURN(SIM_RC_ERR_NOTFOUND, NULL);

@@ -32,7 +32,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         typedef struct Sim_HashSet {
             const struct {
-                Sim_TypeInfo type_info;           // Type information
+                size_t size;                      // Item size
                 Sim_HashProc hash_proc;           // Pointer to hash function
                 Sim_PredicateProc predicate_proc; // Pointer to predicate function
             } _item_properties; // properties of hashset items
@@ -46,13 +46,12 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_HashSet;
 
         /**
-         * @fn void sim_hashset_construct(7)
+         * @fn void sim_hashset_construct(6)
          * @relates Sim_HashSet
          * @brief Constructs a new hashset.
          * 
          * @param[in,out] hashset_ptr         Pointer to a hashset to construct.
          * @param[in]     item_size           Size of each item.
-         * @param[in]     item_type           Type of the items stored in the hashset.
          * @param[in]     item_hash_proc      Item hash function.
          * @param[in]     item_predicate_proc Item equality predicate function.
          * @param[in]     allocator_ptr       Pointer to allocator to use when resizing hash
@@ -70,7 +69,6 @@ CPP_NAMESPACE_START(SimSoft)
         extern EXPORT void C_CALL sim_hashset_construct(
             Sim_HashSet*          hashset_ptr,
             const size_t          item_size,
-            const Sim_DataType    item_type,
             Sim_HashProc          item_hash_proc,
             Sim_PredicateProc     item_predicate_proc,
             const Sim_IAllocator* allocator_ptr,

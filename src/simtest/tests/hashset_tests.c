@@ -28,7 +28,6 @@ Sim_ReturnCode hashset_test_construct(const char* *const out_err_str) {
     sim_hashset_construct(
         NULL,
         sizeof(void*),
-        SIM_DATATYPE_OTHER,
         NULL,
         (Sim_PredicateProc)_int_eq,
         NULL,
@@ -42,7 +41,6 @@ Sim_ReturnCode hashset_test_construct(const char* *const out_err_str) {
     sim_hashset_construct(
         &hashset,
         sizeof(void*),
-        SIM_DATATYPE_OTHER,
         NULL,
         NULL,
         NULL,
@@ -56,7 +54,6 @@ Sim_ReturnCode hashset_test_construct(const char* *const out_err_str) {
     sim_hashset_construct(
         &hashset,
         sizeof(int),
-        SIM_DATATYPE_INTEGRAL,
         NULL,
         (Sim_PredicateProc)_int_eq,
         NULL,

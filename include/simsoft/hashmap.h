@@ -33,7 +33,7 @@ CPP_NAMESPACE_START(SimSoft)
          */
         typedef struct Sim_HashMap {
             const struct {
-                Sim_TypeInfo type_info;           // Type information
+                size_t size;                      // Key size
                 Sim_HashProc hash_proc;           // Pointer to hash function
                 Sim_PredicateProc predicate_proc; // Pointer to predicate function
             } _key_properties;  // properties of hashmap keys
@@ -81,13 +81,12 @@ CPP_NAMESPACE_START(SimSoft)
 #       endif /* SIM_DEFINED_MAP_FOREACH_STRUCTS */
 
         /**
-         * @fn Sim_ReturnCode sim_hashmap_construct(8)
+         * @fn Sim_ReturnCode sim_hashmap_construct(7)
          * @relates Sim_HashMap
          * @brief Constructs a new hashmap.
          * 
          * @param[in,out] hashmap_ptr        Pointer to a hashmap to construct.
          * @param[in]     key_size           Size of hashmap keys.
-         * @param[in]     key_type           Type of the keys stored in the hashmap.
          * @param[in]     key_hash_proc      Key hash function.
          * @param[in]     key_predicate_proc Key equality predicate function.
          * @param[in]     value_size         Size of each item.
@@ -106,7 +105,6 @@ CPP_NAMESPACE_START(SimSoft)
         extern EXPORT void C_CALL sim_hashmap_construct(
             Sim_HashMap*          hashmap_ptr,
             const size_t          key_size,
-            const Sim_DataType    key_type,
             Sim_HashProc          key_hash_proc,
             Sim_PredicateProc     key_predicate_proc,
             const size_t          value_size,
