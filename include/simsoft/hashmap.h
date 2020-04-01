@@ -27,9 +27,12 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile hashmap.h "simsoft/hashmap.h"
          * @brief Generic unordered key-value pair container / associative array type.
          * 
-         * @tparam _key_properties Properties pertaining to the keys stored in this hashmap.
-         * @tparam _value_size     Size in bytes of the values stored in this hashmap.
+         * @tparam _key_properties Properties pertaining to the keys stored in the hashmap.
+         * @tparam _value_size     Size in bytes of the values stored in the hashmap.
          * @tparam _allocator_ptr  Pointer to allocator used to allocate buckets/nodes.
+         * 
+         * @property count    The number of key-value pairs contained in the hashmap.
+         * @property data_ptr Pointer to the internal hash table used by the hashmap.
          */
         typedef struct Sim_HashMap {
             const struct {

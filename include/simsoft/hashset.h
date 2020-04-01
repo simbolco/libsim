@@ -27,8 +27,11 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile hashset.h "simsoft/hashset.h"
          * @brief Generic unordered set type.
          * 
-         * @tparam _item_properties Properties pertaining to the items stored in this hashset.
-         * @tparam _allocator_ptr   Pointer to allocator used when resizing internal array.
+         * @tparam _item_properties Properties pertaining to the items stored in the hashset.
+         * @tparam _allocator_ptr   Pointer to allocator used to allocate buckets/nodes.
+         * 
+         * @property count    The number of items contained in the hashset.
+         * @property data_ptr Pointer to the internal hash table used by the hashset.
          */
         typedef struct Sim_HashSet {
             const struct {
