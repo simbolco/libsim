@@ -408,6 +408,12 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
+         * @typedef Sim_HashType
+         * @brief Integral type representing hashes.
+         */
+        typedef uint64 Sim_HashType;
+
+        /**
          * @typedef Sim_HashProc
          * @headerfile common.h "simsoft/common.h"
          * @brief Function pointer that hashes a value.
@@ -417,7 +423,7 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @return A hash value for the given item.
          */
-        typedef size_t (*Sim_HashProc)(
+        typedef Sim_HashType (*Sim_HashProc)(
             const void *const item,
             const size_t attempt
         );
