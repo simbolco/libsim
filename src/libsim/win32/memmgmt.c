@@ -169,7 +169,7 @@ bool _sim_sys_memmgmt_protect(
     const DWORD protect = _sim_win32_mem_access_flags_to_dwpage(mem_access_flags);
     DWORD old_protect = 0;
     RETURN_IF(
-        VirtualProtect(starting_address, (SIZE_T)length, mem_access_flags, &old_protect),
+        VirtualProtect(starting_address, (SIZE_T)length, protect, &old_protect),
         SIM_RC_SUCCESS, true
     );
 
