@@ -24,7 +24,7 @@ CPP_NAMESPACE_START(SimSoft)
 #       endif
 
         /**
-         * @fn size_t sim_siphash(3)
+         * @fn Sim_HashType sim_siphash(3)
          * @brief SipHash-2-4 implementation.
          * 
          * @param[in] data_ptr  Pointer to data to create a hash for.
@@ -33,7 +33,7 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @return A hash key; 0 if @e data_ptr is @c NULL .
          */
-        extern EXPORT size_t C_CALL sim_siphash(
+        extern EXPORT Sim_HashType C_CALL sim_siphash(
             const uint8*       data_ptr,
             const size_t       data_size,
             const Sim_HashKey key
