@@ -53,7 +53,7 @@ void sim_random_bytes(
         // get function pointer if available
         RETURN_IF(
             !RtlGenRandom &&
-            !(RtlGenRandom = sim_find_symbol(
+            !(RtlGenRandom = sim_dynlib_find_symbol(
                 _SIM_WIN32_ADVAPI32_LIBHANDLE,
                 "SystemFunction036"
             )),
