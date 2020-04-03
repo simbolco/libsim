@@ -11,16 +11,6 @@
 #ifndef SIMTEST_HASHMAP_TESTS_H_
 #define SIMTEST_HASHMAP_TESTS_H_
 
-#include "./test.h"
-#include "simsoft/hashmap.h"
-
-Sim_HashMap hashmap;
-
-
-
-SimT_TestFuncStruct hashmap_tests[] = {
-    { hashmap_test_init, "initialization" },
-    { hashmap_test_destroy, "destructor" }
-};
+#include "simsoft/common.h"
 
 #endif /* SIMTEST_HASHMAP_TESTS_H_ */
