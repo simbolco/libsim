@@ -21,7 +21,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @typedef Sim_MemAllocProc
          * @headerfile allocator.h "simsoft/allocator.h"
          * @relates Sim_IAllocator
-         * @breif Function pointer for dynamic memory allocation.
+         * @brief Function pointer for dynamic memory allocation.
          * 
          * @param[in] size How much memory to allocate.
          * 
@@ -39,7 +39,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @typedef Sim_MemFilledAllocProc
          * @headerfile allocator.h "simsoft/allocator.h"
          * @relates Sim_IAllocator
-         * @breif Function pointer for filled dynamic memory allocation.
+         * @brief Function pointer for filled dynamic memory allocation.
          * 
          * @param[in] size How much memory to allocate.
          * @param[in] fill An unsigned byte to fill the allocated memory with.
@@ -79,7 +79,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @typedef Sim_MemFreeProc
          * @headerfile allocator.h "simsoft/allocator.h"
          * @relates Sim_IAllocator
-         * @breif Function pointer for freeing dynamically allocated memory.
+         * @brief Function pointer for freeing dynamically allocated memory.
          * 
          * @param[in] ptr Pointer to malloc'd/falloc'd/realloc'd memory to free.
          * 
