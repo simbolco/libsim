@@ -45,7 +45,7 @@ void* _sim_sys_memmgmt_map_file_ptr(
         (starting_address == (void*)-1) ? NULL : starting_address,
         length,
         protection,
-        (starting_address == (void*)-1) ? MAP_SHARED : MAP_FIXED,
+        MAP_PRIVATE | (starting_address != (void*)-1) ? MAP_FIXED : 0,
         file_descriptor,
         (off_t)offset
     );
