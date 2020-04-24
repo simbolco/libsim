@@ -18,7 +18,7 @@ CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_START /* C API */
 
         /**
-         * @fn uint32 sim_utf8_to_codepoint(1)
+         * @fn uint32 sim_utf8_to_codepoint(const char*)
          * @brief Retrieves a UTF codepoint from a UTF-8 multi-byte sequence.
          * 
          * @param[in] utf8_char Pointer to the start of a UTF-8 multi-byte character.
@@ -28,16 +28,18 @@ CPP_NAMESPACE_START(SimSoft)
          *         otherwise.
          * 
          * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR if @e utf8_char_ptr is @c NULL;
-         *     @b SIM_RC_FAILURE     on an invalid UTF-8 multi-byte sequence;
-         *     @b SIM_RC_SUCCESS     otherwise.
+         *     @b SIM_RC_ERR_NULLPTR  if @e utf8_char_ptr is @c NULL;
+         *     @b SIM_RC_ERR_INVALARG if @e utf8_char_ptr is an invalid UTF-8 multi-byte character;
+         *     @b SIM_RC_SUCCESS      otherwise.
+         * 
+         * @sa sim_utf8_from_codepoint
          */
         extern EXPORT uint32 C_CALL sim_utf8_to_codepoint(
             const char* utf8_char_ptr
         );
 
         /**
-         * @fn bool sim_utf8_from_codepoint(2)
+         * @fn bool sim_utf8_from_codepoint(uint32, char[4])
          * @brief Retrieves a UTF-8 multi-byte sequence from a UTF codepoint.
          * 
          * @param[in] utf_codepoint   A UTF codepoint to convert to UTF-8.
@@ -47,8 +49,10 @@ CPP_NAMESPACE_START(SimSoft)
          *         @c true otherwise.
          * 
          * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_FAILURE if @e utf_codepoint is an invalid UTF codepoint;
-         *     @b SIM_RC_SUCCESS otherwise.
+         *     @b SIM_RC_ERR_INVALARG if @e utf_codepoint is an invalid UTF codepoint;
+         *     @b SIM_RC_SUCCESS      otherwise.
+         * 
+         * @sa sim_utf8_from_codepoint
          */
         extern EXPORT bool C_CALL sim_utf8_from_codepoint(
             uint32 utf_codepoint,
@@ -56,7 +60,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn size_t sim_utf8_get_codepoint(1)
+         * @fn size_t sim_utf8_get_char_size(const char*)
          * @brief Retrieves the number of bytes of a given UTF-8 multi-byte character.
          * 
          * @param[in] utf8_char_ptr Pointer to the start of a UTF-8 multi-byte sequence.
@@ -75,7 +79,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn char* sim_utf8_next_char(1)
+         * @fn char* sim_utf8_next_char(char*)
          * @brief Retrieves a pointer to the next UTF-8 character in a UTF-8 string.
          * 
          * @param[in] utf8_char_ptr Pointer to a UTF-8 multi-byte character.
@@ -92,7 +96,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn size_t sim_utf8_strlen(1)
+         * @fn size_t sim_utf8_strlen(const char*)
          * @brief Retrieves the length of a null-terminated UTF-8 string.
          * 
          * @param[in] utf8_string Null-terminated UTF-8 string to find the length of.

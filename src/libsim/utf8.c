@@ -19,7 +19,8 @@
 uint32 sim_utf8_to_codepoint(
     const char* utf8_char_ptr
 ) {
-    RETURN_IF(!utf8_char_ptr, SIM_RC_ERR_NULLPTR, (uint32)-1);
+    if (!utf8_char_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
 
     uint32 codepoint = (uint32)-1;
 
@@ -29,10 +30,10 @@ uint32 sim_utf8_to_codepoint(
         codepoint = ((uint8)utf8_char_ptr[0] & 0x1F) * 64 +
                     ((uint8)utf8_char_ptr[1] & 0x3F)
         ;
-    RETURN_IF( /* 0xD800 - 0xDFFF are invalid UTF8 codepoints */
-        utf8_char_ptr[0] == 0xED && (utf8_char_ptr[1] & 0xA0) == 0xA0,
-        SIM_RC_FAILURE, codepoint
+    else if ( /* 0xD800 - 0xDFFF are invalid UTF8 codepoints */
+        (uint8)utf8_char_ptr[0] == 0xED && ((uint8)utf8_char_ptr[1] & 0xA0) == 0xA0
     )
+        THROW(SIM_RC_ERR_INVALARG);
     else if ((utf8_char_ptr[0] & 0xF0) == 0xE0)
         codepoint = ((uint8)utf8_char_ptr[0] & 0x0F) * 4096 +
                     ((uint8)utf8_char_ptr[1] & 0x3F) * 64   +
@@ -44,7 +45,8 @@ uint32 sim_utf8_to_codepoint(
                     ((uint8)utf8_char_ptr[2] & 0x3F) * 64     +
                     ((uint8)utf8_char_ptr[3] & 0x3F)
         ;
-    else RETURN(SIM_RC_FAILURE, codepoint);
+    else
+        THROW(SIM_RC_ERR_INVALARG);
 
     RETURN(SIM_RC_SUCCESS, codepoint);
 }
@@ -69,19 +71,25 @@ bool sim_utf8_from_codepoint(
         utf8_char_array[2] = 0x80 | (char)((utf_codepoint >> 6) & 0x3F);
         utf8_char_array[3] = 0x80 | (char)(utf_codepoint & 0x3F);
     } else
-        RETURN(SIM_RC_FAILURE, false);
+        THROW(SIM_RC_ERR_INVALARG);
     RETURN(SIM_RC_SUCCESS, true);
 }
 
 // sim_utf8_get_char_size(1): Retrieves the number of bytes of a given UTF-8 multi-byte character.
 size_t sim_utf8_get_char_size(const char* utf8_char_ptr) {
-    RETURN_IF(!utf8_char_ptr, SIM_RC_ERR_NULLPTR, 0);
+    if (!utf8_char_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
     
-    RETURN_IF(*utf8_char_ptr <= 0x7F, SIM_RC_SUCCESS, 1)
-    else RETURN_IF((*utf8_char_ptr & 0xE0) == 0xC0, SIM_RC_SUCCESS, 2)
-    else RETURN_IF((*utf8_char_ptr & 0xF0) == 0xE0, SIM_RC_SUCCESS, 3)
-    else RETURN_IF((*utf8_char_ptr & 0xF8) == 0xF0, SIM_RC_SUCCESS, 4)
-    else RETURN(SIM_RC_ERR_INVALARG, 0);
+    if (*(const uint8*)utf8_char_ptr <= 0x7F)
+        RETURN(SIM_RC_SUCCESS, 1);
+    else if ((*utf8_char_ptr & 0xE0) == 0xC0)
+        RETURN(SIM_RC_SUCCESS, 2);
+    else if ((*utf8_char_ptr & 0xF0) == 0xE0)
+        RETURN(SIM_RC_SUCCESS, 3);
+    else if ((*utf8_char_ptr & 0xF8) == 0xF0)
+        RETURN(SIM_RC_SUCCESS, 4);
+    
+    THROW(SIM_RC_ERR_INVALARG);
 }
 
 // sim_utf8_next_char(1): Retrieves a pointer to the next UTF-8 character in a UTF-8 string.
@@ -91,12 +99,14 @@ char* sim_utf8_next_char(char* utf8_char_ptr) {
 
 // sim_utf8_strlen(1): Retrieves the length of a null-terminated UTF-8 string.
 size_t sim_utf8_strlen(const char* utf8_string) {
-    RETURN_IF(!utf8_string, SIM_RC_ERR_NULLPTR, (size_t)-1);
+    if (!utf8_string)
+        THROW(SIM_RC_ERR_NULLPTR);
 
     size_t count = 0, change;
     while (*utf8_string) {
         change = sim_utf8_get_char_size(utf8_string);
-        RETURN_IF(change == 0, SIM_RC_ERR_INVALARG, (size_t)-1);
+        if (change == 0)
+            THROW(SIM_RC_ERR_INVALARG);
 
         utf8_string += change;
         count++;
