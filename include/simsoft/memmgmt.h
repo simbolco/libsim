@@ -22,10 +22,14 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile memmgmt.h "simsoft/memmgmt.h"
          * @brief C enumeration for memory access permissions.
          * 
-         * @property SIM_MEMACCESS_NONE       No access permissions.
-         * @property SIM_MEMACCESS_READABLE   Allowed to read from a given region.
-         * @property SIM_MEMACCESS_WRITABLE   Allowed to write to a given region.
-         * @property SIM_MEMACCESS_EXECUTABLE Allowed to execute code in the given region.
+         * @var Sim_MemoryAccess::SIM_MEMACCESS_NONE
+         *     No access permissions.
+         * @var Sim_MemoryAccess::SIM_MEMACCESS_READABLE
+         *     Allowed to read from a given region.
+         * @var Sim_MemoryAccess::SIM_MEMACCESS_WRITABLE
+         *     Allowed to write to a given region.
+         * @var Sim_MemoryAccess::SIM_MEMACCESS_EXECUTABLE
+         *     Allowed to execute code in the given region.
          */
         typedef enum Sim_MemoryAccess {
             SIM_MEMACCESS_NONE = 0,
@@ -35,7 +39,7 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_MemoryAccess;
 
         /**
-         * @fn void* sim_memmgmt_map_file_ptr(4)
+         * @fn void* sim_memmgmt_map_file_ptr(FILE*, size_t, size_t, Sim_MemoryAccess)
          * @headerfile memmgmt.h "simsoft/memmgmt.h"
          * @brief Maps a standard C FILE* into the virtual address space.
          * 
@@ -62,7 +66,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void* sim_memmgmt_map_fixed_file_ptr(5)
+         * @fn void* sim_memmgmt_map_fixed_file_ptr(void*, FILE*, size_t, size_t, Sim_MemoryAccess)
          * @headerfile memmgmt.h "simsoft/memmgmt.h"
          * @brief Maps a standard C FILE* into the virtual address space at a fixed address.
          * 
@@ -92,7 +96,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_memmgmt_unmap(2)
+         * @fn bool sim_memmgmt_unmap(void*, size_t)
          * @headerfile memmgmt.h "simsoft/memmgmt.h"
          * @brief Unmaps a memory region created by one of the sim_memmgmt_map_* functions.
          * 
@@ -112,7 +116,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_memmgmt_protect(3)
+         * @fn bool sim_memmgmt_protect(void*, size_t, Sim_MemoryAccess)
          * @headerfile memmgmt.h "simsoft/memmgmt.h"
          * @brief Protects a memory region by assigning memory access permissions.
          * 
@@ -137,7 +141,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_memmgmt_sync(2)
+         * @fn bool sim_memmgmt_sync(void*, size_t)
          * @headerfile memmgmt.h "simsoft/memmgmt.h"
          * @brief Flushes a given memory region's write operations.
          * 
@@ -158,7 +162,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_memmgmt_lock(2)
+         * @fn bool sim_memmgmt_lock(void*, size_t)
          * @headerfile memmgmt.h "simsoft/memmgmt.h"
          * @brief Locks access to a memory region.
          * 
@@ -179,7 +183,7 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_memmgmt_unlock(2)
+         * @fn bool sim_memmgmt_unlock(void*, size_t)
          * @headerfile memmgmt.h "simsoft/memmgmt.h"
          * @brief Unlocks access to a memory region.
          * 
