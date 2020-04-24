@@ -12,16 +12,14 @@
 #ifndef SIMSOFT__INTERNAL_C_
 #define SIMSOFT__INTERNAL_C_
 
-#include "./_internal.h"
-#include "simsoft/util.h"
+#include <math.h>
 
-// sim_return_code(0): Gets the return code from SimSoft library functions.
-Sim_ReturnCode sim_return_code() {
-    return _SIM_RETURN_CODE;
-}
+#include "./_internal.h"
 
 // Debug print functions
 #ifdef DEBUG
+#   include <stdarg.h>
+
 #   ifdef _WIN32
         DWORD _sim_win32_print_last_error(const char* err_format_str, ...) {
             DWORD err = GetLastError();

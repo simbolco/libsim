@@ -12,9 +12,10 @@
 #ifndef SIMSOFT__INTERNAL_H_
 #define SIMSOFT__INTERNAL_H_
 
+//#define SIM_USING_C_EXCEPTIONS // comment this line out when not testing C exceptions
 #include "simsoft/common.h"
 
-// == OS-specific error reporting =================================================================
+// == OS-specific error reporting ==================================================================
 #ifdef _WIN32
 #   ifndef WIN32_LEAN_AND_MEAN
 #       define WIN32_LEAN_AND_MEAN
@@ -41,7 +42,7 @@
 #   endif
 #endif
 
-// == SIMD extensions =============================================================================
+// == SIMD extensions ==============================================================================
 
 #if defined(_MSC_VER)
 #   include <intrin.h> // Microsoft IA-32/AMD64 MMX/SSE extensions
@@ -80,25 +81,14 @@ extern size_t _sim_prev_prime(size_t num);
 // == Thread-local return code ====================================================================
 
 #ifdef __cplusplus
-#   define RC_T SimSoft::C_API::Sim_ReturnCode
+#   define RETURN_CODE_TYPE SimSoft::C_API::Sim_ReturnCode
 #else
-#   define RC_T Sim_ReturnCode
+#   define RETURN_CODE_TYPE Sim_ReturnCode
 #endif
-#ifndef SIMSOFT__INTERNAL_C_
-    extern THREAD_LOCAL RC_T _SIM_RETURN_CODE;
-#else
-    THREAD_LOCAL RC_T _SIM_RETURN_CODE;
-#endif
-#undef RC_T
-
-#define RETURN_IF(cond, ret_code, return_value) \
-    if (cond) {                                 \
-        _SIM_RETURN_CODE = ret_code;            \
-        return return_value;                    \
-    }
-#define RETURN(ret_code, return_value) { \
-    _SIM_RETURN_CODE = ret_code;         \
-    return return_value;                 \
-}
+// expected return
+#define RETURN(ret_code, return_value) do { \
+    sim_set_return_code(ret_code);          \
+    return return_value;                    \
+} while(0)
 
 #endif /* SIMSOFT__INTERNAL_H_ */
