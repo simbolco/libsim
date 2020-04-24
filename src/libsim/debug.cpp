@@ -19,30 +19,19 @@
 using namespace SimSoft;
 
 size_t SimSoft::get_backtrace_info(
-    BacktraceInfo backtrace_array[],
     size_t        backtrace_size,
+    BacktraceInfo backtrace_array[],
     size_t        skip_frames
 ) {
     size_t num_frames = 0;
 
     num_frames = C_API::sim_debug_get_backtrace_info(
-        backtrace_array,
         backtrace_size,
+        backtrace_array,
         skip_frames
     );
 
-    if (_SIM_RETURN_CODE)
-        throw Exception((ReturnCode)_SIM_RETURN_CODE);
-
     return num_frames;
-}
-
-const char* SimSoft::get_return_code_string(
-    ReturnCode return_code
-) {
-    return C_API::sim_debug_get_return_code_string(
-        (C_API::Sim_ReturnCode)return_code
-    );
 }
 
 #endif /* SIMSOFT_DEBUG_CPP_ */
