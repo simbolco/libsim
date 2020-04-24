@@ -22,10 +22,12 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile cmdlnopt.h "simsoft/cmdlnopt.h"
          * @brief C enumeration of command line option argument specifications.
          * 
-         * @property SIM_CMDLNOPT_NO_ARGUMENT       This option explicitly takes no arguments.
-         * @property SIM_CMDLNOPT_REQUIRED_ARGUMENT This option explicitly requires at least 1 
-         *                                          argument.
-         * @property SIM_CMDLNOPT_OPTIONAL_ARGUMENT This option may or may not take arguments.
+         * @var Sim_CmdLnOptHasArgument::SIM_CMDLNOPT_NO_ARGUMENT
+         *  This option explicitly takes no arguments.
+         * @var Sim_CmdLnOptHasArgument::SIM_CMDLNOPT_REQUIRED_ARGUMENT
+         *  This option explicitly requires at least 1 argument.
+         * @var Sim_CmdLnOptHasArgument::SIM_CMDLNOPT_OPTIONAL_ARGUMENT
+         *  This option may or may not take arguments.
          */
         typedef enum Sim_CmdLnOptHasArgument {
             SIM_CMDLNOPT_NO_ARGUMENT = 0,
@@ -38,12 +40,13 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile cmdlnopt.h "simsoft/cmdlnopt.h"
          * @brief C enumeration of errors that can occur whilst handling command line options.
          * 
-         * @property SIM_CMDLNOPT_ERR_UNKNOWN_OPTION   An unknown option was provided.
-         * @property SIM_CMDLNOPT_ERR_MISSING_ARGUMENT The given option was not provided an
-         *                                             argument.
-         * @property SIM_CMDLNOPT_ERR_NONFLAG_OPTION   The given option that requires arguments was
-         *                                             included in a string of options that
-         *                                             explicitly take no arguments.
+         * @var Sim_CmdLnOptError::SIM_CMDLNOPT_ERR_UNKNOWN_OPTION
+         *  An unknown option was provided.
+         * @var Sim_CmdLnOptError::SIM_CMDLNOPT_ERR_MISSING_ARGUMENT
+         *  The given option was not provided an argument.
+         * @var Sim_CmdLnOptError::SIM_CMDLNOPT_ERR_NONFLAG_OPTION 
+         *  The given option that requires arguments was included in a string of options that
+         *  explicitly take no arguments.
          */
         typedef enum Sim_CmdLnOptError {
             SIM_CMDLNOPT_ERR_UNKNOWN_OPTION = 0,
@@ -52,7 +55,7 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_CmdLnOptError;
 
         /**
-         * @struct Sim_CmdLnOptArgs
+         * @typedef Sim_CmdLnOptArgs
          * @headerfile cmdlnopt.h "simsoft/cmdlnopt.h"
          * @brief Opaque structure used by option handler callbacks.
          */
@@ -89,13 +92,17 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile cmdlnopt.h "simsoft/cmdlnopt.h"
          * @brief Structure defining a command line option handler.
          * 
-         * @property long_name       The long name of this option.
-         * @property short_codepoint The UTF codepoint of the short name of this option.
-         * @property has_argument    Determines how this option takes arguments.
-         * @property handler_proc    Callback function pointer for handling this option.
-         * 
          * @sa Sim_CmdLnOptHasArgument
          * @sa Sim_CmdLnOptHandlerProc
+         * 
+         * @var Sim_CmdLnOptHandler::long_name
+         *     The long name of this option.
+         * @var Sim_CmdLnOptHandler::short_codepoint
+         *     The UTF codepoint of the short name of this option.
+         * @var Sim_CmdLnOptHandler::has_argument
+         *     Determines how this option takes arguments.
+         * @var Sim_CmdLnOptHandler::handler_proc
+         *     Callback function pointer for handling this option.
          */
         typedef struct Sim_CmdLnOptHandler {
             const char*             long_name;
@@ -105,12 +112,11 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_CmdLnOptHandler;
 
         /**
-         * @fn const char* sim_cmdlnopt_next_argstring(1)
+         * @fn const char* sim_cmdlnopt_next_argstring(Sim_CmdLnOptArgs *const)
          * @headerfile cmdlnopt.h "simsoft/cmdlnopt.h"
-         * @relates Sim_CmdLnOptArgs
          * @brief Retrieves the next argstring from the given args state.
-         * A command line option handler callback function is provided with an @e args_state_ptr
-         * specifically for use in this function.
+         * @details A command line option handler callback function is provided with an
+         * @e args_state_ptr specifically for use in this function.
          * 
          * @param[in] args_state_ptr Opaque pointer provided to option handler callbacks.
          * 
@@ -120,18 +126,19 @@ CPP_NAMESPACE_START(SimSoft)
          * @remarks sim_return_code() is set to one of the following:
          *     @b SIM_RC_ERR_NULLPTR if @e args_state_ptr is @c NULL;
          *     @b SIM_RC_SUCCESS     otherwise.
+         * 
+         * @sa Sim_CmdLnOptArgs
          */
         extern EXPORT const char* C_CALL sim_cmdlnopt_next_argstring(
             Sim_CmdLnOptArgs *const args_state_ptr
         );
 
         /**
-         * @brief const char* sim_cmdlnopt_get_program_name(1)
+         * @brief const char* sim_cmdlnopt_get_program_name(Sim_CmdLnOptArgs *const)
          * @headerfile cmdlnopt.h "simsoft/cmdlnopt.h"
-         * @relates Sim_CmdLnOptArgs
          * @brief Retrieves the program name as entered from the command line.
-         * A command line option handler callback function is provided with an @e args_state_ptr
-         * specifically for use in this function.
+         * @details A command line option handler callback function is provided with an
+         * @e args_state_ptr specifically for use in this function.
          * 
          * @param[in] args_state_ptr Opaque pointer provided to option handler callbacks.
          * 
@@ -140,6 +147,8 @@ CPP_NAMESPACE_START(SimSoft)
          * @remarks sim_return_code() is set to one of the following:
          *     @b SIM_RC_ERR_NULLPTR if @e args_state_ptr is @c NULL;
          *     @b SIM_RC_SUCCESS     otherwise.
+         * 
+         * @sa Sim_CmdLnOptArgs
          */
         extern EXPORT const char* sim_cmdlnopt_get_program_name(
             Sim_CmdLnOptArgs *const args_state_ptr
@@ -170,7 +179,14 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn int sim_cmdlnopt_handle_options(5)
+         * @fn int sim_cmdlnopt_handle_options(
+         *         int *const,
+         *         char** *const,
+         *         size_t,
+         *         const Sim_CmdLnOptHandler[],
+         *         Sim_CmdLnOptErrorProc,
+         *         Sim_Variant
+         *     )
          * @headerfile cmdlnopt.h "simsoft/cmdlnopt.h"
          * @brief Handles POSIX-esque command line options.
          * 

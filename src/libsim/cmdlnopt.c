@@ -12,8 +12,11 @@
 #ifndef SIMSOFT_CMDLNOPT_C_
 #define SIMSOFT_CMDLNOPT_C_
 
+#include <string.h>
+
 #include "simsoft/cmdlnopt.h"
 #include "simsoft/utf8.h"
+
 #include "./_internal.h"
 
 struct _Sim_CmdLnOptArgs {
@@ -113,7 +116,8 @@ static bool _sim_cmdlnopt_handle_error(
 
 // sim_cmdlnopt_next_argstring(1): Retrieves the next argstring from the given args state.
 const char* sim_cmdlnopt_next_argstring(Sim_CmdLnOptArgs *const args_state_ptr) {
-    RETURN_IF(!args_state_ptr, SIM_RC_ERR_NULLPTR, NULL);
+    if (!args_state_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
     
     if (
         (*args_state_ptr->argc_ptr) > 1 &&
@@ -132,7 +136,9 @@ const char* sim_cmdlnopt_next_argstring(Sim_CmdLnOptArgs *const args_state_ptr) 
 
 // sim_cmdlnopt_get_program_name(1): Retrieves the program name as entered from the command line.
 const char* sim_cmdlnopt_get_program_name(Sim_CmdLnOptArgs *const args_state_ptr) {
-    RETURN_IF(!args_state_ptr, SIM_RC_ERR_NULLPTR, NULL);
+    if (!args_state_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+
     RETURN(SIM_RC_SUCCESS, args_state_ptr->program_name);
 }
 
@@ -145,9 +151,12 @@ int sim_cmdlnopt_handle_options(
     Sim_CmdLnOptErrorProc     error_proc,
     Sim_Variant               userdata
 ) {
-    RETURN_IF(!arguments_array_ptr || !arguments_count_ptr || !option_handler_array,
-        SIM_RC_ERR_NULLPTR, 0
-    );
+    if (!arguments_array_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!arguments_count_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!option_handler_array)
+        THROW(SIM_RC_ERR_NULLPTR);
     
     // use default error handler if none is provided by the user
     if (!error_proc)
