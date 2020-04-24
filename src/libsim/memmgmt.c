@@ -14,6 +14,14 @@
 
 #include "./_memmgmt.h"
 
+#ifdef _WIN32
+#   include "./memmgmt/win32.c"
+#elif defined(__unix__)
+#   include "./memmgmt/unix.c"
+#else
+#   include "./memmgmt/unsuprtd.c"
+#endif
+
 // sim_memmgmt_map_file_ptr(4): Maps a standard C FILE* into the virtual address space.
 void* sim_memmgmt_map_file_ptr(
     FILE*            file_ptr,
@@ -21,7 +29,8 @@ void* sim_memmgmt_map_file_ptr(
     size_t           offset,
     Sim_MemoryAccess mem_access_flags
 ) {
-    RETURN_IF(length == 0, SIM_RC_ERR_INVALARG, (void*)-1);
+    if (length == 0)
+        THROW(SIM_RC_ERR_INVALARG);
 
     return _sim_sys_memmgmt_map_file_ptr((void*)-1, file_ptr, length, offset, mem_access_flags);
 }
@@ -35,8 +44,10 @@ void* sim_memmgmt_map_fixed_file_ptr(
     size_t           offset,
     Sim_MemoryAccess mem_access_flags
 ) {
-    RETURN_IF(!file_ptr, SIM_RC_ERR_BADFILE, (void*)-1);
-    RETURN_IF(length == 0, SIM_RC_ERR_INVALARG, (void*)-1);
+    if (!file_ptr)
+        THROW(SIM_RC_ERR_BADFILE);
+    if (length == 0)
+        THROW(SIM_RC_ERR_INVALARG);
 
     return _sim_sys_memmgmt_map_file_ptr(
         starting_address,
@@ -58,28 +69,32 @@ bool sim_memmgmt_protect(
     size_t           length,
     Sim_MemoryAccess mem_access_flags
 ) {
-    RETURN_IF(length == 0, SIM_RC_ERR_INVALARG, false);
+    if (length == 0)
+        THROW(SIM_RC_ERR_INVALARG);
 
     return _sim_sys_memmgmt_protect(starting_address, length, mem_access_flags);
 }
 
 // sim_memmgmt_sync(2): Flushes a given memory region's write operations.
 bool sim_memmgmt_sync(void* starting_address, size_t length) {
-    RETURN_IF(length == 0, SIM_RC_ERR_INVALARG, false);
+    if (length == 0)
+        THROW(SIM_RC_ERR_INVALARG);
 
     return _sim_sys_memmgmt_sync(starting_address, length);
 }
 
 // sim_memmgmt_lock(2): Locks access to a memory region.
 bool sim_memmgmt_lock(void* starting_address, size_t length) {
-    RETURN_IF(length == 0, SIM_RC_ERR_INVALARG, false);
+    if (length == 0)
+        THROW(SIM_RC_ERR_INVALARG);
 
     return _sim_sys_memmgmt_lock(starting_address, length);
 }
 
 // sim_memmgmt_unlock(2): Unlocks access to a memory region.
 bool sim_memmgmt_unlock(void* starting_address, size_t length) {
-    RETURN_IF(length == 0, SIM_RC_ERR_INVALARG, false);
+    if (length == 0)
+        THROW(SIM_RC_ERR_INVALARG);
 
     return _sim_sys_memmgmt_unlock(starting_address, length);
 }
