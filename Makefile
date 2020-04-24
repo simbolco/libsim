@@ -2,7 +2,7 @@
 
 version.major    = 0
 version.minor    = 8
-version.revision = 0
+version.revision = 1
 
 # Directories
 BDIR ?= bin
@@ -48,8 +48,8 @@ endif
 override LFLAGS += -L$(BDIR) -L$(LDIR)
 
 # Specific flags
-override CCFLAGS  += -std=c11
-override CXXFLAGS += -std=c++17
+override CCFLAGS  += -std=gnu11
+override CXXFLAGS += -std=gnu++17
 override DFLAGS   += -DDEBUG
 override RFLAGS   += -O2
 
@@ -185,6 +185,8 @@ if [ $$EXIT_CODE -eq 0 ]; then \
 	echo -e "\t\t\e[0;32mSuccessfully compiled '$(SDIR)/$3'\e[0m"; \
 else \
 	echo -e "\t\t\e[0;31m$$EXIT_CODE error(s) compiling '$(SDIR)/$3'\e[0m"; \
+	echo -e "Breaking..."; \
+	exit $$EXIT_CODE; \
 fi
 endef
 
@@ -198,6 +200,8 @@ if [ $$EXIT_CODE -eq 0 ]; then \
 	echo -e "\t\t\e[0;32mSuccessfully compiled '$(SDIR)/$3'\e[0m"; \
 else \
 	echo -e "\t\t\e[0;31m$$EXIT_CODE error(s) compiling '$(SDIR)/$3'\e[0m"; \
+	echo -e "Breaking..."; \
+	exit $$EXIT_CODE; \
 fi
 endef
 
@@ -205,11 +209,10 @@ endef
 
 LIBS += sim
 lib.sim.desc    = The SimSoft library (work in progress)
-lib.sim.subdirs = libsim \
-				  $(if $(filter-out Windows_NT,$(OS)),,libsim/win32) \
-				  $(if $(filter-out Unix,$(OS)),,libsim/unix)
+lib.sim.subdirs = libsim
 lib.sim.cflags  = -DSIM_BUILD \
-				  $(if $(filter-out Unix,$(OS)),,-D_POSIX_C_SOURCE)
+				  $(if $(filter-out Unix,$(OS)),,-D_POSIX_C_SOURCE) \
+				  -Werror
 lib.sim.lflags  = $(if $(filter-out Windows_NT,$(OS)),,-ldbghelp)
 
 EXES += simtest
@@ -233,63 +236,77 @@ help:
 	@echo -e "SimSoft Makefile version $(version.major).$(version.minor).$(version.revision)\n" \
 	"===========================================================================\n" \
 	"\e[1;97mUsage:\e[0m\n" \
-	"\t'make lib{target} [options]' - Build library target\n" \
-	"\t'make exe{target} [options]' - Build executable target\n" \
-	"\t'make all [options]' - Build all targets\n" \
+	"  'make lib{target} [options]' - Build library target\n" \
+	"  'make exe{target} [options]' - Build executable target\n" \
+	"  'make all [options]' - Build all targets\n" \
 	"\n" \
-	"\t'make {clean|clean_all}' - Clean all targets\n" \
-	"\t'make clean_{lib|exe}{target}' - Clean specific target\n" \
+	"  'make {clean|clean_all}' - Clean all targets\n" \
+	"  'make clean_{lib|exe}{target}' - Clean specific target\n" \
 	"\n" \
-	"\t'make version' - This Makefile's version number\n" \
+	"  'make version' - This Makefile's version number\n" \
 	"\n" \
-	"\t'make os' - The operating system detected by this Makefile\n" \
-	"\t'make cflags' - List the default compiler flags for this Makefile\n" \
-	"\t'make lflags' - List the default linker flags for this Makefile\n" \
+	"  'make os' - The operating system detected by this Makefile\n" \
+	"  'make cflags' - List the default compiler flags for this Makefile\n" \
+	"  'make lflags' - List the default linker flags for this Makefile\n" \
 	"\n" \
 	"\e[1;97mOptions:\e[0m\n" \
-	"\t\e[3;1mFORCE\e[0m - force all source files in target to recompile when building\n" \
-	"\t\e[3;1mCLEAN\e[0m - clean before rebuilding a target\n" \
-	"\t\e[3;1mLINK\e[0m  - force a target to link even if no source files need to be\n" \
-	"\t\trecompiled\n" \
-	"\t\e[3;1mDEBUG\e[0m - compile with debug compiler flags & settings\n" \
+	"  \e[3;1mFORCE\e[0m - force all source files in target to recompile when building\n" \
+	"  \e[3;1mCLEAN\e[0m - clean before rebuilding a target\n" \
+	"  \e[3;1mLINK\e[0m  - force a target to link even if no source files need to be\n" \
+	"          recompiled\n" \
+	"  \e[3;1mDEBUG\e[0m - compile with debug compiler flags & settings\n" \
 	$(if $(filter-out Windows_NT,$(OS)),, \
-		"\t\e[3;1mMINGW\e[0m - force building with MinGW (Windows only)\n" \
+		"  \e[3;1mMINGW\e[0m - force building with MinGW (Windows only)\n" \
 	) \
-	"\t\e[3;1mNO_DYNAMIC_LIB\e[0m - don't output dynamic libraries for library targets\n" \
-	"\t\e[3;1mNO_STATIC_LIB\e[0m - don't output static library for library targets\n" \
-	"\t\e[3;1mNO_SYMBOLS\e[0m - build without debugging symbols\n" \
+	"  \e[3;1mNO_DYNAMIC_LIB\e[0m - don't output dynamic libraries for library targets\n" \
+	"  \e[3;1mNO_STATIC_LIB\e[0m - don't output static library for library targets\n" \
+	"  \e[3;1mNO_SYMBOLS\e[0m - build without debugging symbols\n" \
 	$(if $(filter-out Windows_NT,$(OS)),, \
-		"\n\t\e[3;1mWINDOWS_NO_PDB\e[0m - don't generate a .pdb file (Windows only)\n" \
-	) \
-	$(if $(filter-out Windows_NT,$(OS)),, \
-		"\t\e[3;1mWINDOWS_GUI_BUILD\e[0m - build Windows GUI applications (Windows only)\n" \
+		"\n   \e[3;1mWINDOWS_NO_PDB\e[0m - don't generate a .pdb file (Windows only)\n" \
 	) \
 	$(if $(filter-out Windows_NT,$(OS)),, \
-		"\t\e[3;1mWINDOWS_UNICODE\e[0m - build w/ Windows unicode support (Windows only)\n" \
+		"  \e[3;1mWINDOWS_GUI_BUILD\e[0m - build Windows GUI applications (Windows only)\n" \
+	) \
+	$(if $(filter-out Windows_NT,$(OS)),, \
+		"  \e[3;1mWINDOWS_UNICODE\e[0m - build w/ Windows unicode support (Windows only)\n" \
 	) \
 	"\n" \
-	"\t\e[3;1mECHO\e[0m  - print the shell script generated by a build target\n" \
+	"  \e[3;1mECHO\e[0m  - print the shell script generated by a build target\n" \
 	"\n" \
 	"\e[1;97mExamples:\e[0m\n" \
-	"\t\e[3mmake libsim NO_SYMBOLS=1 NO_DYNAMIC_LIB=1\e[0m - Build library target\n" \
-	"\t\t'libsim' as a static library without debugging symbols\n" \
+	"  \e[3mmake libsim NO_SYMBOLS=1 NO_DYNAMIC_LIB=1\e[0m - Build library target\n" \
+	"    'libsim' as a static library without debugging symbols\n" \
 	"\n" \
 	"\e[1;94mLibrary targets:\e[0m\n" \
 	$(foreach name, $(LIBS),\
 		$(if $(wildcard $(SDIR)/$(lib.$(name).subdir)/.*),\
-			"\t[\e[1;96mlib$(name)\e[0m]" \
+			"  [\e[1;96mlib$(name)\e[0m]" \
 				$(if $(lib.$(name).desc), "- $(lib.$(name).desc)",) "\n",\
-			"\t\e[31m[\e[1;91mlib$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
+			"  \e[31m[\e[1;91mlib$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
 		)\
+		$(if $(lib.$(name).options),\
+			"    \e[1;97mOptions:\e[0m\n" \
+			$(foreach option,$(lib.$(name).options),\
+				"      \e[3;1m$(option)\e[0m" \
+				$(if $(lib.$(name).desc.$(option)),"- $(lib.$(name).desc.$(option))",) "\n" \
+			)\
+		,)\
 	)\
 	"\n" \
 	"\e[1;94mExecutable targets:\e[0m\n" \
 	$(foreach name, $(EXES),\
 		$(if $(wildcard $(SDIR)/$(exe.$(name).subdir)/.*),\
-			"\t[\e[1;96mexe$(name)\e[0m]" \
+			"  [\e[1;96mexe$(name)\e[0m]" \
 				$(if $(exe.$(name).desc), "- $(exe.$(name).desc)",) "\n",\
-			"\t\e[31m[\e[1;91mexe$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
+			"  \e[31m[\e[1;91mexe$(name)\e[0;31m] - Missing source subdir\e[0m\n" \
 		)\
+		$(if $(exe.$(name).options),\
+			"    \e[1;97mOptions:\e[0m\n" \
+			$(foreach option,$(exe.$(name).options),\
+				"      \e[3;1m$(option)\e[0m" \
+				$(if $(exe.$(name).desc.$(option)),"- $(exe.$(name).desc.$(option))",) "\n" \
+			)\
+		,)\
 	)
 
 version:
