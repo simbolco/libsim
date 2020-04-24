@@ -12,8 +12,11 @@
 #ifndef SIMSOFT_STRING_C_
 #define SIMSOFT_STRING_C_
 
+#include <stdarg.h>
+
 #include "simsoft/string.h"
 #include "simsoft/util.h"
+
 #include "./_internal.h"
 
 #define _SIM_STRING_INTERNAL_SIZE(string_ptr) \
@@ -91,32 +94,29 @@ static Sim_HashType _sim_string_default_hash(
 #   undef SIPHASH_KEY4
 }
 
+static Sim_HashProc _sim_string_hash_proc = (Sim_HashProc)_sim_string_default_hash;
+
 // == PUBLIC API ===================================================================================
 
-// sim_string_construct(5): Constructs a string.
+// sim_string_construct(4): Constructs a string.
 void sim_string_construct(
     Sim_String *const     string_ptr,
     const Sim_IAllocator* allocator_ptr,
-    Sim_HashProc          hash_proc,
     size_t                c_string_length,
     const char*           c_string
 ) {
-    RETURN_IF(!string_ptr, SIM_RC_ERR_NULLPTR,);
+    if (!string_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
 
     // use default allocator if none is provided
     if (!allocator_ptr)
         allocator_ptr = sim_allocator_get_default();
-
-    // use default hash function if none is provided
-    if (!hash_proc)
-        hash_proc = (Sim_HashProc)_sim_string_default_hash;
 
     memcpy(
         (uint8*)string_ptr + offsetof(Sim_String, _allocator_ptr),
         &allocator_ptr,
         sizeof allocator_ptr
     );
-    string_ptr->_hash_proc = hash_proc;
     string_ptr->_hash_dirty = false;
 
     // c_string or c_string length are NULL/0 - empty string
@@ -137,7 +137,8 @@ void sim_string_construct(
 
             // allocate string from heap; fail if unsuccessful
             char* allocated_c_string = (char*)allocator_ptr->malloc(capacity);
-            RETURN_IF(!allocated_c_string, SIM_RC_ERR_OUTOFMEM,);
+            if (!allocated_c_string)
+                THROW(SIM_RC_ERR_OUTOFMEM);
 
             string_ptr->c_string = allocated_c_string;
         } else /* short string */ {
@@ -151,42 +152,37 @@ void sim_string_construct(
     string_ptr->c_string[c_string_length] = '\0';
 
     // get hash values
-    string_ptr->_hash1 = (*hash_proc)(string_ptr, 0);
-    string_ptr->_hash2 = (*hash_proc)(string_ptr, 1) - string_ptr->_hash1 - 1;
+    string_ptr->_hash1 = _sim_string_hash_proc(string_ptr, 0);
+    string_ptr->_hash2 = _sim_string_hash_proc(string_ptr, 1) - string_ptr->_hash1 - 1;
 
     RETURN(SIM_RC_SUCCESS,);
 }
 
-// sim_string_construct_format(5+): Constructs a string given a format string.
+// sim_string_construct_format(4+): Constructs a string given a format string.
 void sim_string_construct_format(
     Sim_String *const     string_ptr,
     const Sim_IAllocator* allocator_ptr,
-    Sim_HashProc          hash_proc,
     size_t                string_length,
     const char*           format_string,
     ...
 ) {
     if (!format_string) {
-        sim_string_construct(string_ptr, allocator_ptr, hash_proc, string_length, NULL);
+        sim_string_construct(string_ptr, allocator_ptr, string_length, NULL);
         return;
     }
 
-    RETURN_IF(!string_ptr, SIM_RC_ERR_NULLPTR,);
+    if (!string_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
 
     // use default allocator if none is provided
     if (!allocator_ptr)
         allocator_ptr = sim_allocator_get_default();
-
-    // use default hash function if none is provided
-    if (!hash_proc)
-        hash_proc = (Sim_HashProc)_sim_string_default_hash;
 
     memcpy(
         (uint8*)string_ptr + offsetof(Sim_String, _allocator_ptr),
         &allocator_ptr,
         sizeof allocator_ptr
     );
-    string_ptr->_hash_proc = hash_proc;
     string_ptr->_hash_dirty = false;
 
     // variadic args list
@@ -207,7 +203,8 @@ void sim_string_construct_format(
 
         // allocate string from heap; fail if unsuccessful
         char* allocated_c_string = (char*)allocator_ptr->malloc(capacity);
-        RETURN_IF(!allocated_c_string, SIM_RC_ERR_OUTOFMEM,);
+        if (!allocated_c_string)
+            THROW(SIM_RC_ERR_OUTOFMEM);
 
         string_ptr->c_string = allocated_c_string;
     } else /* short string */ {
@@ -224,8 +221,36 @@ void sim_string_construct_format(
     string_ptr->c_string[string_length] = '\0';
 
     // get hash values
-    string_ptr->_hash1 = (*hash_proc)(string_ptr, 0);
-    string_ptr->_hash2 = (*hash_proc)(string_ptr, 1) - string_ptr->_hash1 - 1;
+    string_ptr->_hash1 = _sim_string_hash_proc(string_ptr, 0);
+    string_ptr->_hash2 = _sim_string_hash_proc(string_ptr, 1) - string_ptr->_hash1 - 1;
+
+    RETURN(SIM_RC_SUCCESS,);
+}
+
+// sim_string_copy(2): Copies the contents of one string into another.
+void sim_string_copy(
+    Sim_String *const string_from_ptr,
+    Sim_String *const string_to_ptr
+) {
+    if (!string_from_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!string_to_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    
+    memcpy((uint8*)string_to_ptr, (uint8*)string_from_ptr, sizeof *string_from_ptr);
+
+    // copy string to new buffer if large string
+    if (string_to_ptr->_is_large_string) {
+        char* new_string_buffer = (char*)string_to_ptr->_allocator_ptr->malloc(
+            string_to_ptr->length + 1
+        );
+        if (!new_string_buffer)
+            THROW(SIM_RC_ERR_OUTOFMEM);
+
+        string_to_ptr->_allocated = string_to_ptr->length + 1;
+        memcpy(new_string_buffer, string_to_ptr->c_string, string_to_ptr->length + 1);
+        string_to_ptr->c_string = new_string_buffer;
+    }
 
     RETURN(SIM_RC_SUCCESS,);
 }
@@ -235,7 +260,10 @@ void sim_string_move(
     Sim_String *const string_from_ptr,
     Sim_String *const string_to_ptr
 ) {
-    RETURN_IF(!string_from_ptr || !string_to_ptr, SIM_RC_ERR_NULLPTR,);
+    if (!string_from_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!string_to_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
 
     // copy length & large string flag
     string_to_ptr->length = string_from_ptr->length;
@@ -260,7 +288,6 @@ void sim_string_move(
 
     // copy string hash
     string_to_ptr->_hash_dirty = string_from_ptr->_hash_dirty;
-    string_to_ptr->_hash_proc = string_from_ptr->_hash_proc;
     if (!string_to_ptr->_hash_dirty) {
         string_to_ptr->_hash1 = string_from_ptr->_hash1;
         string_to_ptr->_hash2 = string_from_ptr->_hash2;
@@ -271,7 +298,8 @@ void sim_string_move(
 
 // sim_string_destroy(1): Destroys a string.
 void sim_string_destroy(Sim_String *const string_ptr) {
-    RETURN_IF(!string_ptr, SIM_RC_ERR_NULLPTR,);
+    if (!string_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
 
     // free large C string
     if (string_ptr->_is_large_string)
@@ -282,15 +310,20 @@ void sim_string_destroy(Sim_String *const string_ptr) {
 
 // sim_string_is_empty(1): Checks if a string is empty.
 bool sim_string_is_empty(Sim_String *const string_ptr) {
-    RETURN_IF(!string_ptr, SIM_RC_ERR_NULLPTR, false);
+    if (!string_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    
     RETURN(SIM_RC_SUCCESS, string_ptr->length == 0);
 }
 
 // sim_string_get_allocated(1): Retrieves the number of bytes in memory that is allocated by the
 //                              string.
 size_t sim_string_get_allocated(Sim_String *const string_ptr) {
-    RETURN_IF(!string_ptr, SIM_RC_ERR_NULLPTR, false);
-    RETURN_IF(string_ptr->_is_large_string, SIM_RC_SUCCESS, string_ptr->_allocated);
+    if (!string_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+
+    if (string_ptr->_is_large_string)
+        RETURN(SIM_RC_SUCCESS, string_ptr->_allocated);
     RETURN(SIM_RC_SUCCESS, _SIM_STRING_INTERNAL_SIZE(string_ptr));
 }
 
@@ -304,8 +337,8 @@ Sim_HashType sim_string_get_hash(
     
     // update hash values if dirty
     if (string_ptr->_hash_dirty) {
-        string_ptr->_hash1 = string_ptr->_hash_proc(string_ptr, 0);
-        string_ptr->_hash2 = string_ptr->_hash_proc(string_ptr, 1) - string_ptr->_hash1 - 1;
+        string_ptr->_hash1 = _sim_string_hash_proc(string_ptr, 0);
+        string_ptr->_hash2 = _sim_string_hash_proc(string_ptr, 1) - string_ptr->_hash1 - 1;
         string_ptr->_hash_dirty = false;
     }
 
@@ -319,17 +352,19 @@ bool sim_string_insert(
     const char*       new_string,
     const size_t      index
 ) {
-    RETURN_IF(!string_ptr, SIM_RC_ERR_NULLPTR, false);
-    RETURN_IF(index > string_ptr->length, SIM_RC_ERR_OUTOFBND, false);
+    if (!string_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (index > string_ptr->length)
+        THROW(SIM_RC_ERR_OUTOFBND);
 
     // empty || zero length = NOP
-    RETURN_IF(!new_string || new_string_length == 0, SIM_RC_SUCCESS, true);
+    if (!new_string || new_string_length == 0)
+        RETURN(SIM_RC_SUCCESS, true);
 
     // resize string
     size_t new_length = string_ptr->length + new_string_length;
-    printf("Old c_string ptr: %p\n", string_ptr->c_string);
-    RETURN_IF(!_sim_string_resize(string_ptr, new_length + 1), SIM_RC_ERR_OUTOFMEM, false);
-    printf("New c_string ptr: %p\n", string_ptr->c_string);
+    if (!_sim_string_resize(string_ptr, new_length + 1))
+        THROW(SIM_RC_ERR_OUTOFMEM);
 
     // move contents right of index to right-hand side of index
     memmove(
@@ -364,11 +399,10 @@ void sim_string_remove(
     const size_t      index,
     const size_t      length
 ) {
-    RETURN_IF(!string_ptr, SIM_RC_ERR_NULLPTR,);
-    RETURN_IF(
-        index >= string_ptr->length || index + length >= string_ptr->length,
-        SIM_RC_ERR_OUTOFBND,
-    );
+    if (!string_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (index >= string_ptr->length || index + length >= string_ptr->length)
+        THROW(SIM_RC_ERR_OUTOFBND);
 
     size_t new_length = string_ptr->length - length;
     
@@ -396,8 +430,12 @@ size_t sim_string_find(
     const char*       substring,
     const size_t      starting_index
 ) {
-    RETURN_IF(!string_ptr || !substring, SIM_RC_ERR_NULLPTR, (size_t)-1);
-    RETURN_IF(starting_index >= string_ptr->length, SIM_RC_ERR_OUTOFBND, (size_t)-1);
+    if (!string_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!substring)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (starting_index >= string_ptr->length)
+        THROW(SIM_RC_ERR_OUTOFBND);
 
     size_t i = starting_index, j = 0;
     while (i < string_ptr->length - substring_length + j) {
@@ -407,16 +445,13 @@ size_t sim_string_find(
         else
             j = 0;
 
-        RETURN_IF(
-            substring[j] == '\0' || j == substring_length,
-            SIM_RC_SUCCESS,
-            i - j + 1
-        );
+        if (substring[j] == '\0' || j == substring_length)
+            RETURN(SIM_RC_SUCCESS, i - j + 1);
 
         i++;
     }
 
-    RETURN(SIM_RC_FAILURE, (size_t)-1);
+    RETURN(SIM_RC_NOT_FOUND, (size_t)-1);
 }
 
 // sim_string_replace(6): Replaces a substring within a string with another string.
@@ -428,7 +463,8 @@ size_t sim_string_replace(
     const char*       replace_string,
     const size_t      starting_index
 ) {
-    RETURN_IF(!replace_string, SIM_RC_ERR_NULLPTR, (size_t)-1);
+    if (!replace_string)
+        THROW(SIM_RC_ERR_NULLPTR);
 
     // string_find validates input and gives us an index to replace at
     size_t find_index = sim_string_find(
@@ -442,16 +478,22 @@ size_t sim_string_replace(
 
     // remove find_string from string_ptr
     sim_string_remove(string_ptr, find_index, find_string_length);
-
-    printf("Remove success - \"%s\"\n", string_ptr->c_string);
-
+    
     // insert if possible
     if (!sim_string_insert(string_ptr, replace_string_length, replace_string, find_index))
         return (size_t)-1;
 
-    printf("Insert success\n");
-
     return find_index;
+}
+
+// sim_string_get_default_hash_proc(0): Retrieves the string hash function.
+Sim_HashProc sim_string_get_default_hash_proc(void) {
+    return _sim_string_hash_proc;
+}
+
+// sim_string_set_default_hash_proc(1): Sets the string hash funciton.
+void sim_string_set_default_hash_proc(Sim_HashProc hash_proc) {
+    _sim_string_hash_proc = hash_proc ? hash_proc : (Sim_HashProc)_sim_string_default_hash;
 }
 
 #endif /* SIMSOFT_STRING_C_ */

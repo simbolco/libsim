@@ -30,10 +30,23 @@ CPP_NAMESPACE_START(SimSoft)
          * @brief Basic string type
          * 
          * @tparam _allocator_ptr Pointer to allocator used when allocating large strings.
-         * @tparam _hash_proc     Function pointer for the hash function for this string to use.
          * 
-         * @property c_string Pointer to the array containing the string.
-         * @property length   The number of chars in the string.
+         * @var Sim_String::c_string
+         *     Pointer to the array containing the string.
+         * @var Sim_String::length
+         *     The number of chars in the string.
+         * @var Sim_String::_allocated @private
+         *     The amount of space allocated when using a large string.
+         * @var Sim_String::_internal_data @private
+         *     Internal char array for short strings.
+         * @var Sim_String::_is_large_string @private
+         *     Flag for whether or not this is a large or short string.
+         * @var Sim_String::_hash1 @private
+         *     Cached hash1 value for the string.
+         * @var Sim_String::_hash2 @private
+         *     Cached hash2 value for the string.
+         * @var Sim_String::_hash_dirty @private
+         *     Flag saying whether or not the cached hash values are invalid.
          */
         typedef struct Sim_String {
             char*  c_string;
@@ -51,7 +64,6 @@ CPP_NAMESPACE_START(SimSoft)
             };
 
             const Sim_IAllocator *const _allocator_ptr;
-            Sim_HashProc _hash_proc;
 
             Sim_HashType _hash1;
             Sim_HashType _hash2;
@@ -59,14 +71,18 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_String;
 
         /**
-         * @fn void sim_string_construct(5)
-         * @relates Sim_String
+         * @fn void sim_string_construct(
+         *         Sim_String *const,
+         *         const Sim_IAllocator*,
+         *         size_t,
+         *         const char*
+         *     )
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Constructs a string.
          * 
          * @param[in,out] string_ptr      Pointer to an empty string to construct.
          * @param[in]     allocator_ptr   Pointer to an allocator to use for large strings.
-         * @param[in]     hash_proc       The hash function to use when hashing the string.
          * @param[in]     c_string_length The number of chars in @e c_string.
          * @param[in]     c_string        A C string.
          * 
@@ -77,7 +93,6 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @remarks If @e c_string is @c NULL or @e c_string_length equals 0, an empty string will
          *          be allocated.
-         * @remarks If @e hash_proc is @c NULL, sim_string_default_hash will be used.
          * 
          * @sa sim_string_construct_format
          * @sa sim_string_move
@@ -86,22 +101,27 @@ CPP_NAMESPACE_START(SimSoft)
         extern EXPORT void C_CALL sim_string_construct(
             Sim_String *const     string_ptr,
             const Sim_IAllocator* allocator_ptr,
-            Sim_HashProc          hash_proc,
             size_t                c_string_length,
             const char*           c_string
         );
 
         /**
-         * @fn void sim_string_construct_format(5+)
-         * @relates Sim_String
+         * @fn void sim_string_construct_format(
+         *         Sim_String *const,
+         *         const Sim_IAllocator*,
+         *         size_t,
+         *         const char*,
+         *         ...
+         *     )
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Constructs a string given a format string.
          * 
          * @param[in,out] string_ptr    Pointer to an empty string to construct.
          * @param[in]     allocator_ptr Pointer to an allocator to use for large strings.
-         * @param[in]     hash_proc     The hash function to use when hashing the string.
          * @param[in]     string_length The length of the string to be constructed.
          * @param[in]     format_string A format string.
+         * @param[in]     ...           Format string parameters.
          * 
          * @remarks sim_return_code() is set to one of the following:
          *     @b SIM_RC_ERR_NULLPTR  if @e string_ptr is @c NULL;
@@ -113,7 +133,6 @@ CPP_NAMESPACE_START(SimSoft)
          *          will be allocated based on how large the deformatted string is.
          * @remarks If @e format_string is @c NULL, an empty string will be
          *          allocated.
-         * @remarks If @e hash_proc is @c NULL, an internal function using SipHash will be used.
          * 
          * @sa sim_string_construct
          * @sa sim_string_move
@@ -122,15 +141,38 @@ CPP_NAMESPACE_START(SimSoft)
         extern EXPORT void C_CALL sim_string_construct_format(
             Sim_String *const     string_ptr,
             const Sim_IAllocator* allocator_ptr,
-            Sim_HashProc          hash_proc,
             size_t                string_length,
             const char*           format_string,
             ...
         );
 
         /**
-         * @fn void sim_string_move(2)
-         * @relates Sim_String
+         * @fn void sim_string_copy(Sim_String *const, Sim_String *const)
+         * @relates @capi{Sim_String}
+         * @headerfile string.h "simsoft/string.h"
+         * @brief Copies the contents of one string into another.
+         * 
+         * @param[in,out] string_from_ptr Pointer to a string to copy contents from.
+         * @param[in,out] string_to_ptr   Pointer to a string to paste contents into.
+         * 
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR  if @e string_from_ptr or @e string_to_ptr are @c NULL;
+         *     @b SIM_RC_ERR_OUTOFMEM if a copy of @e string_from_ptr's C string couldn't be
+         *                             allocated;
+         *     @b SIM_RC_SUCCESS      otherwise.
+         * 
+         * @sa sim_string_construct
+         * @sa sim_string_construct_format
+         * @sa sim_string_destroy
+         */
+        extern EXPORT void C_CALL sim_string_copy(
+            Sim_String *const string_from_ptr,
+            Sim_String *const string_to_ptr
+        );
+
+        /**
+         * @fn void sim_string_move(Sim_String *const, Sim_String *const)
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Moves the contents of one string to another.
          * 
@@ -138,8 +180,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in,out] string_to_ptr   Pointer to a string to move contents into.
          * 
          * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e string_from_ptr or @e string_to_ptr are @c NULL ;
-         *     @b SIM_RC_ERR_OUTOFMEM if the vector size requested couldn't be allocated;
+         *     @b SIM_RC_ERR_NULLPTR  if @e string_from_ptr or @e string_to_ptr are @c NULL;
          *     @b SIM_RC_SUCCESS      otherwise.
          * 
          * @sa sim_string_construct
@@ -152,8 +193,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_string_destroy(1)
-         * @relates Sim_String
+         * @fn void sim_string_destroy(Sim_String *const)
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Destroys a string.
          * 
@@ -172,8 +213,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_string_is_empty(1)
-         * @relates Sim_String
+         * @fn void sim_string_is_empty(Sim_String *const)
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Checks if a vector is empty.
          * 
@@ -190,8 +231,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn size_t sim_string_get_allocated(1)
-         * @relates Sim_String
+         * @fn size_t sim_string_get_allocated(Sim_String *const)
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Retrieves the number of bytes in memory that is allocated by the string.
          * 
@@ -208,8 +249,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn Sim_HashType sim_string_get_hash(2)
-         * @relates Sim_String
+         * @fn Sim_HashType sim_string_get_hash(Sim_String *const, const size_t)
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Retrieves the hash value of a string.
          * 
@@ -225,8 +266,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_string_insert(4)
-         * @relates Sim_String
+         * @fn bool sim_string_insert(Sim_String *const, const size_t, const char*, const size_t)
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Inserts a new string at a given position.
          * 
@@ -253,8 +294,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_string_append(3)
-         * @relates Sim_String
+         * @fn bool sim_string_append(Sim_String *const, const size_t, const char*)
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Appends a new string to the back of a string.
          * 
@@ -278,8 +319,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_string_remove(3)
-         * @relates Sim_String
+         * @fn void sim_string_remove(Sim_String *const, const size_t, const size_t)
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Removes a section of a string.
          * 
@@ -299,8 +340,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn size_t sim_string_find(4)
-         * @relates Sim_String
+         * @fn size_t sim_string_find(Sim_String *const, const size_t, const char*, const size_t)
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Finds a substring within a string.
          * 
@@ -314,7 +355,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @remarks sim_return_code() is set to one of the following:
          *     @b SIM_RC_ERR_NULLPTR  if @e string_ptr or @e substring are @c NULL;
          *     @b SIM_RC_ERR_OUTOFBND if @e starting_index >= @c string_ptr->length;
-         *     @b SIM_RC_FAILURE      if @e substring wasn't contained in @e string_ptr;
+         *     @b SIM_RC_NOT_FOUND    if @e substring wasn't contained in @e string_ptr;
          *     @b SIM_RC_SUCCESS      otherwise.
          */
         extern EXPORT size_t C_CALL sim_string_find(
@@ -325,8 +366,15 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn size_t sim_string_replace(6)
-         * @relates Sim_String
+         * @fn size_t sim_string_replace(
+         *         Sim_String *const,
+         *         const size_t,
+         *         const char*,
+         *         const size_t,
+         *         const char*,
+         *         const size_t
+         *     )
+         * @relates @capi{Sim_String}
          * @headerfile string.h "simsoft/string.h"
          * @brief Replaces a substring within a string with another string.
          * 
@@ -357,6 +405,26 @@ CPP_NAMESPACE_START(SimSoft)
             const char*       replace_string,
             const size_t      starting_index
         );
+
+        /**
+         * @fn Sim_HashProc sim_string_get_default_hash_proc(void)
+         * @relates @capi{Sim_String}
+         * @headerfile string.h "simsoft/string.h"
+         * @brief Retrieves the string hash function.
+         * 
+         * @returns The internal hash function used by strings.
+         */
+        extern EXPORT Sim_HashProc C_CALL sim_string_get_default_hash_proc(void);
+
+        /**
+         * @fn Sim_HashProc sim_string_set_default_hash_proc(Sim_HashProc)
+         * @relates @capi{Sim_String}
+         * @headerfile string.h "simsoft/string.h"
+         * @brief Sets the string hash function.
+         * 
+         * @param[in] hash_proc The hash function for strings to use; @c NULL for the default.
+         */
+        extern EXPORT void C_CALL sim_string_set_default_hash_proc(Sim_HashProc hash_proc);
     
     CPP_NAMESPACE_C_API_END /* end C API */
 
