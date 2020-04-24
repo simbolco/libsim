@@ -18,6 +18,10 @@
 CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_START /* C API */
 
+        /**
+         * @def SIM_DEFAULT_VECTOR_SIZE
+         * 
+         */
 #       ifndef SIM_DEFAULT_VECTOR_SIZE
 #           define SIM_DEFAULT_VECTOR_SIZE 32
 #       endif
@@ -25,13 +29,17 @@ CPP_NAMESPACE_START(SimSoft)
         /**
          * @struct Sim_Vector
          * @headerfile vector.h "simsoft/vector.h"
-         * @brief Generic vector container / dynamically-sized array type
+         * @brief Generic dynamic array container type.
          * 
          * @tparam _item_size     How large the items contained in the vector are.
          * @tparam _allocator_ptr Pointer to allocator used when resizing internal array.
          * 
-         * @property count    The number of items contained in the vector.
-         * @property data_ptr Pointer to the internal array used by the vector.
+         * @var Sim_Vector::count
+         *     The number of items contained in the vector.
+         * @var Sim_Vector::data_ptr
+         *     Pointer to the internal array used by the vector.
+         * @var Sim_Vector::_allocated @private
+         *     The number of items allocated for the internal array.
          */
         typedef struct Sim_Vector {
             const size_t _item_size;
@@ -43,14 +51,19 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_Vector;
 
         /**
-         * @fn void sim_vector_construct(4)
-         * @relates Sim_Vector
+         * @fn void sim_vector_construct(
+         *         Sim_Vector *const,
+         *         const size_t,
+         *         const Sim_IAllocator*,
+         *         size_t
+         *     )
+         * @relates @capi{Sim_Vector}
          * @brief Constructs a new vector.
          * 
          * @param[in,out] vector_ptr    Pointer to a vector to construct.
          * @param[in]     item_size     Size of each item.
          * @param[in]     allocator_ptr Pointer to allocator to use when resizing internal array.
-         * @param[in]     initial_size  The initial allocated size of the newly created vector.
+         * @param[in]     initial_size  The initial size of the newly created vector.
          *
          * @remarks sim_return_code() is set to one of the following:
          *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr is @c NULL ;
@@ -60,15 +73,15 @@ CPP_NAMESPACE_START(SimSoft)
          * @sa sim_vector_destroy
          */
         extern EXPORT void C_CALL sim_vector_construct(
-            Sim_Vector*           vector_ptr,
+            Sim_Vector *const     vector_ptr,
             const size_t          item_size,
             const Sim_IAllocator* allocator_ptr,
             size_t                initial_size
         );
 
         /**
-         * @fn void sim_vector_destroy(1)
-         * @relates Sim_Vector
+         * @fn void sim_vector_destroy(Sim_Vector *const)
+         * @relates @capi{Sim_Vector}
          * @brief Destroys a vector.
          * 
          * @param[in] vector_ptr Pointer to vector to destroy.
@@ -84,8 +97,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
         
         /**
-         * @fn bool sim_vector_is_empty(1)
-         * @relates Sim_Vector
+         * @fn bool sim_vector_is_empty(Sim_Vector *const)
+         * @relates @capi{Sim_Vector}
          * @brief Checks if a vector is empty.
          * 
          * @param[in] vector_ptr Pointer to a vector to check.
@@ -101,8 +114,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_vector_clear(1)
-         * @relates Sim_Vector
+         * @fn void sim_vector_clear(Sim_Vector *const)
+         * @relates @capi{Sim_Vector}
          * @brief Clears a vector of all its contents.
          * 
          * @param[in,out] vector_ptr Pointer to vector to empty.
@@ -116,8 +129,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_vector_resize(2)
-         * @relates Sim_Vector
+         * @fn void sim_vector_resize(Sim_Vector *const, const size_t)
+         * @relates @capi{Sim_Vector}
          * @brief Resizes a vector to a given size.
          * 
          * @param[in,out] vector_ptr Pointer to a vector to resize.
@@ -135,8 +148,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_vector_get(3)
-         * @relates Sim_Vector
+         * @fn void sim_vector_get(Sim_Vector *const, const size_t, void*)
+         * @relates @capi{Sim_Vector}
          * @brief Get an item from a vector at a given index.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to index into.
@@ -155,8 +168,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void* sim_vector_get_ptr(2)
-         * @relates Sim_Vector
+         * @fn void* sim_vector_get_ptr(Sim_Vector *const, const size_t)
+         * @relates @capi{Sim_Vector}
          * @brief Get pointer to data in a vector at a given index.
          * 
          * @param[in,out] vector_ptr Pointer to vector to index into.
@@ -175,9 +188,14 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn size_t sim_vector_index_of(4)
-         * @relates Sim_Vector
-         * @brief Gets the index of the first item in a vector that tests equal to given data.
+         * @fn size_t sim_vector_find(
+         *         Sim_Vector *const,
+         *         const void *const,
+         *         Sim_PredicateProc,
+         *         const size_t
+         *     )
+         * @relates @capi{Sim_Vector}
+         * @brief Find the index of the first item in a vector that tests equal to given data.
          * 
          * @param[in,out] vector_ptr     Pointer to vector to search.
          * @param[in]     item_ptr       Pointer to item to compare against.
@@ -190,12 +208,12 @@ CPP_NAMESPACE_START(SimSoft)
          *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr, @e item_ptr, or @e predicate_proc
          *                            are @c NULL ;
          *     @b SIM_RC_ERR_OUTOFBND if @e starting_index >= @c vector_ptr->count ;
-         *     @b SIM_RC_ERR_NOTFOUND if no item in the vector is equivalent to @e item_ptr;
+         *     @b SIM_RC_NOT_FOUND    if no item in the vector is equivalent to @e item_ptr;
          *     @b SIM_RC_SUCCESS      otherwise.
          * 
          * @sa sim_vector_contains
          */
-        extern EXPORT size_t C_CALL sim_vector_index_of(
+        extern EXPORT size_t C_CALL sim_vector_find(
             Sim_Vector *const vector_ptr,
             const void *const item_ptr,
             Sim_PredicateProc predicate_proc,
@@ -203,8 +221,12 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_vector_contains(3)
-         * @relates Sim_Vector
+         * @fn bool sim_vector_contains(
+         *         Sim_Vector *const,
+         *         const void *const,
+         *         Sim_PredicateProc
+         *     )
+         * @relates @capi{Sim_Vector}
          * @brief Checks if an item is contained in the vector.
          * 
          * @param[in,out] vector_ptr     Pointer to vector to search.
@@ -216,12 +238,12 @@ CPP_NAMESPACE_START(SimSoft)
          *         @c true otherwise.
          * 
          * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e vector_ptr, @e item_ptr, or @e predicate_proc
-         *                            are @c NULL ;
-         *     @b SIM_RC_ERR_NOTFOUND if no item in the vector is equivalent to @e item_ptr;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         *     @b SIM_RC_ERR_NULLPTR if @e vector_ptr, @e item_ptr, or @e predicate_proc
+         *                           are @c NULL ;
+         *     @b SIM_RC_NOT_FOUND   if no item in the vector is equivalent to @e item_ptr;
+         *     @b SIM_RC_SUCCESS     otherwise.
          * 
-         * @sa sim_vector_index_of
+         * @sa sim_vector_find
          */
         extern EXPORT bool C_CALL sim_vector_contains(
             Sim_Vector *const vector_ptr,
@@ -230,8 +252,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_vector_push(2)
-         * @relates Sim_Vector
+         * @fn void sim_vector_push(Sim_Vector *const, const void*)
+         * @relates @capi{Sim_Vector}
          * @brief Push a new item to the back of a vector.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to push item into.
@@ -250,8 +272,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_vector_insert(3)
-         * @relates Sim_Vector
+         * @fn void sim_vector_insert(Sim_Vector *const, const void*, const size_t)
+         * @relates @capi{Sim_Vector}
          * @brief Insert a new item into a vector at a given index.
          * 
          * @param[in,out] vector_ptr   Pointer to the vector to insert item into.
@@ -273,8 +295,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_vector_pop(2)
-         * @relates Sim_Vector
+         * @fn void sim_vector_pop(Sim_Vector *const, void*)
+         * @relates @capi{Sim_Vector}
          * @brief Pops an item off the back of a vector.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to pop item from.
@@ -293,8 +315,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
         
         /**
-         * @fn void sim_vector_remove(3)
-         * @relates Sim_Vector
+         * @fn void sim_vector_remove(Sim_Vector *const, void*, const size_t)
+         * @relates @capi{Sim_Vector}
          * @brief Removes an item from the vector at a given index.
          * 
          * @param[in,out] vector_ptr   Pointer to vector to remove item from.
@@ -315,8 +337,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_vector_foreach(3)
-         * @relates Sim_Vector
+         * @fn bool sim_vector_foreach(Sim_Vector *const, Sim_ForEachProc, Sim_Variant)
+         * @relates @capi{Sim_Vector}
          * @brief Applies a given function to each item in the vector.
          * 
          * @param[in,out] vector_ptr   Pointer to vector whose items will be passed into the
@@ -338,8 +360,13 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_vector_extract(4)
-         * @relates Sim_Vector
+         * @fn void sim_vector_extract(
+         *         Sim_Vector *const,
+         *         Sim_FilterProc,
+         *         Sim_Variant,
+         *         Sim_Vector *const
+         *     )
+         * @relates @capi{Sim_Vector}
          * @brief Extracts items out of the vector based on a given function.
          * 
          * @param[in,out] vector_ptr      Pointer to vector whose items will be filtered through
@@ -367,8 +394,13 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_vector_select(4)
-         * @relates Sim_Vector
+         * @fn void sim_vector_select(
+         *         Sim_Vector *const,
+         *         Sim_FilterProc,
+         *         Sim_Variant,
+         *         Sim_Vector *const
+         *     )
+         * @relates @capi{Sim_Vector}
          * @brief Selects items from the vector based on a given function.
          * 
          * @param[in,out] vector_ptr      Pointer to vector whose items will be selected via
@@ -400,15 +432,21 @@ CPP_NAMESPACE_START(SimSoft)
 #   ifdef __cplusplus /* C++ API */
 #       include "./exception.hpp"
 
+        /**
+         * @class SimSoft::Vector
+         * @brief Generic dynamic array container class.
+         * 
+         * @tparam T      The type being stored in this vector.
+         * @tparam _Pred  Predicate used to check for equality.
+         * @tparam _Alloc Allocator for internal array.
+         */
         template <
             class T,
             class _Pred = Predicate_Equal<T>,
             class _Alloc = Allocator
         >
-        class Vector {
+        class Vector : private C_API::Sim_Vector {
         private:
-            C_API::Sim_Vector _c_vector;
-
             template <bool Reversed>
             class Iterator {
             private:
@@ -430,49 +468,107 @@ CPP_NAMESPACE_START(SimSoft)
                 return _Pred(*item1, *item2);
             }
 
+            static C_API::Sim_Vector* _get_c_vector() {
+                return (C_API::Sim_Vector*)((uint8*)this) + offsetof(Vector<T>, _item_size);
+            }
+
         public:
+            /**
+             * @typedef SimSoft::Vector::value_type
+             * @brief The type being stored in this Vector.
+             */
             typedef T value_type;
+            /**
+             * @typedef SimSoft::Vector::reference
+             * @brief Reference to @e value_type.
+             */
             typedef T& reference;
+            /**
+             * @typedef SimSoft::Vector::const_reference
+             * @brief Const reference to @e value_type.
+             */
             typedef const T& const_reference;
+            /**
+             * @typedef SimSoft::Vector::pointer
+             * @brief Pointer to @e value_type.
+             */
             typedef T* pointer;
+            /**
+             * @typedef SimSoft::Vector::const_pointer
+             * @brief Const pointer to @e value_type.
+             */
             typedef const T* const_pointer;
+            /**
+             * @typedef SimSoft::Vector::pointer_const
+             * @brief Pointer const to @e value_type.
+             */
             typedef T *const pointer_const;
+            /**
+             * @typedef SimSoft::Vector::const_pointer_const
+             * @brief Const pointer const to @e value_type.
+             */
             typedef const T *const const_pointer_const;
 
+            /**
+             * @typedef SimSoft::Vector::allocator
+             * @brief The allocator type used by this vector.
+             */
             typedef _Alloc allocator;
 
+            /**
+             * @typedef SimSoft::Vector::iterator
+             * @brief Vector forward iterator type.
+             */
             typedef Iterator<false> iterator;
+            /**
+             * @typedef SimSoft::Vector::reverse_iterator
+             * @brief Vector reverse iterator type.
+             */
             typedef Iterator<true>  reverse_iterator;
+            /**
+             * @typedef SimSoft::Vector::const_iterator
+             * @brief Vector const forward iterator type.
+             */
             typedef ConstIterator<false> const_iterator;
+            /**
+             * @typedef SimSoft::Vector::const_reverse_iterator
+             * @brief Vector const reverse iterator type.
+             */
             typedef ConstIterator<true>  const_reverse_iterator;
 
-            constexpr size_t DEFAULT_SIZE = SIM_DEFAULT_VECTOR_SIZE;
+            /**
+             * @var SimSoft::Vector::DEFAULT_SIZE
+             * @brief The default size used when intializing a new vector.
+             */
+            constexpr static size_t DEFAULT_SIZE = SIM_DEFAULT_VECTOR_SIZE;
 
-            enum DataType {
-                OTHER    = C_API::Sim_DataType::SIM_DATATYPE_OTHER,
-                INTEGRAL = C_API::Sim_DataType::SIM_DATATYPE_INTEGRAL,
-                UNSIGNED = C_API::Sim_DataType::SIM_DATATYPE_UNSIGNED,
-                FLOAT    = C_API::Sim_DataType::SIM_DATATYPE_FLOAT
-            };
-
+            /**
+             * @fn SimSoft::Vector::Vector(size_t)
+             * @brief Constructs a new Vector object.
+             * 
+             * @param[in] initial_size @b Optional: The initial size of the newly created Vector.
+             *                         Defaults to @e Vector::DEFAULT_SIZE.
+             * 
+             * @throws Exception If the @e initial_size requested couldn't be allocated.
+             */
             Vector(size_t initial_size = DEFAULT_SIZE) throws Exception {
-                ReturnCode rc;
-                
-                if ((rc = (ReturnCode)sim_vector_initialize(
-                    &_c_vector,
-                    sizeof(T),
-                    DataType::OTHER,
+                C_API::sim_vector_construct(
+                    _get_c_vector(),
+                    sizeof(value_type),
+                    allocator::get_c_allocator(),
                     initial_size
-                )))
-                    throw Exception(rc);
+                );
+                ReturnCode rc == (ReturnCode)C_API::sim_return_code();
+                if (rc > ReturnCode::FAILURE)
+                    throw Exception();
             }
 
             ~Vector() {
-                sim_vector_destroy(&_c_vector);
+                sim_vector_destroy(_get_c_vector());
             }
 
             void clear() {
-                sim_vector_clear(&_c_vector);
+                sim_vector_clear(_get_c_vector());
             }
 
             void resize(size_t new_size) throws Exception {
@@ -586,11 +682,11 @@ CPP_NAMESPACE_START(SimSoft)
                 return temp;
             }
 
-            size_t index_of(const T& item, size_t starting_index = 0) throws Exception {
+            size_t find(const T& item, size_t starting_index = 0) throws Exception {
                 ReturnCode rc;
                 size_t index;
 
-                if ((rc = (ReturnCode)sim_vector_index_of(
+                if ((rc = (ReturnCode)sim_vector_find(
                     &_c_vector,
                     &item,
                     ::_predicate_helper,
@@ -601,11 +697,11 @@ CPP_NAMESPACE_START(SimSoft)
                 
                 return index;
             }
-            size_t index_of(T&& item, size_t starting_index = 0) throws Exception {
+            size_t find(T&& item, size_t starting_index = 0) throws Exception {
                 ReturnCode rc;
                 size_t index;
 
-                if ((rc = (ReturnCode)sim_vector_index_of(
+                if ((rc = (ReturnCode)sim_vector_find(
                     &_c_vector,
                     &item,
                     ::_predicate_helper,
