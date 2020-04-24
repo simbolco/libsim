@@ -10,8 +10,11 @@ The _**Sim**on Bolivar & Company **Soft**ware **Library**_ is (intended to be) a
 The library's base implementation is written in C11 [to provide a fun challenge for everyone **:^)** ].
 
 # Table of Contents
+- [The SimSoft Library](#the-simsoft-library)
+- [Table of Contents](#table-of-contents)
 - [Project Goals](#project-goals)
 - [Building](#building)
+- [Documentation](#documentation)
 - [Contributing](#contributing)
   - [Style Guide](#style-guide)
   - [Code of Conduct](#code-of-conduct)
@@ -34,6 +37,15 @@ Install *gcc* (or *clang*) and *GNU make*, then type `make libsim` into a Bourne
 A unit test executable can be built by typing `make exesimtest` into the shell.
 
 Various options exist to customize how the SimSoft library and associated build targets are constructed. Details on what options and other build targets are available can be found by typing `make help` into the shell.
+
+# Documentation
+Documentation is available through the use of Doxygen. Three files are available to be used to generate documentation:
+
+- `c.doxyfile` - Generates C-style documentation for the C API.
+- `cpp.doxyfile` - Generates C++-style documentation for the C and C++ APIs.
+- `Doxyfile` - The default; contents are equivalent to `cpp.doxyfile`.
+
+To generate documentation, run `doxygen` (or `doxygen <doxyfile>` on one of the files listed above).
 
 # Contributing
 Anybody that wishes to contribute to the development of the SimSoft library must follow the SimSoft style guide and the Code of Conduct.
