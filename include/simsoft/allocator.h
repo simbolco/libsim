@@ -20,7 +20,6 @@ CPP_NAMESPACE_START(SimSoft)
         /**
          * @typedef Sim_MemAllocProc
          * @headerfile allocator.h "simsoft/allocator.h"
-         * @relates Sim_IAllocator
          * @brief Function pointer for dynamic memory allocation.
          * 
          * @param[in] size How much memory to allocate.
@@ -38,7 +37,6 @@ CPP_NAMESPACE_START(SimSoft)
         /**
          * @typedef Sim_MemFilledAllocProc
          * @headerfile allocator.h "simsoft/allocator.h"
-         * @relates Sim_IAllocator
          * @brief Function pointer for filled dynamic memory allocation.
          * 
          * @param[in] size How much memory to allocate.
@@ -58,7 +56,6 @@ CPP_NAMESPACE_START(SimSoft)
         /**
          * @typedef Sim_MemReallocProc
          * @headerfile allocator.h "simsoft/allocator.h"
-         * @relates Sim_IAllocator
          * @brief Function pointer for dynamic memory reallocation.
          * 
          * @param[in] ptr  Pointer to malloc'd/falloc'd memory to reallocate.
@@ -78,7 +75,6 @@ CPP_NAMESPACE_START(SimSoft)
         /**
          * @typedef Sim_MemFreeProc
          * @headerfile allocator.h "simsoft/allocator.h"
-         * @relates Sim_IAllocator
          * @brief Function pointer for freeing dynamically allocated memory.
          * 
          * @param[in] ptr Pointer to malloc'd/falloc'd/realloc'd memory to free.
@@ -97,10 +93,14 @@ CPP_NAMESPACE_START(SimSoft)
          * @headerfile allocator.h "simsoft/allocator.h"
          * @brief Interface for a memory allocator.
          * 
-         * @var malloc  Memory allocation function.
-         * @var falloc  Filled memory allocation function.
-         * @var realloc Memory reallocation function.
-         * @var free    Allocated memory free function.
+         * @var Sim_IAllocator::malloc
+         *     Memory allocation function.
+         * @var Sim_IAllocator::falloc
+         *     Filled memory allocation function.
+         * @var Sim_IAllocator::realloc
+         *     Memory reallocation function.
+         * @var Sim_IAllocator::free
+         *     Allocated memory free function.
          */
         typedef struct Sim_IAllocator {
             Sim_MemAllocProc       malloc;
@@ -110,8 +110,8 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_IAllocator;
 
         /**
-         * @fn void* sim_allocator_default_malloc(1)
-         * @relates Sim_IAllocator
+         * @fn void* sim_allocator_default_malloc(size_t)
+         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief The default memory allocation function used by the default allocator.
          * 
          * @param[in] size How much memory to allocate.
@@ -127,8 +127,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void* sim_allocator_default_falloc(2)
-         * @relates Sim_IAllocator
+         * @fn void* sim_allocator_default_falloc(size_t, uint8)
+         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief The default filled memory allocation function used by the default allocator.
          * 
          * @param[in] size How much memory to allocate.
@@ -146,8 +146,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void* sim_allocator_default_realloc(2)
-         * @relates Sim_IAllocator
+         * @fn void* sim_allocator_default_realloc(void*, size_t)
+         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief The default memory reallocation function used by the default allocator.
          * 
          * @param[in] ptr  Pointer to malloc'd/falloc'd memory to reallocate.
@@ -160,13 +160,13 @@ CPP_NAMESPACE_START(SimSoft)
          * @sa sim_allocator_default_free
          */
         extern EXPORT void* C_CALL sim_allocator_default_realloc(
-            void* ptr,
+            void*  ptr,
             size_t size
         );
 
         /**
-         * @fn void sim_allocator_default_free(1)
-         * @relates Sim_IAllocator
+         * @fn void sim_allocator_default_free(void*)
+         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief The default memory free function used by the default allocator.
          * 
          * @param[in] ptr Pointer to malloc'd/falloc'd/realloc'd memory to free.
@@ -180,8 +180,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn const Sim_IAllocator *const sim_allocator_get_default(0)
-         * @relates Sim_IAllocator
+         * @fn const Sim_IAllocator *const sim_allocator_get_default(void)
+         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief Retrieve the default allocator.
          * 
          * @return Pointer to the default allocator.
@@ -191,8 +191,8 @@ CPP_NAMESPACE_START(SimSoft)
         extern EXPORT const Sim_IAllocator *const C_CALL sim_allocator_get_default(void);
         
         /**
-         * @fn sim_allocator_set_default(1)
-         * @relates Sim_IAllocator
+         * @fn void sim_allocator_set_default(Sim_IAllocator *const)
+         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief Set the default allocator.
          * 
          * @param[in] allocator Pointer to an allocator to use as the default or @c NULL to

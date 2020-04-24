@@ -12,6 +12,8 @@
 #ifndef SIMSOFT_ALLOCATOR_C_
 #define SIMSOFT_ALLOCATOR_C_
 
+#include <string.h>
+
 #include "simsoft/allocator.h"
 
 static const Sim_IAllocator SIM_DEFAULT_ALLOCATOR = {
