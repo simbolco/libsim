@@ -30,12 +30,21 @@ CPP_NAMESPACE_START(SimSoft)
          * @tparam _item_properties Properties pertaining to the items stored in the hashset.
          * @tparam _allocator_ptr   Pointer to allocator used to allocate buckets/nodes.
          * 
-         * @property count    The number of items contained in the hashset.
-         * @property data_ptr Pointer to the internal hash table used by the hashset.
+         * @var Sim_HashSet::count
+         *     The number of items contained in the hashset.
+         * @var Sim_HashSet::data_ptr
+         *     Pointer to the internal hash table used by the hashset.
+         * @var Sim_HashSet::_initial_size @private
+         *     The starting size of the hash table used by the hashset.
+         * @var Sim_HashSet::_base_size @private
+         *     The base size passed into the hashset's constructor.
+         * @var Sim_HashSet::_allocated @private
+         *     The amount of allocated buckets in the hash table used by the hashset.
          */
         typedef struct Sim_HashSet {
             const struct {
                 size_t size;                      // Item size
+
                 Sim_HashProc hash_proc;           // Pointer to hash function
                 Sim_PredicateProc predicate_proc; // Pointer to predicate function
             } _item_properties; // properties of hashset items
@@ -49,8 +58,15 @@ CPP_NAMESPACE_START(SimSoft)
         } Sim_HashSet;
 
         /**
-         * @fn void sim_hashset_construct(6)
-         * @relates Sim_HashSet
+         * @fn void sim_hashset_construct(
+         *         Sim_HashSet *const,
+         *         const size_t,
+         *         Sim_HashProc,
+         *         Sim_PredicateProc,
+         *         const Sim_IAllocator*,
+         *         const size_t
+         *     )
+         * @relates @capi{Sim_HashSet}
          * @brief Constructs a new hashset.
          * 
          * @param[in,out] hashset_ptr         Pointer to a hashset to construct.
@@ -70,7 +86,7 @@ CPP_NAMESPACE_START(SimSoft)
          * @sa sim_hashset_destroy
          */
         extern EXPORT void C_CALL sim_hashset_construct(
-            Sim_HashSet*          hashset_ptr,
+            Sim_HashSet *const    hashset_ptr,
             const size_t          item_size,
             Sim_HashProc          item_hash_proc,
             Sim_PredicateProc     item_predicate_proc,
@@ -79,8 +95,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_hashset_destroy(1)
-         * @relates Sim_HashSet
+         * @fn void sim_hashset_destroy(Sim_HashSet *const)
+         * @relates @capi{Sim_HashSet}
          * @brief Destroys a hashset.
          * 
          * @param[in,out] hashset_ptr Pointer to a hashset to destroy.
@@ -92,24 +108,29 @@ CPP_NAMESPACE_START(SimSoft)
          * @sa sim_hashset_construct
          */
         extern EXPORT void C_CALL sim_hashset_destroy(
-            Sim_HashSet* hashset_ptr
+            Sim_HashSet *const hashset_ptr
         );
 
         /**
-         * @def bool sim_hashset_is_empty(1)
-         * @relates Sim_HashSet
+         * @fn bool sim_hashset_is_empty(Sim_HashSet *const)
+         * @relates @capi{Sim_HashSet}
          * @brief Checks if a hashset is empty.
          * 
          * @param[in] hashset_ptr Pointer to a hashset to check.
          * 
          * @return @c true if the hashset is empty; @c false otherwise.
+         * 
+         * @remarks sim_return_code() is set to one of the following:
+         *     @b SIM_RC_ERR_NULLPTR if @e hashset_ptr is @c NULL;
+         *     @b SIM_RC_SUCCESS otherwise.
          */
-#       define sim_hashset_is_empty(hashset_ptr) \
-            ((hashset_ptr)->count == 0)
+        extern EXPORT bool C_CALL sim_hashset_is_empty(
+            Sim_HashSet *const hashset_ptr
+        );
         
         /**
-         * @fn void sim_hashset_clear(1)
-         * @relates Sim_HashSet
+         * @fn void sim_hashset_clear(Sim_HashSet *const)
+         * @relates @capi{Sim_HashSet}
          * @brief Clears a hashset of all its contents.
          * 
          * @param[in,out] hashset_ptr Pointer to hashset to empty.
@@ -123,8 +144,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
         
         /**
-         * @fn bool sim_hashset_contains(2)
-         * @relates Sim_HashSet
+         * @fn bool sim_hashset_contains(Sim_HashSet *const, const void *const)
+         * @relates @capi{Sim_HashSet}
          * @brief Checks if an item is contained in a hashset.
          * 
          * @param[in,out] hashset_ptr Pointer to hashset to search.
@@ -134,9 +155,9 @@ CPP_NAMESPACE_START(SimSoft)
          *         @c true otherwise.
          * 
          * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e item_ptr are @c NULL ;
-         *     @b SIM_RC_ERR_NOTFOUND if @e item_ptr isn't contained in the hashset;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         *     @b SIM_RC_ERR_NULLPTR if @e hashset_ptr or @e item_ptr are @c NULL ;
+         *     @b SIM_RC_NOT_FOUND   if @e item_ptr isn't contained in the hashset;
+         *     @b SIM_RC_SUCCESS     otherwise.
          */
         extern EXPORT bool C_CALL sim_hashset_contains(
             Sim_HashSet *const hashset_ptr,
@@ -144,8 +165,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_hashset_resize(2)
-         * @relates Sim_HashSet
+         * @fn void sim_hashset_resize(Sim_HashSet *const, const size_t)
+         * @relates @capi{Sim_HashSet}
          * @brief Resizes a hashset to a given size.
          * 
          * @param[in,out] hashset_ptr Pointer to a hashset to resize.
@@ -163,8 +184,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_hashset_insert(2)
-         * @relates Sim_HashSet
+         * @fn void sim_hashset_insert(Sim_HashSet *const, const void*)
+         * @relates @capi{Sim_HashSet}
          * @brief Adds an item into a hashset.
          * 
          * @param[in,out] hashset_ptr  Pointer to a hashset to insert into.
@@ -182,8 +203,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn void sim_hashset_remove(2)
-         * @relates Sim_HashSet
+         * @fn void sim_hashset_remove(Sim_HashSet *const, const void *const)
+         * @relates @capi{Sim_HashSet}
          * @brief Removes an item from a hashset.
          * 
          * @param[in,out] hashset_ptr     Pointer to a hashset to remove from.
@@ -193,7 +214,7 @@ CPP_NAMESPACE_START(SimSoft)
          *     @b SIM_RC_ERR_NULLPTR  if @e hashset_ptr or @e remove_item_ptr are @c NULL ;
          *     @b SIM_RC_ERR_OUTOFMEM if the hashset had to resize to save space and was
          *                            unable to;
-         *     @b SIM_RC_ERR_NOTFOUND if *remove_item_ptr was not contained in the hashset;
+         *     @b SIM_RC_FAILURE     if @c *remove_item_ptr was not contained in the hashset;
          *     @b SIM_RC_SUCCESS      otherwise.
          */
         extern EXPORT void C_CALL sim_hashset_remove(
@@ -202,8 +223,8 @@ CPP_NAMESPACE_START(SimSoft)
         );
 
         /**
-         * @fn bool sim_hashset_foreach(3)
-         * @relates Sim_HashSet
+         * @fn bool sim_hashset_foreach(Sim_HashSet *const, Sim_ConstForEachProc, Sim_Variant)
+         * @relates @capi{Sim_HashSet}
          * @brief Applies a given function to each item in the hashset.
          * 
          * @param[in,out] hashset_ptr  Pointer to a hashset whose items will be iterated over.

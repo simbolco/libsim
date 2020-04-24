@@ -23,6 +23,11 @@ typedef union _Sim_HashPtr {
     Sim_HashSet *const hashset_ptr;
 } _Sim_HashPtr;
 
+typedef union _Sim_HashForEachProc {
+    Sim_ConstForEachProc set_foreach_proc;
+    Sim_MapForEachProc   map_foreach_proc;
+} _Sim_HashForEachProc;
+
 // == INTERNAL IMPLEMENTATION FUNCTIONS ===========================================================
 
 // Creates a new hash table node.
@@ -64,8 +69,11 @@ static void _sim_hash_construct(
     const size_t          initial_size
 ) {
     // check for nullptr
-    RETURN_IF(!hash_ptr.hashmap_ptr || !key_predicate_proc, SIM_RC_ERR_NULLPTR,);
-
+    if (!hash_ptr.hashmap_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!key_predicate_proc)
+        THROW(SIM_RC_ERR_NULLPTR);
+        
     allocator_ptr = allocator_ptr ? allocator_ptr : sim_allocator_get_default();
 
     // allocate buckets
@@ -76,8 +84,9 @@ static void _sim_hash_construct(
         (sizeof *data_ptr) * starting_size,
         0
     );
-    RETURN_IF(!data_ptr, SIM_RC_ERR_OUTOFMEM,);
-
+    if (!data_ptr)
+        THROW(SIM_RC_ERR_OUTOFMEM);
+        
     Sim_HashMap hashmap = {
         ._key_properties = {
             .size = key_size,
@@ -113,8 +122,9 @@ static void _sim_hash_clear(
 ) {
     Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
-    RETURN_IF(!hashmap_ptr, SIM_RC_ERR_NULLPTR,);
-
+    if (!hashmap_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+        
     // destroy hash table nodes
     void** item_ptr = hashmap_ptr->data_ptr;
     for (size_t i = 0; i < hashmap_ptr->_allocated; i++)
@@ -135,7 +145,10 @@ static void _sim_hash_destroy(
     _Sim_HashPtr hash_ptr
 ) {
     _sim_hash_clear(hash_ptr);
-    RETURN_IF(_SIM_RETURN_CODE, _SIM_RETURN_CODE,);
+    
+    THROW(sim_get_return_code());
+    if (sim_get_return_code() > 0)
+        RETURN(sim_get_return_code(),);
     
     Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
@@ -215,8 +228,9 @@ static void _sim_hash_resize(
             (sizeof *new_data_ptr) * new_size,
             0
         );
-        RETURN_IF(!new_data_ptr, SIM_RC_ERR_OUTOFMEM,);
-
+        if (!new_data_ptr)
+            THROW(SIM_RC_ERR_OUTOFMEM);
+        
         // re-hash old data and move them into new hash table
         uint8** hash_data_ptr = hashmap_ptr->data_ptr;
         for (size_t i = 0; i < hashmap_ptr->_allocated; i++) {
@@ -259,7 +273,9 @@ void _sim_hash_insert(
     const size_t load = hashmap_ptr->count * 100 / hashmap_ptr->_allocated;
     if (load > 70) {
         _sim_hash_resize(hash_ptr, hashmap_ptr->_base_size * 2);
-        RETURN_IF(_SIM_RETURN_CODE, _SIM_RETURN_CODE,);
+        THROW(sim_get_return_code());
+        if (sim_get_return_code() > 0)
+            RETURN(sim_get_return_code(),);
     }
 
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr,
@@ -284,7 +300,8 @@ void _sim_hash_insert(
         ,
         hashmap_ptr->_allocator_ptr
     );
-    RETURN_IF(!node, SIM_RC_ERR_OUTOFMEM,);
+    if (!node)
+        THROW(SIM_RC_ERR_OUTOFMEM);
     
     data_ptr[index] = node;
     hashmap_ptr->count++;
@@ -302,7 +319,10 @@ static void _sim_hash_remove(
     const size_t load = hashmap_ptr->count * 100 / hashmap_ptr->_allocated;
     if (load < 10) {
         _sim_hash_resize(hash_ptr, hashmap_ptr->_base_size * 2);
-        RETURN_IF(_SIM_RETURN_CODE, _SIM_RETURN_CODE,);
+        
+        THROW(sim_get_return_code());
+        if (sim_get_return_code() > 0)
+            RETURN(sim_get_return_code(),);
     }
 
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr, 
@@ -319,7 +339,7 @@ static void _sim_hash_remove(
     );
     
     // failed to remove item; item not in hash table
-    RETURN(SIM_RC_ERR_NOTFOUND,);
+    RETURN(SIM_RC_FAILURE,);
 }
 
 // Checks if an item/key is contained in a hash table.
@@ -330,48 +350,65 @@ static bool _sim_hash_contains(
     Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
     // check for nullptrs
-    RETURN_IF(!hashmap_ptr || !key_ptr, SIM_RC_ERR_NULLPTR,false);
+    if (!hashmap_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!key_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
     
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr,
         RETURN(SIM_RC_SUCCESS, true);
     );
 
-    RETURN(SIM_RC_ERR_NOTFOUND, false);
+    RETURN(SIM_RC_NOT_FOUND, false);
 }
 
 // Apply a function for each item in hash table.
 static bool _sim_hash_foreach(
-    _Sim_HashPtr    hash_ptr,
-    const bool      is_hashmap,
-    Sim_ForEachProc foreach_proc,
-    Sim_Variant     userdata
+    _Sim_HashPtr         hash_ptr,
+    const bool           is_hashmap,
+    _Sim_HashForEachProc foreach_proc,
+    Sim_Variant          userdata
 ) {
     Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
     // check for nullptrs
-    RETURN_IF(!hashmap_ptr || !foreach_proc, SIM_RC_ERR_NULLPTR,false);
-
+    if (!hashmap_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!foreach_proc.set_foreach_proc)
+        THROW(SIM_RC_ERR_NULLPTR);
+    
     uint8** data_ptr = hashmap_ptr->data_ptr;
     size_t item_num = 0;
 
     // iterate through allocated
-    for (size_t i = 0; i < hashmap_ptr->_allocated; i++) {
-        // if the item exists...
-        if (data_ptr[i] && data_ptr[i] != (void*)1) {
-            if (!(*foreach_proc)(
-                (is_hashmap ?
-                    (void*)&((Sim_MapConstKeyValuePair){
-                        .key = data_ptr[i],
-                        .value = (uint8*)data_ptr[i] + hashmap_ptr->_value_size
-                    }) :
-                    data_ptr[i]
-                ),
-                item_num,
-                userdata
-            ))
-                RETURN(SIM_RC_SUCCESS, false);
-            
-            item_num++;
+    if (is_hashmap) {
+        for (size_t i = 0; i < hashmap_ptr->_allocated; i++) {
+            // if the item exists...
+            if (data_ptr[i] && data_ptr[i] != (void*)1) {
+                if (!foreach_proc.map_foreach_proc(
+                    data_ptr[i],
+                    (uint8*)data_ptr[i] + hashmap_ptr->_value_size,
+                    item_num,
+                    userdata
+                ))
+                    RETURN(SIM_RC_SUCCESS, false);
+                
+                item_num++;
+            }
+        }
+    } else {
+        for (size_t i = 0; i < hashmap_ptr->_allocated; i++) {
+            // if the item exists...
+            if (data_ptr[i] && data_ptr[i] != (void*)1) {
+                if (!foreach_proc.set_foreach_proc(
+                    data_ptr[i],
+                    item_num,
+                    userdata
+                ))
+                    RETURN(SIM_RC_SUCCESS, false);
+                
+                item_num++;
+            }
         }
     }
 
@@ -409,9 +446,18 @@ void sim_hashset_destroy(
     );
 }
 
+// sim_hashset_is_empty(1): Checks if the hashmap is empty.
+bool sim_hashset_is_empty(Sim_HashSet *const hashset_ptr) {
+    // check for nullptr
+    if (!hashset_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    
+    RETURN(SIM_RC_SUCCESS, hashset_ptr->count == 0);
+}
+
 // sim_hashset_clear(1): Clears a hashset of all its contents.
 void sim_hashset_clear(
-    Sim_HashSet* hashset_ptr
+    Sim_HashSet *const hashset_ptr
 ) {
     _sim_hash_clear(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr })
@@ -434,8 +480,10 @@ void sim_hashset_resize(
     Sim_HashSet *const hashset_ptr,
     const size_t       new_size
 ) {
-    RETURN_IF(!hashset_ptr, SIM_RC_ERR_NULLPTR,);
-    RETURN_IF(new_size < hashset_ptr->count, SIM_RC_ERR_INVALARG,);
+    if (!hashset_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (new_size < hashset_ptr->count)
+        THROW(SIM_RC_ERR_INVALARG);
     
     _sim_hash_resize(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
@@ -449,7 +497,10 @@ void sim_hashset_insert(
     const void*        new_item_ptr
 ) {
     // check for nullptrs
-    RETURN_IF(!hashset_ptr || !new_item_ptr, SIM_RC_ERR_NULLPTR,);
+    if (!hashset_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!new_item_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
     
     _sim_hash_insert(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
@@ -464,7 +515,10 @@ void sim_hashset_remove(
     const void *const  remove_item_ptr
 ) {
     // check for nullptr
-    RETURN_IF(!hashset_ptr || !remove_item_ptr, SIM_RC_ERR_NULLPTR,);
+    if (!hashset_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!remove_item_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
     
     _sim_hash_remove(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
@@ -481,7 +535,7 @@ bool sim_hashset_foreach(
     return _sim_hash_foreach(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
         false,
-        (Sim_ForEachProc)foreach_proc,
+        (_Sim_HashForEachProc){ .set_foreach_proc = foreach_proc },
         userdata
     );
 }
@@ -490,7 +544,7 @@ bool sim_hashset_foreach(
 
 // sim_hashmap_construct(7): Initializes a new hashmap.
 void sim_hashmap_construct(
-    Sim_HashMap*          hashmap_ptr,
+    Sim_HashMap *const    hashmap_ptr,
     const size_t          key_size,
     Sim_HashProc          key_hash_proc,
     Sim_PredicateProc     key_predicate_proc,
@@ -511,11 +565,20 @@ void sim_hashmap_construct(
 
 // sim_hashmap_destroy(1): Destroys an initilaized hashmap.
 void sim_hashmap_destroy(
-    Sim_HashMap* hashmap_ptr
+    Sim_HashMap *const hashmap_ptr
 ) {
     _sim_hash_destroy(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr })
     );
+}
+
+// sim_hashmap_is_empty(1): Checks if the hashmap is empty.
+bool sim_hashmap_is_empty(Sim_HashMap *const hashmap_ptr) {
+    // check for nullptr
+    if (!hashmap_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+
+    RETURN(SIM_RC_SUCCESS, hashmap_ptr->count == 0);
 }
 
 // sim_hashmap_contains_key(2): Checks if a key is contained in the hashmap.
@@ -534,9 +597,10 @@ void sim_hashmap_resize(
     Sim_HashMap *const hashmap_ptr,
     size_t new_size
 ) {
-    RETURN_IF(!hashmap_ptr, SIM_RC_ERR_NULLPTR,);
-
-    RETURN_IF(new_size < hashmap_ptr->count, SIM_RC_ERR_INVALARG,);
+    if (!hashmap_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (new_size < hashmap_ptr->count)
+        THROW(SIM_RC_ERR_INVALARG);
     
     _sim_hash_resize(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
@@ -549,13 +613,16 @@ void* sim_hashmap_get_ptr(
     Sim_HashMap *const hashmap_ptr,
     const void*        key_ptr
 ) {
-    RETURN_IF(!hashmap_ptr || !key_ptr, SIM_RC_ERR_NULLPTR, NULL);
-
+    if (!hashmap_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    else if (!key_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr,
         RETURN(SIM_RC_SUCCESS, current_node_ptr + hashmap_ptr->_key_properties.size);
     );
 
-    RETURN(SIM_RC_ERR_NOTFOUND, NULL);
+    RETURN(SIM_RC_NOT_FOUND, NULL);
 }
 
 // sim_hashmap_get(3): Get a value from a hashmap via a given key.
@@ -566,10 +633,14 @@ void sim_hashmap_get(
 ) {
     void* value_ptr;
 
-    RETURN_IF(!out_value_ptr, SIM_RC_ERR_NULLPTR,);
+    if (!out_value_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
 
     // use get_ptr to save on macro-expanded code >:^)
-    RETURN_IF(!(value_ptr = sim_hashmap_get_ptr(hashmap_ptr, key_ptr)), _SIM_RETURN_CODE,);
+    value_ptr = sim_hashmap_get_ptr(hashmap_ptr, key_ptr);
+    THROW(sim_get_return_code());
+    if (sim_get_return_code() > 0)
+        RETURN(sim_get_return_code(),);
     
     memcpy(
         out_value_ptr,
@@ -588,8 +659,13 @@ void sim_hashmap_insert(
     const void*        value_ptr
 ) {
     // check for nullptrs
-    RETURN_IF(!hashmap_ptr || !new_key_ptr || !value_ptr, SIM_RC_ERR_NULLPTR,);
-
+    if (!hashmap_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!new_key_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!value_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    
     _sim_hash_insert(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
         new_key_ptr,
@@ -603,7 +679,10 @@ void sim_hashmap_remove(
     const void *const remove_key_ptr
 ) {
     // check for nullptr
-    RETURN_IF(!hashmap_ptr || remove_key_ptr, SIM_RC_ERR_NULLPTR,);
+    if (!hashmap_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!remove_key_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
     
     _sim_hash_remove(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
@@ -620,7 +699,7 @@ bool sim_hashmap_foreach(
     return _sim_hash_foreach(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
         true,
-        (Sim_ForEachProc)foreach_proc,
+        (_Sim_HashForEachProc){ .map_foreach_proc = foreach_proc },
         userdata
     );
 }
