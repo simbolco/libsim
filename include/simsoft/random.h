@@ -18,11 +18,11 @@ CPP_NAMESPACE_START(SimSoft)
     CPP_NAMESPACE_C_API_START /* C API */
         
         /**
-         * @fn Sim_ReturnCode sim_random_bytes(2)
+         * @fn Sim_ReturnCode sim_random_bytes(size_t, void*)
          * @brief Fill a buffer with a random sequence of bytes.
          * 
-         * @param[in,out] buffer      Pointer to the buffer.
          * @param[in]     buffer_size The size of the buffer in bytes.
+         * @param[in,out] buffer      Pointer to the buffer.
          *
          * @remarks sim_return_code() is set to one of the folliwng:
          *     @b SIM_RC_ERR_NULLPTR if @e buffer is @c NULL ;
@@ -30,8 +30,8 @@ CPP_NAMESPACE_START(SimSoft)
          *     @b SIM_RC_SUCCESS     otherwise.
          */
         extern EXPORT void C_CALL sim_random_bytes(
-            void* buffer,
-            size_t buffer_size
+            size_t buffer_size,
+            void* buffer
         );
     
     CPP_NAMESPACE_C_API_END /* end C API */

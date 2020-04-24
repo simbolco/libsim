@@ -33,46 +33,42 @@
 
 // sim_random_bytes(2): Fill a buffer with a random sequence of bytes.
 void sim_random_bytes(
-    void* buffer_ptr,
-    size_t buffer_size
+    size_t buffer_size,
+    void* buffer_ptr
 ) {
-    RETURN_IF(!buffer_ptr, SIM_RC_ERR_NULLPTR,);
+    if (!buffer_ptr)
+        THROW(SIM_RC_ERR_NULLPTR);
 
 #   ifdef _WIN32
         // get library handle to Advapi32.dll
         if (!_SIM_WIN32_ADVAPI32_LIBHANDLE) {
-            RETURN_IF(
-                !(_SIM_WIN32_ADVAPI32_LIBHANDLE = sim_dynlib_load("Advapi32.dll")),
-                SIM_RC_ERR_UNSUPRTD,
-            );
+            if (!(_SIM_WIN32_ADVAPI32_LIBHANDLE = sim_dynlib_load("Advapi32.dll")))
+                THROW(SIM_RC_ERR_UNSUPRTD);
             
             // clean up library handle on exit
             atexit(_sim_win32_onexit_clean_advapi32);
         }
         
         // get function pointer if available
-        RETURN_IF(
+        if (
             !RtlGenRandom &&
             !(RtlGenRandom = sim_dynlib_find_symbol(
                 _SIM_WIN32_ADVAPI32_LIBHANDLE,
                 "SystemFunction036"
-            )),
-            SIM_RC_ERR_UNSUPRTD,
-        );
+            ))
+        )
+            THROW(SIM_RC_ERR_UNSUPRTD);
         
         // grab random bytes
-        RETURN_IF(!(*RtlGenRandom)(
-                buffer_ptr,
-                (ULONG)buffer_size
-            ),
-            SIM_RC_FAILURE,
-        );
+        if (!RtlGenRandom(buffer_ptr, (ULONG)buffer_size))
+            RETURN(SIM_RC_FAILURE,);
         
         RETURN(SIM_RC_SUCCESS,);
 #   elif defined(unix) || defined(__unix__) || defined(__unix)
         // open dev/random
         FILE* urandom_handle = fopen("/dev/urandom", "r");
-        RETURN_IF(!urandom_handle, SIM_RC_ERR_UNSUPRTD,);
+        if (!urandom_handle)
+            THROW(SIM_RC_ERR_UNSUPRTD);
         
         // read random bytes from dev/random
         if (fread(buffer_ptr, 1, buffer_size, urandom_handle) < buffer_size) {
@@ -86,7 +82,7 @@ void sim_random_bytes(
 #   else
 #       warning("sim_random_bytes(2) is unsupported")
         (void)buffer_ptr; (void)buffer_size;
-        RETURN(SIM_RC_ERR_UNSUPRTD,);
+        THROW(SIM_RC_ERR_UNSUPRTD);
 #   endif
 }
 
