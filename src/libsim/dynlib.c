@@ -24,8 +24,9 @@
 Sim_LibraryHandle sim_dynlib_load(
     const char* filename
 ) {
-    RETURN_IF(!filename, SIM_RC_ERR_NULLPTR, NULL);
-
+    if (!filename)
+        THROW(SIM_RC_ERR_NULLPTR);
+        
 #   ifdef _WIN32
         HMODULE library_handle = LoadLibraryA(filename);
         if (!library_handle) {
@@ -52,7 +53,7 @@ Sim_LibraryHandle sim_dynlib_load(
 #   else
 #       warning("sim_dynlib_load(2) is unsupported")
         (void)filename; (void)out_library_handle;
-        RETURN(SIM_RC_ERR_UNSUPRTD, NULL);
+        THROW(SIM_RC_ERR_UNSUPRTD);
 #   endif
 }
 
@@ -60,7 +61,8 @@ Sim_LibraryHandle sim_dynlib_load(
 void sim_dynlib_unload(
     Sim_LibraryHandle library_handle
 ) {
-    RETURN_IF(!library_handle, SIM_RC_ERR_NULLPTR,);
+    if (!library_handle)
+        THROW(SIM_RC_ERR_NULLPTR);
     
 #   ifdef _WIN32
         if (!FreeLibrary((HMODULE)library_handle)) {
@@ -84,7 +86,7 @@ void sim_dynlib_unload(
 #   else
 #       warning("sim_dynlib_unload(1) is unsupported")
         (void)library_handle;
-        RETURN(SIM_RC_ERR_UNSUPRTD,);
+        THROW(SIM_RC_ERR_UNSUPRTD);
 #   endif
 }
 
@@ -93,8 +95,11 @@ void* sim_dynlib_find_symbol(
     Sim_LibraryHandle library_handle,
     const char*       symbol_name
 ) {
-    RETURN_IF(!library_handle || !symbol_name, SIM_RC_ERR_NULLPTR, NULL);
-
+    if (!library_handle)
+        THROW(SIM_RC_ERR_NULLPTR);
+    if (!symbol_name)
+        THROW(SIM_RC_ERR_NULLPTR);
+    
 #   ifdef _WIN32
         void* symbol_value = (void*)GetProcAddress(
             (HMODULE)library_handle,
@@ -128,7 +133,7 @@ void* sim_dynlib_find_symbol(
 #   else
 #       warning("sim_dynlib_find_symbol(2) is unsupported")
         (void)library_handle; (void)symbol_name; (void)out_symbol_value;
-        RETURN(SIM_RC_ERR_UNSUPRTD, NULL); 
+        THROW(SIM_RC_ERR_UNSUPRTD);
 #   endif
 }
 
