@@ -12,7 +12,10 @@
 #ifndef SIMSOFT_DEBUG_C_
 #define SIMSOFT_DEBUG_C_
 
+#include <string.h>
+
 #include "simsoft/debug.h"
+
 #include "./_internal.h"
 
 #ifdef __WIN32__
@@ -21,40 +24,15 @@
 #   include <execinfo.h>
 #endif
 
-// sim_debug_get_return_code_string(1): Convert a return code to a human-readable string.
-const char* sim_debug_get_return_code_string(
-    Sim_ReturnCode return_code
-) {
-    static const char* RETURN_CODES[] = {
-        "Success",
-        "Failure",
-        "Null pointer error",
-        "Out of memory",
-        "Zero division error",
-        "Invalid argument",
-        "Out of bounds error",
-        "Unsupported operation",
-        "Item not found in container",
-        "Unimplemented operation"
-    };
-
-    return (
-        return_code < 0 ||
-        return_code >= (sizeof(RETURN_CODES)/sizeof(const char*))
-    ) ?
-        NULL :
-        RETURN_CODES[return_code]
-    ;
-}
-
 // sim_debug_get_backtrace_info(3): Retrieve stack backtrace information.
 size_t sim_debug_get_backtrace_info(
-    Sim_BacktraceInfo backtrace_array[],
     size_t            backtrace_size,
+    Sim_BacktraceInfo backtrace_array[],
     size_t            skip_frames
 ) {
     // check for nullptr
-    RETURN_IF(!backtrace_array, SIM_RC_ERR_NULLPTR, 0);
+    if (!backtrace_array) 
+        THROW(SIM_RC_ERR_NULLPTR);
 
 #   ifdef _WIN32
         // get process/thread handles
@@ -156,7 +134,7 @@ size_t sim_debug_get_backtrace_info(
                             free(backtrace_array[index].function_name);
                             backtrace_array[index].function_address = NULL;
                         }
-                        RETURN(SIM_RC_ERR_OUTOFMEM, index - 1);
+                        THROW(SIM_RC_ERR_OUTOFMEM);
                     }
                     
                     // get line/file info from address
@@ -176,7 +154,7 @@ size_t sim_debug_get_backtrace_info(
                                 free(backtrace_array[index].function_name);
                                 backtrace_array[index].function_address = NULL;
                             }
-                            RETURN(SIM_RC_ERR_OUTOFMEM, index - 1);
+                            THROW(SIM_RC_ERR_OUTOFMEM);
                         }
                     } else {
                         _sim_win32_print_last_error(
@@ -239,7 +217,7 @@ size_t sim_debug_get_backtrace_info(
                         backtrace_array[j].function_address = NULL;
                     }
                     
-                    RETURN(SIM_RC_ERR_OUTOFMEM, 0);
+                    THROW(SIM_RC_ERR_OUTOFMEM);
                 }
             } else
                 backtrace_array[i - skip_frames].function_name = NULL;
@@ -251,7 +229,7 @@ size_t sim_debug_get_backtrace_info(
 #   else
 #       warning("sim_get_backtrace_info(3) is unsupported")
         (void)backtrace_array; (void)backtrace_size; (void)skip_frames;
-        RETURN(SIM_RC_ERR_UNSUPRTD, 0);
+        THROW(SIM_RC_ERR_UNSUPRTD);
 #   endif
 }
 
