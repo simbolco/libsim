@@ -2,8 +2,8 @@
  * @file cmdlnopt.h
  * @author Simon Struthers (snstruthers@gmail.com)
  * @brief Header for command line option handling.
- * @version 0.1
- * @date 2020-03-16
+ * @version 0.2
+ * @date 2020-07-26
  * 
  * @copyright Copyright (c) 2020 LGPLv3
  * 
@@ -64,6 +64,13 @@ CPP_NAMESPACE_START(SimSoft)
             int *const              exit_code_out_ptr,
             Sim_Variant             userdata
         );
+
+        #define SIM_CMDLNOPT_ARGS                       \
+            Sim_CmdLnOptArgs *const args_state_ptr,     \
+            const char*             option_string,      \
+            const char*             argument_string,    \
+            int *const              exit_code_out_ptr,  \
+            Sim_Variant             userdata
 
         /**
          * @brief Structure defining a command line option handler.
