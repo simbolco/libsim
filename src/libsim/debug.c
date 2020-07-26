@@ -186,10 +186,8 @@ size_t sim_debug_get_backtrace_info(
         }
 
         // cleanup symbol handler
-        SymCleanup(process_handle);
-        if (!SymCleanup(process_handle)) {
+        if (!SymCleanup(process_handle))
             _sim_win32_print_last_error("SymCleanup(%p)", process_handle);
-        }
         
         return index;
 
