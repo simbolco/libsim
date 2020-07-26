@@ -13,6 +13,8 @@
 #define SIMSOFT_UNIX_MEMMGMT_C_
 
 #include "../_memmgmt.h"
+
+#include "<inttypes.h>"
 #include <sys/mman.h>
 
 static int _sim_unix_memmgmt_mem_access_flags_to_proti(Sim_MemoryAccess mem_access_flags) {
@@ -55,30 +57,37 @@ void* _sim_sys_memmgmt_map_file_ptr(
         switch (errno) {
         case EBADF:
         case ENODEV:
-            THROW(SIM_RC_ERR_BADFILE);
+            THROW(SIM_ERR_BADFILE, "(sim_memmgmt_map_file_ptr) Bad file handle");
 
         case EINVAL:
         case ENXIO:
         case EOVERFLOW:
         case EPERM:
-            THROW(SIM_RC_ERR_INVALARG;
+            THROW(SIM_ERR_INVALARG,
+                "(sim_memmgmt_map_file_ptr) Address, length, or offset not aligned to "
+                "page boundary"
+            );
 
         case ENOTSUP:
-            THROW(SIM_RC_ERR_UNSUPRTD);
+            THROW(SIM_ERR_UNSUPRTD,
+                "(sim_memmgmt_map_file_ptr) Not supported by this operating system"
+            );
 
         default:
-            RETURN(SIM_RC_FAILURE, (void*)-1);
+            return (void*)-1;
         }
     }
 
-    RETURN(SIM_RC_SUCCESS, mapped_address);
+    return mapped_address;
 }
 
-bool _sim_sys_memmgmt_unmap(void* mapped_address, size_t length) {
-    if (!munmap(mapped_address, length))
-        RETURN(SIM_RC_SUCCESS, true);
-    
-    THROW(SIM_RC_ERR_INVALARG);
+void _sim_sys_memmgmt_unmap(void* mapped_address, size_t length) {
+    if (munmap(mapped_address, length))
+        THROW(SIM_ERR_INVALARG,
+            "(sim_memmgmt_unmap) Invalid address/length combo: %p %" PRIu32,
+            mapped_address,
+            (uint32)length
+        );
 }
 
 bool _sim_sys_memmgmt_protect(
@@ -89,30 +98,40 @@ bool _sim_sys_memmgmt_protect(
     int protection = _sim_unix_memmgmt_mem_access_flags_to_proti(mem_access_flags);
 
     if (!mprotect(starting_address, length, protection))
-        RETURN(SIM_RC_SUCCESS, true);
+        return true;
 
     switch (errno) {
     case EACCES:
     case EINVAL:
     case ENOMEM:
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG,
+            "(sim_memmgmt_protect) Invalid address/length combo: %p %" PRIu32,
+            starting_address,
+            (uint32)length
+        );
     
     case ENOTSUP:
-        THROW(SIM_RC_ERR_UNSUPRTD);
+        THROW(SIM_ERR_UNSUPRTD,
+            "(sim_memmgmt_protect) Not supported by this operating system"
+        );
 
     default:
-        RETURN(SIM_RC_FAILURE, false);
+        return false;
     }
 }
 
 bool _sim_sys_memmgmt_sync(void* starting_address, size_t length) {
     if (!msync(starting_address, length, MS_ASYNC))
-        RETURN(SIM_RC_SUCCESS, true);
+        return true;
 
     switch (errno) {
     case EINVAL:
     case ENOMEM:
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG,
+            "(sim_memmgmt_sync) Invalid address/length combo: %p %" PRIu32,
+            starting_address,
+            (uint32)length
+        );
 
     default:
         RETURN(SIM_RC_FAILURE, false);
@@ -121,30 +140,39 @@ bool _sim_sys_memmgmt_sync(void* starting_address, size_t length) {
 
 bool _sim_sys_memmgmt_lock(void* starting_address, size_t length) {
     if (!mlock(starting_address, length))
-        RETURN(SIM_RC_SUCCESS, true);
+        return true;
 
     switch (errno) {
     case EINVAL:
     case ENOMEM:
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG,
+            "(sim_memmgmt_lock) Invalid address/length combo: %p %" PRIu32,
+            starting_address,
+            (uint32)length
+        );
 
     default:
-        RETURN(SIM_RC_FAILURE, false);
+        return false;
     }
 }
 
 bool _sim_sys_memmgmt_unlock(void* starting_address, size_t length) {
     if (!munlock(starting_address, length))
-        RETURN(SIM_RC_SUCCESS, true);
+        return true;
 
     switch (errno) {
     case EINVAL:
     case ENOMEM:
-        THROW(SIM_RC_ERR_INVALARG);
+        
+        THROW(SIM_ERR_INVALARG,
+            "(sim_memmgmt_unlock) Invalid address/length combo: %p %" PRIu32,
+            starting_address,
+            (uint32)length
+        );
 
     default:
-        RETURN(SIM_RC_FAILURE, false);
+        return false;
     }
 }
 
-#endif /* SIMSOFT_UNIX_MEMMGMT_C_ */
+#endif // SIMSOFT_UNIX_MEMMGMT_C_

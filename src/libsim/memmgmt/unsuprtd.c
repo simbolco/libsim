@@ -22,14 +22,16 @@ void* _sim_sys_memmgmt_map_file_ptr(
     Sim_MemoryAccess mem_access_flags
 ) {
 #   warning("sim_memmgmt_map_file_ptr(4) and sim_memmgmt_map_fixed_file_ptr(5) are unsupported")
-    (void)starting_address; (void)file_ptr; (void)length; (void)offset; (void)mem_access_flags;
-    THROW(SIM_RC_ERR_UNSUPRTD);
+    UNUSED(starting_address, file_ptr, length, offset, mem_access_flags)
+
+    THROW(SIM_ERR_UNSUPRTD, "(sim_memmgmt_map_file_ptr) Not supported by this operating system");
 }
 
-bool _sim_sys_memmgmt_unmap(void* mapped_address, size_t length) {
+void _sim_sys_memmgmt_unmap(void* mapped_address, size_t length) {
 #   warning("sim_memmgmt_unmap(2) is unsupported")
-    (void)mapped_address; (void)length;
-    THROW(SIM_RC_ERR_UNSUPRTD);
+    UNUSED(mapped_address, length)
+
+    THROW(SIM_ERR_UNSUPRTD, "(sim_memmgmt_unmap) Not supported by this operating system");
 }
 
 bool _sim_sys_memmgmt_protect(
@@ -38,26 +40,30 @@ bool _sim_sys_memmgmt_protect(
     Sim_MemoryAccess mem_access_flags
 ) {
 #   warning("sim_memmgmt_protect(3) is unsupported")
-    (void)starting_address; (void)length; (void)mem_access_flags;
-    THROW(SIM_RC_ERR_UNSUPRTD);
+    UNUSED(starting_address, length, mem_access_flags)
+
+    THROW(SIM_ERR_UNSUPRTD, "(sim_memmgmt_protect) Not supported by this operating system");
 }
 
 bool _sim_sys_memmgmt_sync(void* starting_address, size_t length) {
 #   warning("sim_memmgmt_sync(2) is unsupported")
-    (void)starting_address; (void)length;
-    THROW(SIM_RC_ERR_UNSUPRTD);
+    UNUSED(starting_address, length)
+
+    THROW(SIM_ERR_UNSUPRTD, "(sim_memmgmt_sync) Not supported by this operating system");
 }
 
 bool _sim_sys_memmgmt_lock(void* starting_address, size_t length) {
 #   warning("sim_memmgmt_lock(2) is unsupported")
-    (void)starting_address; (void)length;
-    THROW(SIM_RC_ERR_UNSUPRTD);
+    UNUSED(starting_address, length)
+
+    THROW(SIM_ERR_UNSUPRTD, "(sim_memmgmt_lock) Not supported by this operating system");
 }
 
 bool _sim_sys_memmgmt_unlock(void* starting_address, size_t length) {
 #   warning("sim_memmgmt_unlock(2) is unsupported")
-    (void)starting_address; (void)length;
-    THROW(SIM_RC_ERR_UNSUPRTD);
+    UNUSED(starting_address, length)
+
+    THROW(SIM_ERR_UNSUPRTD, "(sim_memmgmt_unlock) Not supported by this operating system");
 }
 
-#endif /* SIMSOFT_UNSUPRTD_MEMMGMT_C_ */
+#endif // SIMSOFT_UNSUPRTD_MEMMGMT_C_

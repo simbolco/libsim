@@ -7,6 +7,7 @@
  * 
  * @copyright Copyright (c) 2020 LGPLv3
  * 
+ * TODO: Do a better job discerning Windows errors for more specific exception handling. 
  */
 
 #ifndef SIMSOFT_WIN32_MEMMGMT_C_
@@ -51,6 +52,8 @@ static DWORD _sim_win32_mem_access_flags_to_dwfile(Sim_MemoryAccess mem_access_f
     return desired_access;
 }
 
+// == PROTECTED API ================================================================================
+
 void* _sim_sys_memmgmt_map_file_ptr(
     void*            starting_address,
     FILE*            file_ptr,
@@ -83,7 +86,7 @@ void* _sim_sys_memmgmt_map_file_ptr(
     // grab Win32 file handle & validate
     HANDLE file_handle = (HANDLE)_get_osfhandle(_fileno(file_ptr));
     if (file_handle == INVALID_HANDLE_VALUE)
-        THROW(SIM_RC_ERR_BADFILE);
+        THROW(SIM_ERR_BADFILE, "(sim_memmgmt_map_file_ptr) Bad file handle");
 
     // create the file mapping
     HANDLE file_mapping_handle = CreateFileMapping(
@@ -102,7 +105,7 @@ void* _sim_sys_memmgmt_map_file_ptr(
             max_size_high, max_size_low,
             NULL
         );
-        RETURN(SIM_RC_FAILURE, (void*)-1);
+        return (void*)-1;
     }
 
     void* mapped_address;
@@ -124,7 +127,7 @@ void* _sim_sys_memmgmt_map_file_ptr(
                 file_offset_high, file_offset_low,
                 (unsigned long long)length
             );
-            RETURN(SIM_RC_FAILURE, (void*)-1);
+            return (void*)-1;
         }
     } else /* fixed mappings */ {
         mapped_address = MapViewOfFileEx(
@@ -146,21 +149,20 @@ void* _sim_sys_memmgmt_map_file_ptr(
                 (unsigned long long)length,
                 starting_address
             );
-            RETURN(SIM_RC_FAILURE, (void*)-1);
+            return (void*)-1;
         }
     }
 
     return mapped_address;
 }
 
-bool _sim_sys_memmgmt_unmap(void* mapped_address, size_t length) {
+void _sim_sys_memmgmt_unmap(void* mapped_address, size_t length) {
     (void)length;
 
-    if (UnmapViewOfFile(mapped_address))
-        RETURN(SIM_RC_SUCCESS, true);
-    
-    _sim_win32_print_last_error("UnmapViewOfFile(%p)", mapped_address);
-    THROW(SIM_RC_ERR_INVALARG);
+    if (!UnmapViewOfFile(mapped_address)) {
+        _sim_win32_print_last_error("UnmapViewOfFile(%p)", mapped_address);
+        THROW(SIM_ERR_INVALARG, "(sim_memmgmt_unmap) Invalid address %p", mapped_address);
+    }
 }
 
 bool _sim_sys_memmgmt_protect(
@@ -170,8 +172,9 @@ bool _sim_sys_memmgmt_protect(
 ) {
     const DWORD protect = _sim_win32_mem_access_flags_to_dwpage(mem_access_flags);
     DWORD old_protect = 0;
+    
     if (VirtualProtect(starting_address, (SIZE_T)length, protect, &old_protect))
-        RETURN(SIM_RC_SUCCESS, true);
+        return true;
 
     _sim_win32_print_last_error(
         "VirtualProtect(%p, %llu, %ld, %p",
@@ -180,43 +183,47 @@ bool _sim_sys_memmgmt_protect(
         (long)protect,
         &old_protect
     );
-    THROW(SIM_RC_ERR_INVALARG);
+    return false;
+    //THROW(SIM_ERR_INVALARG, "(sim_memmgmt_protect) Invalid address %p", starting_address);
 }
 
 bool _sim_sys_memmgmt_sync(void* starting_address, size_t length) {
     if (FlushViewOfFile(starting_address, length))
-        RETURN(SIM_RC_SUCCESS, true);
+        return true;
 
     _sim_win32_print_last_error(
         "FlushViewOfFile(%p, %llu)",
         starting_address,
         (unsigned long long)length
     );
-    THROW(SIM_RC_ERR_INVALARG);
+    return false;
+    //THROW(SIM_ERR_INVALARG);
 }
 
 bool _sim_sys_memmgmt_lock(void* starting_address, size_t length) {
     if (VirtualLock(starting_address, length))
-        RETURN(SIM_RC_SUCCESS, true);
+        return true;
 
     _sim_win32_print_last_error(
         "VirtualLock(%p, %llu)",
         starting_address,
         (unsigned long long)length
     );
-    THROW(SIM_RC_ERR_INVALARG);
+    return false;
+    //THROW(SIM_ERR_INVALARG);
 }
 
 bool _sim_sys_memmgmt_unlock(void* starting_address, size_t length) {
     if (VirtualUnlock(starting_address, length))
-        RETURN(SIM_RC_SUCCESS, true);
+        return false;
 
     _sim_win32_print_last_error(
         "VirtualUnlock(%p, %llu)",
         starting_address,
         (unsigned long long)length
     );
-    THROW(SIM_RC_ERR_INVALARG);
+    return false;
+    //THROW(SIM_ERR_INVALARG);
 }
 
-#endif /* SIMSOFT_WIN32_MEMMGMT_C_ */
+#endif // SIMSOFT_WIN32_MEMMGMT_C_

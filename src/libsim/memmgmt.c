@@ -30,7 +30,7 @@ void* sim_memmgmt_map_file_ptr(
     Sim_MemoryAccess mem_access_flags
 ) {
     if (length == 0)
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG, "(%s) Argument 1 cannot be 0", FUNCTION_NAME);
 
     return _sim_sys_memmgmt_map_file_ptr((void*)-1, file_ptr, length, offset, mem_access_flags);
 }
@@ -45,9 +45,9 @@ void* sim_memmgmt_map_fixed_file_ptr(
     Sim_MemoryAccess mem_access_flags
 ) {
     if (!file_ptr)
-        THROW(SIM_RC_ERR_BADFILE);
+        THROW(SIM_ERR_BADFILE, "(%s) Argument 1 cannot be NULL", FUNCTION_NAME);
     if (length == 0)
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG, "(%s) Argument 2 cannot be 0", FUNCTION_NAME);
 
     return _sim_sys_memmgmt_map_file_ptr(
         starting_address,
@@ -59,8 +59,8 @@ void* sim_memmgmt_map_fixed_file_ptr(
 }
 
 // sim_memmgmt_unmap(2): Unmaps a memory region created by one of the sim_memmgmt_map_* functions.
-bool sim_memmgmt_unmap(void* mapped_address, size_t length) {
-    return _sim_sys_memmgmt_unmap(mapped_address, length);
+void sim_memmgmt_unmap(void* mapped_address, size_t length) {
+    _sim_sys_memmgmt_unmap(mapped_address, length);
 }
 
 // sim_memmgmt_protect(3): Protects a memory region by assigning memory access permissions.
@@ -70,7 +70,7 @@ bool sim_memmgmt_protect(
     Sim_MemoryAccess mem_access_flags
 ) {
     if (length == 0)
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG, "(%s) Argument 1 cannot be 0", FUNCTION_NAME);
 
     return _sim_sys_memmgmt_protect(starting_address, length, mem_access_flags);
 }
@@ -78,7 +78,7 @@ bool sim_memmgmt_protect(
 // sim_memmgmt_sync(2): Flushes a given memory region's write operations.
 bool sim_memmgmt_sync(void* starting_address, size_t length) {
     if (length == 0)
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG, "(%s) Argument 1 cannot be 0", FUNCTION_NAME);
 
     return _sim_sys_memmgmt_sync(starting_address, length);
 }
@@ -86,7 +86,7 @@ bool sim_memmgmt_sync(void* starting_address, size_t length) {
 // sim_memmgmt_lock(2): Locks access to a memory region.
 bool sim_memmgmt_lock(void* starting_address, size_t length) {
     if (length == 0)
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG, "(%s) Argument 1 cannot be 0", FUNCTION_NAME);
 
     return _sim_sys_memmgmt_lock(starting_address, length);
 }
@@ -94,9 +94,9 @@ bool sim_memmgmt_lock(void* starting_address, size_t length) {
 // sim_memmgmt_unlock(2): Unlocks access to a memory region.
 bool sim_memmgmt_unlock(void* starting_address, size_t length) {
     if (length == 0)
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG, "(%s) Argument 1 cannot be 0", FUNCTION_NAME);
 
     return _sim_sys_memmgmt_unlock(starting_address, length);
 }
 
-#endif /* SIMSOFT_MEMMGMT_C_ */
+#endif // SIMSOFT_MEMMGMT_C_
