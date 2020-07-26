@@ -2,8 +2,8 @@
  * @file hashmap.h
  * @author Simon Struthers (snstruthers@gmail.com)
  * @brief Header for hashmaps
- * @version 0.1
- * @date 2020-01-10
+ * @version 0.2
+ * @date 2020-07-25
  * 
  * @copyright Copyright (c) 2020 LGPLv3
  * 
@@ -12,29 +12,24 @@
 #ifndef SIMSOFT_HASHMAP_H_
 #define SIMSOFT_HASHMAP_H_
 
-#include "./common.h"
-#include "./allocator.h"
+#include "allocator.h"
+#include "macro.h"
+#include "typedefs.h"
 
 CPP_NAMESPACE_START(SimSoft)
-    CPP_NAMESPACE_C_API_START /* C API */
+    CPP_NAMESPACE_C_API_START // start C API
 
 #       ifndef SIM_HASH_DEFAULT_SIZE
 #           define SIM_HASH_DEFAULT_SIZE 53
 #       endif
 
         /**
-         * @struct Sim_HashMap
-         * @headerfile hashmap.h "simsoft/hashmap.h"
          * @brief Generic unordered key-value pair container / associative array type.
          * 
          * @tparam _key_properties Properties pertaining to the keys stored in the hashmap.
          * @tparam _value_size     Size in bytes of the values stored in the hashmap.
          * @tparam _allocator_ptr  Pointer to allocator used to allocate buckets/nodes.
          * 
-         * @var Sim_HashMap:count
-         *     The number of key-value pairs contained in the hashmap.
-         * @var Sim_HashMap::data_ptr
-         *     Pointer to the internal hash table used by the hashmap.
          * @var Sim_HashMap::_initial_size @private
          *     The starting size of the hash table used by the hashmap.
          * @var Sim_HashMap::_base_size @private
@@ -51,13 +46,13 @@ CPP_NAMESPACE_START(SimSoft)
                 Sim_HashProc hash_proc;           // Pointer to hash function
                 Sim_PredicateProc predicate_proc; // Pointer to predicate function
             } _key_properties;  // properties of hashmap keys
-            const Sim_IAllocator *const _allocator_ptr; // bucket allocator
+            Sim_IAllocator *const _allocator_ptr; // bucket allocator
             const size_t _initial_size;
             const size_t _base_size; // base size used for initialization
             size_t _allocated; // how many buckets have been allocated
 
-            size_t count;   // amount of items stored in the hashmap
-            void* data_ptr; // pointer to hash buckets
+            size_t count;   ///< The number of key-value pairs contained in the hashmap.
+            void* data_ptr; ///< Pointer to the internal hash table used by the hashmap.
 
             size_t _value_size; // size of hashmap values
         } Sim_HashMap;
@@ -65,15 +60,14 @@ CPP_NAMESPACE_START(SimSoft)
 #       ifndef SIM_DEFINED_MAP_FOREACH_STRUCTS
 #           define SIM_DEFINED_MAP_FOREACH_STRUCTS
             /**
-             * @typedef Sim_MapForEachProc
              * @brief Function pointer used when iterating over a map.
              * 
              * @param[in] key_value_pair_ptr Pointer to a key-value pair in a map.
              * @param[in] index              The pair's index in the map it's contained in.
              * @param[in] userdata           User-provided callback data.
              * 
-             * @return @c false to break out of the calling foreach loop;
-             *         @c true  to continue iterating.
+             * @returns @c false to break out of the calling foreach loop;
+             *          @c true  to continue iterating.
              */
             typedef bool (*Sim_MapForEachProc)(
                 const void *const const_key_ptr,
@@ -84,15 +78,6 @@ CPP_NAMESPACE_START(SimSoft)
 #       endif // SIM_DEFINED_MAP_FOREACH_STRUCTS
 
         /**
-         * @fn Sim_ReturnCode sim_hashmap_construct(
-         *         Sim_HashMap *const,
-         *         const size_t,
-         *         Sim_HashProc,
-         *         Sim_PredicateProc,
-         *         const size_t,
-         *         const Sim_IAllocator*,
-         *         const size_t
-         *     )
          * @relates @capi{Sim_HashMap}
          * @brief Constructs a new hashmap.
          * 
@@ -106,115 +91,94 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in]     initial_size       The initial allocated size of the newly created
          *                                   hashmap.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr or @e key_predicate_proc are @c NULL ;
-         *     @b SIM_RC_ERR_OUTOFMEM if hash buckets couldn't be allocated;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e hashmap_ptr or @e key_predicate_proc are @c NULL;
+         * @throw SIM_ERR_OUTOFMEM if hash buckets couldn't be allocated.
          * 
-         * @sa sim_hashmap_construct_struct
          * @sa sim_hashmap_destroy
          */
-        extern EXPORT void C_CALL sim_hashmap_construct(
-            Sim_HashMap *const    hashmap_ptr,
-            const size_t          key_size,
-            Sim_HashProc          key_hash_proc,
-            Sim_PredicateProc     key_predicate_proc,
-            const size_t          value_size,
-            const Sim_IAllocator* allocator_ptr,
-            const size_t          initial_size
+        DYNAPI_PROC(void, sim_hashmap_construct,,
+            Sim_HashMap *const  hashmap_ptr,
+            const size_t        key_size,
+            Sim_HashProc        key_hash_proc,
+            Sim_PredicateProc   key_predicate_proc,
+            const size_t        value_size,
+            Sim_IAllocator*     allocator_ptr,
+            const size_t        initial_size
         );
 
         /**
-         * @fn void sim_hashmap_destroy(Sim_HashMap *const)
          * @relates @capi{Sim_HashMap}
          * @brief Destroys a hashmap.
          * 
          * @param[in,out] hashmap_ptr Pointer to a hashmap to destroy.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e hashmap_ptr is @c NULL ;
-         *     @b SIM_RC_SUCCESS     otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e hashmap_ptr is @c NULL.
          * 
          * @sa sim_hashmap_construct
          */
-        extern EXPORT void C_CALL sim_hashmap_destroy(
+        DYNAPI_PROC(void, sim_hashmap_destroy,,
             Sim_HashMap *const hashmap_ptr
         );
         
         /**
-         * @fn bool sim_hashmap_is_empty(Sim_HashMap *const)
          * @relates @capi{Sim_HashMap}
          * @brief Checks if the hashmap is empty.
          * 
          * @param[in] hashmap_ptr Pointer to a hashmap to check.
          * 
-         * @return @c true if the hashmap is empty @c false otherwise.
+         * @returns @c true if the hashmap is empty.
          * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR if @e hashmap_ptr is @c NULL;
-         *     @b SIM_RC_SUCCESS otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e hashmap_ptr is @c NULL.
          */
-        extern EXPORT bool C_CALL sim_hashmap_is_empty(
+        DYNAPI_PROC(bool, sim_hashmap_is_empty,,
             Sim_HashMap *const hashmap_ptr
         );
 
         /**
-         * @fn void sim_hashmap_clear(Sim_HashMap *const)
          * @relates @capi{Sim_HashMap}
          * @brief Clears a hashmap of all its contents.
          * 
          * @param[in,out] hashmap_ptr Pointer to hashmap to empty.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr is @c NULL ;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e hashmap_ptr is @c NULL.
          */
-        extern EXPORT void C_CALL sim_hashmap_clear(
+        DYNAPI_PROC(void, sim_hashmap_clear,,
             Sim_HashMap *const hashmap_ptr
         );
 
         /**
-         * @fn bool sim_hashmap_contains_key(Sim_HashMap *const, const void *const)
          * @relates @capi{Sim_HashMap}
          * @brief Checks if a key is contained in the hashmap.
          * 
          * @param[in,out] hashmap_ptr         Pointer to hashmap to search.
          * @param[in]     key_ptr             Pointer to key to compare against.
          * 
-         * @return @c false on error (see remarks) or if the key isn't contained in the hashmap;
-         *         @c true  otherwise.
+         * @returns @c false if the key isn't contained in the hashmap; @c true otherwise.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e hashmap_ptr or @e key_ptr are @c NULL ;
-         *     @b SIM_RC_NOT_FOUND   if @e key_ptr isn't contained in the hashmap;
-         *     @b SIM_RC_SUCCESS     otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e hashmap_ptr or @e key_ptr are @c NULL.
          */
-        extern bool C_CALL sim_hashmap_contains_key(
+        DYNAPI_PROC(bool, sim_hashmap_contains_key,,
             Sim_HashMap *const hashmap_ptr,
             const void *const  key_ptr
         );
 
         /**
-         * @fn void sim_hashmap_resize(Sim_HashMap *const, size_t)
          * @relates @capi{Sim_HashMap}
          * @brief Resizes the hashmap to a new size.
          * 
          * @param[in,out] hashmap_ptr Pointer to a hashset to resize.
          * @param[in]     new_size    The new size of the hashset.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr is @c NULL ;
-         *     @b SIM_RC_ERR_INVALARG if @e new_size < @e hashmap_ptr->count ;
-         *     @b SIM_RC_ERR_OUTOFMEM if the hashmap couldn't be resized;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e hashmap_ptr is @c NULL;
+         * @throw SIM_ERR_INVALARG if @e new_size < @c hashmap_ptr->count;
+         * @throw SIM_ERR_OUTOFMEM if the hashmap couldn't be resized.
          */
-        extern EXPORT void C_CALL sim_hashmap_resize(
+        DYNAPI_PROC(void, sim_hashmap_resize,,
             Sim_HashMap *const hashmap_ptr,
             size_t             new_size
         );
 
         /**
-         * @fn void sim_hashmap_get(Sim_HashMap *const, const void*, void*)
          * @relates @capi{Sim_HashMap}
          * @brief Get a value from the hashmap via a particular key.
          * 
@@ -222,41 +186,34 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in]     key_ptr       Pointer to lookup key.
          * @param[out]    out_value_ptr Pointer to be filled with the associated value.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e hashmap_ptr, @e key_ptr, or @e out_value_ptr are
-         *                           @c NULL;
-         *     @b SIM_RC_NOT_FOUND   if the key isn't contained in the hashmap;
-         *     @b SIM_RC_SUCCESS     otherwise.
+         * @returns @c false if the key isn't contained in the hashmap; @c true otherwise.
+         * 
+         * @throw SIM_ERR_NULLPTR if @e hashmap_ptr, @e key_ptr, or @e out_value_ptr are @c NULL.
          */
-        extern EXPORT void C_CALL sim_hashmap_get(
+        DYNAPI_PROC(bool, sim_hashmap_get,,
             Sim_HashMap *const hashmap_ptr,
             const void*        key_ptr,
             void*              out_value_ptr
         );
 
         /**
-         * @fn void* sim_hashmap_get_ptr(Sim_HashMap *const, const void*)
          * @relates @capi{Sim_HashMap}
          * @brief Get pointer to value in the hashmap via a particular key.
          * 
          * @param[in,out] hashmap_ptr   Pointer to a hashmap to retrieve a value from.
          * @param[in]     key_ptr       Pointer to lookup key.
          * 
-         * @return @c NULL on error (see remarks); Pointer to a value in the hashmap otherwise.
+         * @returns @c NULL if the key isn't contained in the hashmap; pointer to a value in the
+         *          hashmap otherwise.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e hashmap_ptr, @e key_ptr, or @e out_value_ptr are
-         *                            @c NULL;
-         *     @b SIM_RC_NOT_FOUND   if the key isn't contained in the hashmap;
-         *     @b SIM_RC_SUCCESS     otherwise.
+         * @throw SIM_ERR_NULLPTR if @e hashmap_ptr or @e key_ptr are @c NULL.
          */
-        extern EXPORT void* C_CALL sim_hashmap_get_ptr(
+        DYNAPI_PROC(void*, sim_hashmap_get_ptr,,
             Sim_HashMap *const hashmap_ptr,
             const void*        key_ptr
         );
 
         /**
-         * @fn void sim_hashmap_insert(Sim_HashMap *const, const void*, const void*)
          * @relates @capi{Sim_HashMap}
          * @brief Inserts a key-value pair into the hashmap or overwrites a pre-existing pair if
          *        the value is already in the hashmap.
@@ -265,67 +222,56 @@ CPP_NAMESPACE_START(SimSoft)
          * @param[in]     new_key_ptr Pointer to a new key to add to the hashmap.
          * @param[in]     value_ptr   Pointer to a value to associate with the key.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr, @e new_key_ptr, or @e value_ptr are
-         *                            @c NULL;
-         *     @b SIM_RC_ERR_OUTOFMEM if the hashmap had to resize to accomodate the newly
-         *                            inserted item and was unable to;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e hashmap_ptr, @e new_key_ptr, or @e value_ptr are @c NULL;
+         * @throw SIM_ERR_OUTOFMEM if the hashmap had to resize to accomodate the newly inserted
+         *                         and was unable to.
          */
-        extern EXPORT void C_CALL sim_hashmap_insert(
+        DYNAPI_PROC(void, sim_hashmap_insert,,
             Sim_HashMap *const hashmap_ptr,
             const void*        new_key_ptr,
             const void*        value_ptr
         );
 
         /**
-         * @fn void sim_hashmap_remove(Sim_HashMap *const, const void *const)
          * @relates @capi{Sim_HashMap}
          * @brief Removes a key-value pair from the hashmap via a key.
          * 
          * @param[in,out] hashmap_ptr    Pointer to a hashmap to remove from.
          * @param[in]     remove_key_ptr Pointer to a key to remove from the hashset.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR  if @e hashmap_ptr or @e remove_key_ptr are @c NULL;
-         *     @b SIM_RC_ERR_OUTOFMEM if the hashmap had to resize to save space and was
-         *                            unable to;
-         *     @b SIM_RC_FAILURE      if *remove_key_ptr was not contained in the hashmap;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @returns @c false if the key isn't contained in the hashmap; @c true otherwise.
+         * 
+         * @throw SIM_ERR_NULLPTR  if @e hashmap_ptr or @e remove_key_ptr are @c NULL;
+         * @throw SIM_ERR_OUTOFMEM if the hashmap had to resize to save space and was unable to.
          */
-        extern EXPORT void C_CALL sim_hashmap_remove(
+        DYNAPI_PROC(bool, sim_hashmap_remove,,
             Sim_HashMap *const hashmap_ptr,
             const void *const  remove_key_ptr
         );
 
         /**
-         * @fn bool sim_hashmap_foreach(Sim_HashMap *const, Sim_MapForEachProc, Sim_Variant)
          * @relates @capi{Sim_HashMap}
          * @brief Applies a given function to each key-value pair in the hashmap.
          * 
          * @param[in,out] hashmap_ptr  Pointer to a hashmap whose key-value pairs will be iterated
          *                             over.
          * @param[in]     foreach_proc Pointer to a function that will be applied to each pair in
-         *                             the hashset.
-         * @param[in]     userdata     User-provided data for @e foreach_proc.
+         *                             the hashmap.
+         * @param[in]     foreach_data User-provided data for @e foreach_proc.
          * 
-         * @return @c false on error (see remarks) or if the loop wasn't fully completed;
-         *         @c true  otherwise.
+         * @returns @c false if the loop wasn't fully completed; @c true otherwise.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_NULLPTR if @e hashmap_ptr or @e foreach_proc are @c NULL ;
-         *     @b SIM_RC_FAILURE     if @e foreach_proc returns @c false during the loop;
-         *     @b SIM_RC_SUCCESS     otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e hashmap_ptr or @e foreach_proc are @c NULL.
          */
-        extern EXPORT bool C_CALL sim_hashmap_foreach(
+        DYNAPI_PROC(bool, sim_hashmap_foreach,,
             Sim_HashMap *const hashmap_ptr,
             Sim_MapForEachProc foreach_proc,
-            Sim_Variant        userdata
+            Sim_Variant        foreach_data
         );
     
-    CPP_NAMESPACE_C_API_END /* end C API */
+    CPP_NAMESPACE_C_API_END // end C API
 
-#   ifdef __cplusplus /* C++ API */
+#   ifdef __cplusplus // start C++ API
 #       include "./exception.hpp"
         
         template <
@@ -340,7 +286,7 @@ CPP_NAMESPACE_START(SimSoft)
             C_API::Sim_HashMap _c_hashmap;
         };
 
-#   endif /* end C++ API */
-CPP_NAMESPACE_END(SimSoft) /* end SimSoft namespace */
+#   endif // end C++ API
+CPP_NAMESPACE_END(SimSoft) // end SimSoft namespace
 
-#endif /* SIMSOFT_HASHMAP_H_ */
+#endif // SIMSOFT_HASHMAP_H_

@@ -14,8 +14,15 @@
 
 #include "simsoft/hashmap.h"
 #include "simsoft/hashset.h"
+
+#include <math.h>
+
+#include "simsoft/except.h"
 #include "simsoft/util.h"
+
 #include "./_internal.h"
+
+#define _HASHTABLE_HASH_KEY ((Sim_HashKey){ 0x62d76395429756a9ULL, 0xe26534637479058cULL })
 
 // Hashmap/hashset aliasing to allow for identical internal implementation
 typedef union _Sim_HashPtr {
@@ -28,17 +35,58 @@ typedef union _Sim_HashForEachProc {
     Sim_MapForEachProc   map_foreach_proc;
 } _Sim_HashForEachProc;
 
-// == INTERNAL IMPLEMENTATION FUNCTIONS ===========================================================
+// == PRIME NUMBER FUNCTIONS =======================================================================
+
+static bool _sim_is_prime(const size_t num) {
+    if (num < 2 || num % 2 == 0)
+        return false;
+    if (num < 4)
+        return true;
+    
+    size_t threshold = (size_t)floor(sqrt((double)num));
+    for (size_t i = 3; i < threshold; i += 2)
+        if (num % i == 0)
+            return false;
+    
+    return true;
+}
+
+static size_t _sim_next_prime(size_t num) {
+    if (num % 2 == 0)
+        num++;
+
+    while (!_sim_is_prime(num))
+        num += 2;
+
+    return num;
+}
+
+/*static size_t _sim_prev_prime(size_t num) {
+    if (num < 2)
+        return 0;
+    else if (num < 4)
+        return num - 1;
+    
+    if (num % 2 == 0)
+        num--;
+    
+    while (!_sim_is_prime(num))
+        num -= 2;
+    
+    return num;
+}*/
+
+// == INTERNAL IMPLEMENTATION FUNCTIONS ============================================================
 
 // Creates a new hash table node.
 static void* _sim_hash_create_node(
-    const void*                 key_ptr,
-    const size_t                key_size,
-    const void*                 val_ptr,
-    const size_t                val_size,
-    const Sim_IAllocator *const allocator_ptr
+    const void*             key_ptr,
+    const size_t            key_size,
+    const void*             val_ptr,
+    const size_t            val_size,
+    Sim_IAllocator *const   allocator_ptr
 ) {
-    uint8* node_ptr = allocator_ptr->malloc(key_size + val_size);
+    uint8* node_ptr = VPROC_CALL(allocator_ptr, alloc, key_size + val_size);
     if (!node_ptr)
         return NULL;
 
@@ -52,27 +100,27 @@ static void* _sim_hash_create_node(
 
 // Destroys a hash table node.
 inline void _sim_hash_destroy_node(
-    void*                       node_ptr,
-    const Sim_IAllocator *const allocator_ptr
+    void*                   node_ptr,
+    Sim_IAllocator *const   allocator_ptr
 ) {
-    allocator_ptr->free(node_ptr);
+    VPROC_CALL(allocator_ptr, free, node_ptr);
 }
 
 // Initializes a hash table (map or set).
 static void _sim_hash_construct(
-    _Sim_HashPtr          hash_ptr,
-    const size_t          key_size,
-    Sim_HashProc          key_hash_proc,
-    Sim_PredicateProc     key_predicate_proc,
-    const size_t          value_size,
-    const Sim_IAllocator* allocator_ptr,
-    const size_t          initial_size
+    _Sim_HashPtr        hash_ptr,
+    const size_t        key_size,
+    Sim_HashProc        key_hash_proc,
+    Sim_PredicateProc   key_predicate_proc,
+    const size_t        value_size,
+    Sim_IAllocator*     allocator_ptr,
+    const size_t        initial_size
 ) {
     // check for nullptr
     if (!hash_ptr.hashmap_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(sim_hash_construct) Argument 0 is NULL");
     if (!key_predicate_proc)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(sim_hash_construct) Argument 3 is NULL");
         
     allocator_ptr = allocator_ptr ? allocator_ptr : sim_allocator_get_default();
 
@@ -80,13 +128,13 @@ static void _sim_hash_construct(
     size_t starting_size = _sim_next_prime(initial_size);
     if (starting_size < SIM_HASH_DEFAULT_SIZE)
         starting_size = SIM_HASH_DEFAULT_SIZE;
-    void** data_ptr = allocator_ptr->falloc(
-        (sizeof *data_ptr) * starting_size,
-        0
+    void** data_ptr = VPROC_CALL(allocator_ptr, calloc,
+        starting_size,
+        (sizeof *data_ptr)
     );
     if (!data_ptr)
-        THROW(SIM_RC_ERR_OUTOFMEM);
-        
+        THROW(SIM_ERR_OUTOFMEM, "(sim_hash_construct) Failed to allocate hash buckets");
+    
     Sim_HashMap hashmap = {
         ._key_properties = {
             .size = key_size,
@@ -112,8 +160,6 @@ static void _sim_hash_construct(
             sizeof(Sim_HashMap) :
             sizeof(Sim_HashSet)
     );
-
-    RETURN(SIM_RC_SUCCESS,);
 }
 
 // Clears a hash table.
@@ -123,7 +169,7 @@ static void _sim_hash_clear(
     Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
     if (!hashmap_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(sim_hash_clear) Argument 0 is NULL");
         
     // destroy hash table nodes
     void** item_ptr = hashmap_ptr->data_ptr;
@@ -136,8 +182,6 @@ static void _sim_hash_clear(
 
     // reset count
     hashmap_ptr->count = 0;
-
-    RETURN(SIM_RC_SUCCESS,);
 }
 
 // Destroys a hash table.
@@ -146,16 +190,10 @@ static void _sim_hash_destroy(
 ) {
     _sim_hash_clear(hash_ptr);
     
-    THROW(sim_get_return_code());
-    if (sim_get_return_code() > 0)
-        RETURN(sim_get_return_code(),);
-    
     Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
     // free bucket array when destroying
-    hashmap_ptr->_allocator_ptr->free(hashmap_ptr->data_ptr);
-
-    RETURN(SIM_RC_SUCCESS,);
+    VPROC_CALL(hashmap_ptr->_allocator_ptr, free, hashmap_ptr->data_ptr);
 }
 
 #define HASH_TABLE_IF_CONTAIN(                                                         \
@@ -167,19 +205,15 @@ static void _sim_hash_destroy(
     pred_proc,                                                                         \
     ...                                                                                \
 )                                                                                      \
-                                                                                       \
     uint8** data_ptr = (uint8**)hash_data_ptr;                                         \
-    size_t attempt = 0;                                                                \
     uint8* current_node_ptr;                                                           \
-    size_t index;                                                                      \
+    size_t attempt = 0;                                                                \
                                                                                        \
-    size_t hash = (hash_proc ?                                                         \
-        (*hash_proc)(key_ptr, 0) :                                                     \
-        sim_siphash(key_ptr, key_size, (Sim_HashKey){SIPHASH_KEY1, SIPHASH_KEY2})      \
+    size_t index = (hash_proc ?                                                        \
+        (*hash_proc)(key_ptr) :                                                        \
+        sim_util_siphash(key_ptr, key_size, _HASHTABLE_HASH_KEY)                       \
     ) % allocated;                                                                     \
-    size_t hash2 = 0;                                                                  \
                                                                                        \
-    index = hash % allocated;                                                          \
     current_node_ptr = data_ptr[index];                                                \
                                                                                        \
     while (current_node_ptr) {                                                         \
@@ -187,19 +221,7 @@ static void _sim_hash_destroy(
             UNPACK(__VA_ARGS__);                                                       \
         }                                                                              \
                                                                                        \
-        attempt++;                                                                     \
-        if (hash_proc)                                                                 \
-            hash = (*hash_proc)(key_ptr, attempt);                                     \
-        else {                                                                         \
-            if (attempt == 1)                                                          \
-                hash2 = sim_siphash(                                                   \
-                    key_ptr,                                                           \
-                    key_size,                                                          \
-                    (Sim_HashKey){SIPHASH_KEY3, SIPHASH_KEY4}                          \
-                ) % allocated;                                                         \
-            hash += hash2 + attempt;                                                   \
-        }                                                                              \
-        index = hash % allocated;                                                      \
+        index = (index + (++attempt)) % allocated;                                     \
         current_node_ptr = data_ptr[index];                                            \
     }
 
@@ -224,12 +246,12 @@ static void _sim_hash_resize(
         Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
         // initialize new hash table
-        uint8** new_data_ptr = hashmap_ptr->_allocator_ptr->falloc(
-            (sizeof *new_data_ptr) * new_size,
-            0
+        uint8** new_data_ptr = VPROC_CALL(hashmap_ptr->_allocator_ptr, calloc,
+            new_size,
+            sizeof *new_data_ptr
         );
         if (!new_data_ptr)
-            THROW(SIM_RC_ERR_OUTOFMEM);
+            THROW(SIM_ERR_OUTOFMEM, "(sim_hash_resize) Failed to resize hash buckets array");
         
         // re-hash old data and move them into new hash table
         uint8** hash_data_ptr = hashmap_ptr->data_ptr;
@@ -256,13 +278,11 @@ static void _sim_hash_resize(
         // free old array & reassign data_ptr to new array
         hashmap_ptr->data_ptr = new_data_ptr;
         hashmap_ptr->_allocated = new_size;
-        hashmap_ptr->_allocator_ptr->free(hash_data_ptr);
+        VPROC_CALL(hashmap_ptr->_allocator_ptr, free, hash_data_ptr);
     }
-
-    RETURN(SIM_RC_SUCCESS,);
 }
 
-void _sim_hash_insert(
+static void _sim_hash_insert(
     _Sim_HashPtr hash_ptr,
     const void*  key_ptr,
     const void*  value_ptr
@@ -271,12 +291,8 @@ void _sim_hash_insert(
 
     // check how much of the hash table is used & resize up if necessary
     const size_t load = hashmap_ptr->count * 100 / hashmap_ptr->_allocated;
-    if (load > 70) {
+    if (load > 70)
         _sim_hash_resize(hash_ptr, hashmap_ptr->_base_size * 2);
-        THROW(sim_get_return_code());
-        if (sim_get_return_code() > 0)
-            RETURN(sim_get_return_code(),);
-    }
 
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr,
         // copy contents of value_ptr to node if hashmap
@@ -286,7 +302,7 @@ void _sim_hash_insert(
                 value_ptr,
                 hashmap_ptr->_value_size
             );
-        RETURN(SIM_RC_SUCCESS,);
+        return;
     );
 
     // insert new item
@@ -301,15 +317,14 @@ void _sim_hash_insert(
         hashmap_ptr->_allocator_ptr
     );
     if (!node)
-        THROW(SIM_RC_ERR_OUTOFMEM);
+        THROW(SIM_ERR_OUTOFMEM, "(sim_hash_insert) Failed to create hash node");
     
     data_ptr[index] = node;
     hashmap_ptr->count++;
-    RETURN(SIM_RC_SUCCESS,);
 }
 
 // Removes an item from a hash table.
-static void _sim_hash_remove(
+static bool _sim_hash_remove(
     _Sim_HashPtr hash_ptr,
     const void*  key_ptr
 ) {
@@ -317,14 +332,9 @@ static void _sim_hash_remove(
 
     // check how much of the hash table is used & resize down if necessary
     const size_t load = hashmap_ptr->count * 100 / hashmap_ptr->_allocated;
-    if (load < 10) {
+    if (load < 10) 
         _sim_hash_resize(hash_ptr, hashmap_ptr->_base_size * 2);
-        
-        THROW(sim_get_return_code());
-        if (sim_get_return_code() > 0)
-            RETURN(sim_get_return_code(),);
-    }
-
+    
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr, 
         // destroy node
         _sim_hash_destroy_node(current_node_ptr, hashmap_ptr->_allocator_ptr);
@@ -335,11 +345,11 @@ static void _sim_hash_remove(
         // decrement count
         hashmap_ptr->count--;
 
-        RETURN(SIM_RC_SUCCESS,);
+        return true;
     );
     
     // failed to remove item; item not in hash table
-    RETURN(SIM_RC_FAILURE,);
+    return false;
 }
 
 // Checks if an item/key is contained in a hash table.
@@ -351,15 +361,15 @@ static bool _sim_hash_contains(
 
     // check for nullptrs
     if (!hashmap_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(sim_hash_contains) Argument 0 is NULL");
     if (!key_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(sim_hash_contains) Argument 1 is NULL");
     
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr,
-        RETURN(SIM_RC_SUCCESS, true);
+        return true;
     );
 
-    RETURN(SIM_RC_NOT_FOUND, false);
+    return false;
 }
 
 // Apply a function for each item in hash table.
@@ -367,15 +377,15 @@ static bool _sim_hash_foreach(
     _Sim_HashPtr         hash_ptr,
     const bool           is_hashmap,
     _Sim_HashForEachProc foreach_proc,
-    Sim_Variant          userdata
+    Sim_Variant          foreach_data
 ) {
     Sim_HashMap *const hashmap_ptr = hash_ptr.hashmap_ptr;
 
     // check for nullptrs
     if (!hashmap_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(sim_hash_foreach) Argument 0 is NULL");
     if (!foreach_proc.set_foreach_proc)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(sim_hash_foreach) Argument 2 is NULL");
     
     uint8** data_ptr = hashmap_ptr->data_ptr;
     size_t item_num = 0;
@@ -389,9 +399,9 @@ static bool _sim_hash_foreach(
                     data_ptr[i],
                     (uint8*)data_ptr[i] + hashmap_ptr->_value_size,
                     item_num,
-                    userdata
+                    foreach_data
                 ))
-                    RETURN(SIM_RC_SUCCESS, false);
+                    return false;
                 
                 item_num++;
             }
@@ -403,28 +413,28 @@ static bool _sim_hash_foreach(
                 if (!foreach_proc.set_foreach_proc(
                     data_ptr[i],
                     item_num,
-                    userdata
+                    foreach_data
                 ))
-                    RETURN(SIM_RC_SUCCESS, false);
+                    return false;
                 
                 item_num++;
             }
         }
     }
 
-    RETURN(SIM_RC_SUCCESS, true);
+    return true;
 }
 
-// == HASHSET PUBLIC API ==========================================================================
+// == HASHSET PUBLIC API ===========================================================================
 
 // sim_hashset_construct(6): Constructs a new hashset.
 void sim_hashset_construct(
-    Sim_HashSet*          hashset_ptr,
-    const size_t          item_size,
-    Sim_HashProc          item_hash_proc,
-    Sim_PredicateProc     item_predicate_proc,
-    const Sim_IAllocator* allocator_ptr,
-    const size_t          initial_size
+    Sim_HashSet*        hashset_ptr,
+    const size_t        item_size,
+    Sim_HashProc        item_hash_proc,
+    Sim_PredicateProc   item_predicate_proc,
+    Sim_IAllocator*     allocator_ptr,
+    const size_t        initial_size
 ) {
     _sim_hash_construct(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
@@ -450,9 +460,9 @@ void sim_hashset_destroy(
 bool sim_hashset_is_empty(Sim_HashSet *const hashset_ptr) {
     // check for nullptr
     if (!hashset_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     
-    RETURN(SIM_RC_SUCCESS, hashset_ptr->count == 0);
+    return hashset_ptr->count == 0;
 }
 
 // sim_hashset_clear(1): Clears a hashset of all its contents.
@@ -481,9 +491,9 @@ void sim_hashset_resize(
     const size_t       new_size
 ) {
     if (!hashset_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     if (new_size < hashset_ptr->count)
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG, "(%s) Argument 1 is must be larger than set size", FUNCTION_NAME);
     
     _sim_hash_resize(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
@@ -498,9 +508,9 @@ void sim_hashset_insert(
 ) {
     // check for nullptrs
     if (!hashset_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     if (!new_item_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 is NULL", FUNCTION_NAME);
     
     _sim_hash_insert(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
@@ -510,17 +520,17 @@ void sim_hashset_insert(
 }
 
 // sim_hashset_remove(2): Removes an item from a hashset.
-void sim_hashset_remove(
+bool sim_hashset_remove(
     Sim_HashSet *const hashset_ptr,
     const void *const  remove_item_ptr
 ) {
     // check for nullptr
     if (!hashset_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     if (!remove_item_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 is NULL", FUNCTION_NAME);
     
-    _sim_hash_remove(
+    return _sim_hash_remove(
         ((_Sim_HashPtr){ .hashset_ptr = hashset_ptr }),
         remove_item_ptr
     );
@@ -540,17 +550,17 @@ bool sim_hashset_foreach(
     );
 }
 
-// == HASHMAP PUBLIC API ==========================================================================
+// == HASHMAP PUBLIC API ===========================================================================
 
 // sim_hashmap_construct(7): Initializes a new hashmap.
 void sim_hashmap_construct(
-    Sim_HashMap *const    hashmap_ptr,
-    const size_t          key_size,
-    Sim_HashProc          key_hash_proc,
-    Sim_PredicateProc     key_predicate_proc,
-    const size_t          value_size,
-    const Sim_IAllocator* allocator_ptr,
-    const size_t          initial_size
+    Sim_HashMap *const  hashmap_ptr,
+    const size_t        key_size,
+    Sim_HashProc        key_hash_proc,
+    Sim_PredicateProc   key_predicate_proc,
+    const size_t        value_size,
+    Sim_IAllocator*     allocator_ptr,
+    const size_t        initial_size
 ) {
     _sim_hash_construct(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
@@ -576,9 +586,9 @@ void sim_hashmap_destroy(
 bool sim_hashmap_is_empty(Sim_HashMap *const hashmap_ptr) {
     // check for nullptr
     if (!hashmap_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
 
-    RETURN(SIM_RC_SUCCESS, hashmap_ptr->count == 0);
+    return hashmap_ptr->count == 0;
 }
 
 // sim_hashmap_contains_key(2): Checks if a key is contained in the hashmap.
@@ -598,9 +608,9 @@ void sim_hashmap_resize(
     size_t new_size
 ) {
     if (!hashmap_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     if (new_size < hashmap_ptr->count)
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG, "(%s) Argument 1 is must be larger than set size", FUNCTION_NAME);
     
     _sim_hash_resize(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
@@ -614,41 +624,37 @@ void* sim_hashmap_get_ptr(
     const void*        key_ptr
 ) {
     if (!hashmap_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     else if (!key_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 is NULL", FUNCTION_NAME);
     
     HASH_IF_CONTAIN(hashmap_ptr, key_ptr,
-        RETURN(SIM_RC_SUCCESS, current_node_ptr + hashmap_ptr->_key_properties.size);
+        return current_node_ptr + hashmap_ptr->_key_properties.size;
     );
 
-    RETURN(SIM_RC_NOT_FOUND, NULL);
+    return NULL;
 }
 
 // sim_hashmap_get(3): Get a value from a hashmap via a given key.
-void sim_hashmap_get(
+bool sim_hashmap_get(
     Sim_HashMap *const hashmap_ptr,
     const void*        key_ptr,
     void*              out_value_ptr
 ) {
-    void* value_ptr;
-
     if (!out_value_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 2 is NULL", FUNCTION_NAME);
 
     // use get_ptr to save on macro-expanded code >:^)
-    value_ptr = sim_hashmap_get_ptr(hashmap_ptr, key_ptr);
-    THROW(sim_get_return_code());
-    if (sim_get_return_code() > 0)
-        RETURN(sim_get_return_code(),);
+    void* value_ptr = sim_hashmap_get_ptr(hashmap_ptr, key_ptr);
+    if (!value_ptr)
+        return false;
     
     memcpy(
         out_value_ptr,
         value_ptr,
         hashmap_ptr->_value_size
     );
-
-    RETURN(SIM_RC_SUCCESS,);
+    return true;
 }
 
 // sim_hashmap_insert(3): Inserts a key-value pair into the hashmap or overwrites a pre-existing
@@ -660,11 +666,11 @@ void sim_hashmap_insert(
 ) {
     // check for nullptrs
     if (!hashmap_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     if (!new_key_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 is NULL", FUNCTION_NAME);
     if (!value_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 2 is NULL", FUNCTION_NAME);
     
     _sim_hash_insert(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
@@ -674,17 +680,17 @@ void sim_hashmap_insert(
 }
 
 // sim_hashmap_remove(2): Removes a key-value pair from the hashmap via a key.
-void sim_hashmap_remove(
+bool sim_hashmap_remove(
     Sim_HashMap *const hashmap_ptr,
-    const void *const remove_key_ptr
+    const void *const  remove_key_ptr
 ) {
     // check for nullptr
     if (!hashmap_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     if (!remove_key_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 is NULL", FUNCTION_NAME);
     
-    _sim_hash_remove(
+    return _sim_hash_remove(
         ((_Sim_HashPtr){ .hashmap_ptr = hashmap_ptr }),
         remove_key_ptr
     );
@@ -704,4 +710,4 @@ bool sim_hashmap_foreach(
     );
 }
 
-#endif /* SIMSOFT_HASH_C_ */
+#endif // SIMSOFT_HASH_C_
