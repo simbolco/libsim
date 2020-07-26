@@ -2,8 +2,8 @@
  * @file cmdlnopt.c
  * @author Simon Struthers (snstruthers@gmail.com)
  * @brief Source file/implementation for simsoft/cmdlnopt.h
- * @version 0.1
- * @date 2020-03-16
+ * @version 0.2
+ * @date 2020-07-04
  * 
  * @copyright Copyright (c) 2020 LGPLv3
  * 
@@ -12,12 +12,13 @@
 #ifndef SIMSOFT_CMDLNOPT_C_
 #define SIMSOFT_CMDLNOPT_C_
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "simsoft/cmdlnopt.h"
+#include "simsoft/except.h"
 #include "simsoft/utf8.h"
-
-#include "./_internal.h"
 
 struct _Sim_CmdLnOptArgs {
     int *const argc_ptr;
@@ -25,11 +26,14 @@ struct _Sim_CmdLnOptArgs {
     const char* program_name;
 };
 
+// == PRIVATE HELPERS ==============================================================================
+
 // deals with handling a given command line option + gets next argstring if necessary
 static bool _sim_cmdlnopt_handle_option(
     int *const                       arguments_count_ptr,
     char** *const                    arguments_array_ptr,
     const Sim_CmdLnOptHandler *const option_handler_ptr,
+    char*                            option_string,
     char*                            option_argument_string,
     int *const                       exit_code_out_ptr,
     Sim_CmdLnOptErrorProc            error_proc,
@@ -53,29 +57,25 @@ static bool _sim_cmdlnopt_handle_option(
     }
     
     // error out if no argument was provided to an option that requires one.
-    if (
-        option_handler_ptr->has_argument == SIM_CMDLNOPT_REQUIRED_ARGUMENT &&
-        !option_argument_string
-    ) {
+    if (option_handler_ptr->has_argument == SIM_OPT_REQUIRED_ARGUMENT && !option_argument_string) {
         char short_option_buf[5] = { 0 };
         sim_utf8_from_codepoint(option_handler_ptr->short_codepoint, short_option_buf);
-        return error_proc(
+        return (*error_proc)(
             args_state_ptr->program_name,
             option_handler_ptr->long_name ? option_handler_ptr->long_name : short_option_buf,
-            SIM_CMDLNOPT_ERR_MISSING_ARGUMENT,
+            SIM_OPT_ERR_MISSING_ARGUMENT,
             exit_code_out_ptr,
             userdata
         );
     }
     
     // set option_argument to NULL if option explicitly says no argument is needed.
-    if (option_handler_ptr->has_argument == SIM_CMDLNOPT_NO_ARGUMENT)
+    if (option_handler_ptr->has_argument == SIM_OPT_NO_ARGUMENT)
         option_argument_string = NULL;
     
     return option_handler_ptr->handler_proc(
         args_state_ptr,
-        option_handler_ptr->long_name,
-        option_handler_ptr->short_codepoint,
+        option_string,
         option_argument_string,
         exit_code_out_ptr,
         userdata
@@ -94,19 +94,22 @@ static bool _sim_cmdlnopt_handle_error(
 
     // unknown option provided
     switch (error_type) {
-    case SIM_CMDLNOPT_ERR_UNKNOWN_OPTION:
-        printf("%s: unknown option `%s'\n", program_string, option_string);
+    case SIM_OPT_ERR_UNKNOWN_OPTION:
+        fprintf(stderr, "%s: unknown option `%s'\n", program_string, option_string);
         break;
         
-    case SIM_CMDLNOPT_ERR_NONFLAG_OPTION:
-        printf(
+    case SIM_OPT_ERR_NONFLAG_OPTION:
+        fprintf(stderr,
             "%s: option `%s' requires arguments; cannot be combined with other flag options\n",
             program_string, option_string
         );
         break;
         
-    case SIM_CMDLNOPT_ERR_MISSING_ARGUMENT:
-        printf("%s: option `%s' missing required argument\n", program_string, option_string);
+    case SIM_OPT_ERR_MISSING_ARGUMENT:
+        fprintf(stderr,
+            "%s: option `%s' missing required argument\n",
+            program_string, option_string
+        );
         break;
     }
     
@@ -114,10 +117,12 @@ static bool _sim_cmdlnopt_handle_error(
     return true;
 }
 
+// == PUBLIC API ===================================================================================
+
 // sim_cmdlnopt_next_argstring(1): Retrieves the next argstring from the given args state.
 const char* sim_cmdlnopt_next_argstring(Sim_CmdLnOptArgs *const args_state_ptr) {
     if (!args_state_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "Argument 0 of %s cannot be NULL", FUNCTION_NAME);
     
     if (
         (*args_state_ptr->argc_ptr) > 1 &&
@@ -128,18 +133,18 @@ const char* sim_cmdlnopt_next_argstring(Sim_CmdLnOptArgs *const args_state_ptr) 
     ) {
         (*args_state_ptr->argc_ptr)--;
         (*args_state_ptr->argv_ptr)++;
-        RETURN(SIM_RC_SUCCESS, (*args_state_ptr->argv_ptr)[0]);
+        return (*args_state_ptr->argv_ptr)[0];
     }
     
-    RETURN(SIM_RC_SUCCESS, NULL);
+    return NULL;
 }
 
 // sim_cmdlnopt_get_program_name(1): Retrieves the program name as entered from the command line.
 const char* sim_cmdlnopt_get_program_name(Sim_CmdLnOptArgs *const args_state_ptr) {
     if (!args_state_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "Argument 0 of %s cannot be NULL", FUNCTION_NAME);
 
-    RETURN(SIM_RC_SUCCESS, args_state_ptr->program_name);
+    return args_state_ptr->program_name;
 }
 
 // sim_cmdlnopt_handle_options(5): Handles POSIX-esque command line options.
@@ -152,11 +157,11 @@ int sim_cmdlnopt_handle_options(
     Sim_Variant               userdata
 ) {
     if (!arguments_array_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 cannot be NULL", FUNCTION_NAME);
     if (!arguments_count_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 cannot be NULL", FUNCTION_NAME);
     if (!option_handler_array)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 3 cannot be NULL", FUNCTION_NAME);
     
     // use default error handler if none is provided by the user
     if (!error_proc)
@@ -223,6 +228,7 @@ int sim_cmdlnopt_handle_options(
                                 arguments_count_ptr,
                                 arguments_array_ptr, 
                                 &option_handler_array[i],
+                                &((*arguments_array_ptr)[0][2]),
                                 option_argument,
                                 &exit_code,
                                 error_proc,
@@ -235,10 +241,10 @@ int sim_cmdlnopt_handle_options(
                     
                     // error out: unknown option
                     if (i == option_handler_count)
-                        break_flag = error_proc(
+                        break_flag = (*error_proc)(
                             program_name,
                             &((*arguments_array_ptr)[0][2]),
-                            SIM_CMDLNOPT_ERR_UNKNOWN_OPTION,
+                            SIM_OPT_ERR_UNKNOWN_OPTION,
                             &exit_code,
                             userdata
                         );
@@ -268,6 +274,9 @@ int sim_cmdlnopt_handle_options(
                 // search for short option in option_handler_array
                 {
                     size_t i;
+                    char opt_string_buf[5] = {0};
+                    sim_utf8_from_codepoint(codepoint, opt_string_buf);
+
                     for (i = 0; i < option_handler_count; i++) {
                         // found the option in the list; now handle it!
                         if (codepoint == option_handler_array[i].short_codepoint) {
@@ -275,6 +284,7 @@ int sim_cmdlnopt_handle_options(
                                 arguments_count_ptr,
                                 arguments_array_ptr, 
                                 &option_handler_array[i],
+                                opt_string_buf,
                                 option_argument,
                                 &exit_code,
                                 error_proc,
@@ -287,10 +297,10 @@ int sim_cmdlnopt_handle_options(
                     
                     // error out: unknown option
                     if (i == option_handler_count)
-                        break_flag = error_proc(
+                        break_flag = (*error_proc)(
                             program_name,
-                            &((*arguments_array_ptr)[0][1]),
-                            SIM_CMDLNOPT_ERR_UNKNOWN_OPTION,
+                            opt_string_buf,
+                            SIM_OPT_ERR_UNKNOWN_OPTION,
                             &exit_code,
                             userdata
                         );
@@ -298,11 +308,13 @@ int sim_cmdlnopt_handle_options(
                     // explicitly require no args
                     else if (
                         !break_flag &&
-                        option_handler_array[i].has_argument == SIM_CMDLNOPT_NO_ARGUMENT
+                        option_handler_array[i].has_argument == SIM_OPT_NO_ARGUMENT
                         && option_argument
                     )
                         do {
                             codepoint = sim_utf8_to_codepoint(option_argument);
+                            sim_utf8_from_codepoint(codepoint, opt_string_buf);
+                            opt_string_buf[sim_utf8_get_char_size(opt_string_buf)] = '\0';
                             
                             // search for short option in option_handler_array
                             for (i = 0; i < option_handler_count; i++) {
@@ -311,12 +323,12 @@ int sim_cmdlnopt_handle_options(
                                     // error out if option doesn't explicitly take no arguments
                                     if (
                                         option_handler_array[i].has_argument !=
-                                            SIM_CMDLNOPT_NO_ARGUMENT
+                                            SIM_OPT_NO_ARGUMENT
                                     ) {
-                                        break_flag = error_proc(
+                                        break_flag = (*error_proc)(
                                             program_name,
-                                            option_argument,
-                                            SIM_CMDLNOPT_ERR_NONFLAG_OPTION,
+                                            opt_string_buf,
+                                            SIM_OPT_ERR_NONFLAG_OPTION,
                                             &exit_code,
                                             userdata
                                         );
@@ -327,6 +339,7 @@ int sim_cmdlnopt_handle_options(
                                         arguments_count_ptr,
                                         arguments_array_ptr, 
                                         &option_handler_array[i],
+                                        opt_string_buf,
                                         NULL,
                                         &exit_code,
                                         error_proc,
@@ -339,10 +352,10 @@ int sim_cmdlnopt_handle_options(
                             
                             // error out: unknown option
                             if (i == option_handler_count)
-                                break_flag = error_proc(
+                                break_flag = (*error_proc)(
                                     program_name,
-                                    option_argument,
-                                    SIM_CMDLNOPT_ERR_UNKNOWN_OPTION,
+                                    opt_string_buf,
+                                    SIM_OPT_ERR_UNKNOWN_OPTION,
                                     &exit_code,
                                     userdata
                                 );
@@ -362,7 +375,7 @@ int sim_cmdlnopt_handle_options(
         }
     } while ((*arguments_count_ptr) > 0 && !break_flag);
     
-    RETURN((exit_code == EXIT_SUCCESS) ? SIM_RC_SUCCESS : SIM_RC_FAILURE, exit_code);
+    return exit_code;
 }
 
-#endif /* SIMSOFT_CMDLNOPT_C_ */
+#endif // SIMSOFT_CMDLNOPT_C_
