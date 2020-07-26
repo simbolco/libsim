@@ -52,7 +52,7 @@ size_t sim_debug_get_backtrace_info(
         SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
         if (!SymInitialize(process_handle, NULL, true))
         {
-            //_sim_win32_print_last_error("SymInitialize(%p, %p, true)", process_handle, NULL);
+            _sim_win32_print_last_error("SymInitialize(%p, %p, true)", process_handle, NULL);
             return 0;
         }
 
@@ -124,10 +124,10 @@ size_t sim_debug_get_backtrace_info(
 
                 // get symbol from address
                 if (SymFromAddr(
-                    process_handle,
-                    (DWORD64)backtrace_array[index].function_address,
-                    NULL,
-                    symbol_info_ptr
+                        process_handle,
+                        (DWORD64)backtrace_array[index].function_address,
+                        NULL,
+                        symbol_info_ptr
                 )) {
                     backtrace_array[index].function_name = strdup(symbol_info_ptr->Name);
                     if (!backtrace_array[index].function_name) {
@@ -158,24 +158,24 @@ size_t sim_debug_get_backtrace_info(
                             THROW(SIM_ERR_OUTOFMEM, "Couldn't allocate backtrace strings");
                         }
                     } else {
-                        /*_sim_win32_print_last_error(
+                        _sim_win32_print_last_error(
                             "SymGetLineFromAddr64(%p, %p, %p, %p)",
                             process_handle,
                             backtrace_array[index].function_address,
                             NULL,
                             &line_info
-                        );*/
+                        );
                         backtrace_array[index].file_name = NULL;
                         backtrace_array[index].line_number = 0;
                     }
                 } else {
-                    /*_sim_win32_print_last_error(
+                    _sim_win32_print_last_error(
                         "SymFromAddr(%p, %p, %p, %p)",
                         process_handle,
                         backtrace_array[index].function_address,
                         NULL,
                         symbol_info_ptr
-                    );*/
+                    );
                     backtrace_array[index].function_name = NULL;
                     backtrace_array[index].file_name = NULL;
                     backtrace_array[index].line_number = 0;
@@ -187,9 +187,9 @@ size_t sim_debug_get_backtrace_info(
 
         // cleanup symbol handler
         SymCleanup(process_handle);
-        /*if (!SymCleanup(process_handle)) {
+        if (!SymCleanup(process_handle)) {
             _sim_win32_print_last_error("SymCleanup(%p)", process_handle);
-        }*/
+        }
         
         return index;
 
