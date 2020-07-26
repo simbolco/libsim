@@ -157,11 +157,11 @@ int sim_cmdlnopt_handle_options(
     Sim_Variant               userdata
 ) {
     if (!arguments_array_ptr)
-        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 cannot be NULL", FUNCTION_NAME);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 is NULL", FUNCTION_NAME);
     if (!arguments_count_ptr)
-        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 cannot be NULL", FUNCTION_NAME);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     if (!option_handler_array)
-        THROW(SIM_ERR_NULLPTR, "(%s) Argument 3 cannot be NULL", FUNCTION_NAME);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 3 is NULL", FUNCTION_NAME);
     
     // use default error handler if none is provided by the user
     if (!error_proc)
