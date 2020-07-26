@@ -100,11 +100,6 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @throw SIM_ERR_NULLPTR  if @e utf8_char_ptr is @c NULL;
          * @throw SIM_ERR_INVALARG if @e utf8_char_ptr is an invalid UTF-8 multi-byte sequence.
-         * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e utf8_string is @c NULL;
-         *     @b SIM_RC_ERR_INVALARG if @e utf8_string is an invalid sequence;
-         *     @b SIM_RC_SUCCESS      otherwise.
          */
         DYNAPI_PROC(size_t, sim_utf8_strlen,,
             const char* utf8_string
