@@ -34,24 +34,21 @@ For a more verbose and in-depth to-do list, see `TODO.txt` or visit our [Trello 
 # Building
 Install *gcc* (or *clang*) and *GNU make*, then type `make libsim` into a Bourne-compatible shell to build the library. Support for other compilers + Windows CMD.EXE will be added later on.
 
-A unit test executable can be built by typing `make exesimtest` into the shell.
-
 Various options exist to customize how the SimSoft library and associated build targets are constructed. Details on what options and other build targets are available can be found by typing `make help` into the shell.
 
 # Documentation
-Documentation is available through the use of Doxygen. Three files are available to be used to generate documentation:
+Documentation is available through the use of Doxygen. Two files are available to be used to generate documentation:
 
 - `c.doxyfile` - Generates C-style documentation for the C API.
 - `cpp.doxyfile` - Generates C++-style documentation for the C and C++ APIs.
-- `Doxyfile` - The default; contents are equivalent to `cpp.doxyfile`.
 
-To generate documentation, run `doxygen` (or `doxygen <doxyfile>` on one of the files listed above).
+To generate documentation, run `make libsim.docs.*`, replacing `*` with one of the prefixes above (e.g. `make libsim.docs.c` generates documentation for the C API).
 
 # Contributing
 Anybody that wishes to contribute to the development of the SimSoft library must follow the SimSoft style guide and the Code of Conduct.
 
 ## Style Guide
-Comming soon...
+Comming soon.
 
 ## Code of Conduct
 This library's contributor Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 1.4, available at https://www.contributor-covenant.org/version/1/4/code-of-conduct.html
