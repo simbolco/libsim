@@ -2,8 +2,8 @@
  * @file random.c
  * @author Simon Struthers (snstruthers@gmail.com)
  * @brief Source file/implementation for simsoft/random.h
- * @version 0.1
- * @date 2020-01-23
+ * @version 0.2
+ * @date 2020-07-04
  * 
  * @copyright Copyright (c) 2020 LGPLv3
  * 
@@ -13,7 +13,9 @@
 #define SIMSOFT_RANDOM_C_
 
 #include "simsoft/random.h"
+
 #include "./_internal.h"
+#include "simsoft/except.h"
 
 #ifdef _WIN32
 #   include "simsoft/dynlib.h"
@@ -25,10 +27,13 @@
     ) = NULL;
 
     // 
-    static void _sim_win32_onexit_clean_advapi32(void) {
+    static void _win32_onexit_clean_advapi32(void) {
         sim_dynlib_unload(_SIM_WIN32_ADVAPI32_LIBHANDLE);
     }
-
+#elif defined(__unix__)
+#   include <errno.h>
+#   include <stdio.h>
+#   include <string.h>
 #endif
 
 // sim_random_bytes(2): Fill a buffer with a random sequence of bytes.
@@ -37,16 +42,16 @@ void sim_random_bytes(
     void* buffer_ptr
 ) {
     if (!buffer_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 is NULL", FUNCTION_NAME);
 
 #   ifdef _WIN32
         // get library handle to Advapi32.dll
         if (!_SIM_WIN32_ADVAPI32_LIBHANDLE) {
             if (!(_SIM_WIN32_ADVAPI32_LIBHANDLE = sim_dynlib_load("Advapi32.dll")))
-                THROW(SIM_RC_ERR_UNSUPRTD);
+                THROW(SIM_ERR_UNSUPRTD, "Couldn't load Advapi32.dll");
             
             // clean up library handle on exit
-            atexit(_sim_win32_onexit_clean_advapi32);
+            atexit(_win32_onexit_clean_advapi32);
         }
         
         // get function pointer if available
@@ -57,35 +62,23 @@ void sim_random_bytes(
                 "SystemFunction036"
             ))
         )
-            THROW(SIM_RC_ERR_UNSUPRTD);
+            THROW(SIM_ERR_UNSUPRTD, "Couldn't load RtlGenRandom (aka 'SystemFunction036')");
         
         // grab random bytes
-        if (!RtlGenRandom(buffer_ptr, (ULONG)buffer_size))
-            RETURN(SIM_RC_FAILURE,);
-        
-        RETURN(SIM_RC_SUCCESS,);
+        (*RtlGenRandom)(buffer_ptr, (ULONG)buffer_size);
 #   elif defined(unix) || defined(__unix__) || defined(__unix)
         // open dev/random
         FILE* urandom_handle = fopen("/dev/urandom", "r");
         if (!urandom_handle)
-            THROW(SIM_RC_ERR_UNSUPRTD);
+            THROW(SIM_ERR_UNSUPRTD, "Couldn't open /dev/urandom: %s", strerror(errno));
         
         // read random bytes from dev/random
-        if (fread(buffer_ptr, 1, buffer_size, urandom_handle) < buffer_size) {
-            // TODO: check ferror()
-            fclose(urandom_handle);
-            RETURN(SIM_RC_FAILURE,);;
-        }
-
+        fread(buffer_ptr, 1, buffer_size, urandom_handle) < buffer_size;
         fclose(urandom_handle);
-        RETURN(SIM_RC_SUCCESS,);
+        return;
 #   else
-#       warning("sim_random_bytes(2) is unsupported")
-        (void)buffer_ptr; (void)buffer_size;
-        THROW(SIM_RC_ERR_UNSUPRTD);
+#       error("sim_random_bytes(2) is unsupported")
 #   endif
 }
 
-
-
-#endif /* SIMSOFT_RANDOM_C_ */
+#endif // SIMSOFT_RANDOM_C_
