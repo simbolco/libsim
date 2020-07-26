@@ -2,8 +2,8 @@
  * @file utf8.c
  * @author Simon Struthers (snstruthers@gmail.com)
  * @brief Source file/implementation for simsoft/utf8.h
- * @version 0.1
- * @date 2020-03-09
+ * @version 0.2
+ * @date 2020-07-07
  * 
  * @copyright Copyright (c) 2020 LGPLv3
  * 
@@ -13,83 +13,100 @@
 #define SIMSOFT_UTF8_C_
 
 #include "simsoft/utf8.h"
-#include "./_internal.h"
+
+#include "simsoft/except.h"
 
 // sim_utf8_to_codepoint(1): Retrieves a UTF codepoint from a UTF-8 multi-byte sequence.
 uint32 sim_utf8_to_codepoint(
     const char* utf8_char_ptr
 ) {
     if (!utf8_char_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
 
     uint32 codepoint = (uint32)-1;
 
-    if ((uint8)utf8_char_ptr[0] <= 0x7F)
+    if ((uint8)utf8_char_ptr[0] <= 0x7f)
         codepoint = (uint32)*utf8_char_ptr;
-    else if ((utf8_char_ptr[0] & 0xE0) == 0xC0)
-        codepoint = ((uint8)utf8_char_ptr[0] & 0x1F) * 64 +
-                    ((uint8)utf8_char_ptr[1] & 0x3F)
+    else if ((utf8_char_ptr[0] & 0xe0) == 0xc0)
+        codepoint = (((uint8)utf8_char_ptr[0] & 0x1f) << 6) +
+                    ((uint8)utf8_char_ptr[1] & 0x3f)
         ;
     else if ( /* 0xD800 - 0xDFFF are invalid UTF8 codepoints */
-        (uint8)utf8_char_ptr[0] == 0xED && ((uint8)utf8_char_ptr[1] & 0xA0) == 0xA0
+        (uint8)utf8_char_ptr[0] == 0xed && ((uint8)utf8_char_ptr[1] & 0xa0) == 0xa0
     )
-        THROW(SIM_RC_ERR_INVALARG);
-    else if ((utf8_char_ptr[0] & 0xF0) == 0xE0)
-        codepoint = ((uint8)utf8_char_ptr[0] & 0x0F) * 4096 +
-                    ((uint8)utf8_char_ptr[1] & 0x3F) * 64   +
-                    ((uint8)utf8_char_ptr[2] & 0x3F)
+        THROW(SIM_ERR_INVALARG, "(%s) Invalid UTF-8 sequence", FUNCTION_NAME);
+    else if ((utf8_char_ptr[0] & 0xf0) == 0xe0)
+        codepoint = (((uint8)utf8_char_ptr[0] & 0x0f) << 12) +
+                    (((uint8)utf8_char_ptr[1] & 0x3f) << 6)  +
+                    ((uint8)utf8_char_ptr[2] & 0x3f)
         ;
-    else if ((utf8_char_ptr[0] & 0xF8) == 0xF0)
-        codepoint = ((uint8)utf8_char_ptr[0] & 0x07) * 262144 +
-                    ((uint8)utf8_char_ptr[1] & 0x3F) * 4096   +
-                    ((uint8)utf8_char_ptr[2] & 0x3F) * 64     +
-                    ((uint8)utf8_char_ptr[3] & 0x3F)
+    else if ((utf8_char_ptr[0] & 0xF8) == 0xf0)
+        codepoint = (((uint8)utf8_char_ptr[0] & 0x07) << 18) +
+                    (((uint8)utf8_char_ptr[1] & 0x3f) << 12) +
+                    (((uint8)utf8_char_ptr[2] & 0x3f) << 6)  +
+                    ((uint8)utf8_char_ptr[3] & 0x3f)
         ;
     else
-        THROW(SIM_RC_ERR_INVALARG);
+        THROW(SIM_ERR_INVALARG, "(%s) Invalid UTF-8 sequence", FUNCTION_NAME);
 
-    RETURN(SIM_RC_SUCCESS, codepoint);
+    return codepoint;
 }
 
 // sim_utf8_from_codepoint(2): Retrieves a UTF-8 multi-byte sequence from a UTF codepoint.
-bool sim_utf8_from_codepoint(
+void sim_utf8_from_codepoint(
     uint32 utf_codepoint,
     char utf8_char_array[4]
 ) {
-    if (utf_codepoint <= 0x7F) {
+    if (utf_codepoint <= 0x7f) {
         utf8_char_array[0] = (char)utf_codepoint;
-    } else if (utf_codepoint <= 0x7FF) {
-        utf8_char_array[0] = 0xC0 | (char)((utf_codepoint >> 6) & 0x1F);
-        utf8_char_array[1] = 0x80 | (char)(utf_codepoint & 0x3F);
-    } else if (utf_codepoint <= 0xFFFF) {
-        utf8_char_array[0] = 0xE0 | (char)((utf_codepoint >> 12) & 0x0F);
-        utf8_char_array[1] = 0x80 | (char)((utf_codepoint >> 6) & 0x3F);
-        utf8_char_array[2] = 0x80 | (char)(utf_codepoint & 0x3F);
-    } else if (utf_codepoint <= 0x10FFFF) {
-        utf8_char_array[0] = 0xE0 | (char)((utf_codepoint >> 18) & 0x0F);
-        utf8_char_array[1] = 0x80 | (char)((utf_codepoint >> 12) & 0x3F);
-        utf8_char_array[2] = 0x80 | (char)((utf_codepoint >> 6) & 0x3F);
-        utf8_char_array[3] = 0x80 | (char)(utf_codepoint & 0x3F);
+    } else if (utf_codepoint <= 0x7ff) {
+        utf8_char_array[0] = 0xc0 | (char)((utf_codepoint >> 6) & 0x1f);
+        utf8_char_array[1] = 0x80 | (char)(utf_codepoint & 0x3f);
+    } else if (utf_codepoint <= 0xffff) {
+        utf8_char_array[0] = 0xe0 | (char)((utf_codepoint >> 12) & 0x0f);
+        utf8_char_array[1] = 0x80 | (char)((utf_codepoint >> 6) & 0x3f);
+        utf8_char_array[2] = 0x80 | (char)(utf_codepoint & 0x3f);
+    } else if (utf_codepoint <= 0x10ffff) {
+        utf8_char_array[0] = 0xf0 | (char)((utf_codepoint >> 18) & 0x07);
+        utf8_char_array[1] = 0x80 | (char)((utf_codepoint >> 12) & 0x3f);
+        utf8_char_array[2] = 0x80 | (char)((utf_codepoint >> 6) & 0x3f);
+        utf8_char_array[3] = 0x80 | (char)(utf_codepoint & 0x3f);
     } else
-        THROW(SIM_RC_ERR_INVALARG);
-    RETURN(SIM_RC_SUCCESS, true);
+        THROW(SIM_ERR_INVALARG, "(%s) Invalid UTF codepoint", FUNCTION_NAME);
 }
 
 // sim_utf8_get_char_size(1): Retrieves the number of bytes of a given UTF-8 multi-byte character.
 size_t sim_utf8_get_char_size(const char* utf8_char_ptr) {
     if (!utf8_char_ptr)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     
-    if (*(const uint8*)utf8_char_ptr <= 0x7F)
-        RETURN(SIM_RC_SUCCESS, 1);
-    else if ((*utf8_char_ptr & 0xE0) == 0xC0)
-        RETURN(SIM_RC_SUCCESS, 2);
-    else if ((*utf8_char_ptr & 0xF0) == 0xE0)
-        RETURN(SIM_RC_SUCCESS, 3);
-    else if ((*utf8_char_ptr & 0xF8) == 0xF0)
-        RETURN(SIM_RC_SUCCESS, 4);
+    if (*(const uint8*)utf8_char_ptr <= 0x7f)
+        return 1;
+    else if ((*utf8_char_ptr & 0xe0) == 0xc0)
+        return 2;
+    else if ((*utf8_char_ptr & 0xf0) == 0xe0)
+        return 3;
+    else if ((*utf8_char_ptr & 0xf8) == 0xf0)
+        return 4;
     
-    THROW(SIM_RC_ERR_INVALARG);
+    THROW(SIM_ERR_INVALARG, "(%s) Invalid UTF-8 sequence", FUNCTION_NAME);
+}
+
+// sim_utf8_get_codepoint_size(1): Retrieves the number of bytes needed to store a codepoint as a
+//                                 UTF-8 multibyte sequence.
+size_t sim_utf8_get_codepoint_size(uint32 utf_codepoint) {
+    if (utf_codepoint < 0x7f)
+        return 1;
+    else if (utf_codepoint <= 0x7ff)
+        return 2;
+    else if (utf_codepoint >= 0xd800 && utf_codepoint <= 0xdfff)
+        THROW(SIM_ERR_INVALARG, "(%s) Invalid UTF codepoint", FUNCTION_NAME);
+    else if (utf_codepoint <= 0xffff)
+        return 3;
+    else if (utf_codepoint <= 0x10ffff)
+        return 4;
+
+    THROW(SIM_ERR_INVALARG, "(%s) Invalid UTF codepoint", FUNCTION_NAME);
 }
 
 // sim_utf8_next_char(1): Retrieves a pointer to the next UTF-8 character in a UTF-8 string.
@@ -100,19 +117,16 @@ char* sim_utf8_next_char(char* utf8_char_ptr) {
 // sim_utf8_strlen(1): Retrieves the length of a null-terminated UTF-8 string.
 size_t sim_utf8_strlen(const char* utf8_string) {
     if (!utf8_string)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
 
-    size_t count = 0, change;
-    while (*utf8_string) {
-        change = sim_utf8_get_char_size(utf8_string);
-        if (change == 0)
-            THROW(SIM_RC_ERR_INVALARG);
-
-        utf8_string += change;
+    size_t count = (size_t)-1, change;
+    do {
         count++;
-    }
+        change = sim_utf8_get_char_size(utf8_string);
+        utf8_string += change;
+    } while (*utf8_string && change);
 
-    RETURN(SIM_RC_SUCCESS, count);
+    return count;
 }
 
-#endif /* SIMSOFT_UTF8_C_ */
+#endif // SIMSOFT_UTF8_C_
