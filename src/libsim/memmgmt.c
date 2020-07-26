@@ -45,7 +45,7 @@ void* sim_memmgmt_map_fixed_file_ptr(
     Sim_MemoryAccess mem_access_flags
 ) {
     if (!file_ptr)
-        THROW(SIM_ERR_BADFILE, "(%s) Argument 1 cannot be NULL", FUNCTION_NAME);
+        THROW(SIM_ERR_BADFILE, "(%s) Argument 1 is NULL", FUNCTION_NAME);
     if (length == 0)
         THROW(SIM_ERR_INVALARG, "(%s) Argument 2 cannot be 0", FUNCTION_NAME);
 
