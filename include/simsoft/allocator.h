@@ -2,8 +2,8 @@
  * @file allocator.h
  * @author Simon Struthers (snstruthers@gmail.com)
  * @brief Header for allocator inferface
- * @version 0.1
- * @date 2020-01-06
+ * @version 0.2
+ * @date 2020-07-04
  * 
  * @copyright Copyright (c) 2020 LGPLv3
  * 
@@ -12,187 +12,174 @@
 #ifndef SIMSOFT_ALLOCATOR_H_
 #define SIMSOFT_ALLOCATOR_H_
 
-#include "./common.h"
+#include "macro.h"
+#include "typedefs.h"
 
 CPP_NAMESPACE_START(SimSoft)
-    CPP_NAMESPACE_C_API_START /* C API */
+    CPP_NAMESPACE_C_API_START // start C API
+
+        typedef struct Sim_IAllocator Sim_IAllocator;
 
         /**
-         * @typedef Sim_MemAllocProc
-         * @headerfile allocator.h "simsoft/allocator.h"
-         * @brief Function pointer for dynamic memory allocation.
+         * @brief Virtual function pointer for dynamic memory allocation.
          * 
-         * @param[in] size How much memory to allocate.
+         * @param[in,out] alloc Pointer to the allocator associated with this function.
+         * @param[in]     size  How much memory to allocate.
          * 
-         * @return @c NULL if out of memory; pointer to allocated space otherwise.
+         * @returns @c NULL if out of memory; pointer to allocated space otherwise.
          * 
-         * @sa Sim_MemFilledAllocProc
-         * @sa Sim_MemReallocProc
-         * @sa Sim_MemFreeProc
+         * @sa Sim_AllocatorCallocProc
+         * @sa Sim_AllocatorResizeProc
+         * @sa Sim_AllocatorFreeProc
          */
-        typedef void* (*Sim_MemAllocProc)(
-            size_t size
+        typedef void* (*Sim_AllocatorAllocProc)(
+            Sim_IAllocator *const alloc,
+            size_t                size
         );
 
         /**
-         * @typedef Sim_MemFilledAllocProc
-         * @headerfile allocator.h "simsoft/allocator.h"
-         * @brief Function pointer for filled dynamic memory allocation.
+         * @brief Virtual function pointer for zero-filled array dynamic memory allocation.
          * 
-         * @param[in] size How much memory to allocate.
-         * @param[in] fill An unsigned byte to fill the allocated memory with.
+         * @param[in,out] alloc Pointer to the allocator associated with this function.
+         * @param[in]     count How many elements to allocate.
+         * @param[in]     size  How much memory each element is sized.
          * 
-         * @return @c NULL if out of memory; pointer to allocated space otherwise. 
+         * @returns @c NULL if out of memory; pointer to allocated space otherwise. 
          * 
-         * @sa Sim_MemAllocProc
-         * @sa Sim_MemReallocProc
-         * @sa Sim_MemFreeProc
+         * @sa Sim_AllocatorAllocProc
+         * @sa Sim_AllocatorResizeProc
+         * @sa Sim_AllocatorFreeProc
          */
-        typedef void* (*Sim_MemFilledAllocProc)(
-            size_t size,
-            uint8 fill
+        typedef void* (*Sim_AllocatorCallocProc)(
+            Sim_IAllocator *const alloc,
+            size_t                count,
+            size_t                size
         );
 
         /**
-         * @typedef Sim_MemReallocProc
-         * @headerfile allocator.h "simsoft/allocator.h"
-         * @brief Function pointer for dynamic memory reallocation.
+         * @brief Virtual function pointer for dynamic memory reallocation.
          * 
-         * @param[in] ptr  Pointer to malloc'd/falloc'd memory to reallocate.
-         * @param[in] size Size request for reallocated memory.
+         * @param[in,out] alloc Pointer to the allocator associated with this function.
+         * @param[in]     ptr   Pointer to memory allocated by @e alloc to reallocate.
+         * @param[in]     size  Size request for reallocated memory.
          * 
-         * @return @c NULL if out of memory; pointer to reallocated space otherwise.
+         * @returns @c NULL if out of memory; pointer to reallocated space otherwise.
          * 
-         * @sa Sim_MemAllocProc
-         * @sa Sim_MemFilledAllocProc
-         * @sa Sim_MemFreeProc
+         * @sa Sim_AllocatorAllocProc
+         * @sa Sim_AllocatorCallocProc
+         * @sa Sim_AllocatorFreeProc
          */
-        typedef void* (*Sim_MemReallocProc)(
-            void* ptr,
-            size_t size
+        typedef void* (*Sim_AllocatorResizeProc)(
+            Sim_IAllocator *const alloc,
+            void*                 ptr,
+            size_t                size
         );
 
         /**
-         * @typedef Sim_MemFreeProc
-         * @headerfile allocator.h "simsoft/allocator.h"
-         * @brief Function pointer for freeing dynamically allocated memory.
+         * @brief Virtual function pointer for freeing dynamically allocated memory.
          * 
-         * @param[in] ptr Pointer to malloc'd/falloc'd/realloc'd memory to free.
+         * @param[in,out] alloc Pointer to the allocator associated with this function.
+         * @param[in]     ptr   Pointer to memory allocated by @e alloc to free.
          * 
-         * @sa Sim_MemAllocProc
-         * @sa Sim_MemReallocProc
-         * @sa Sim_MemFreeProc
+         * @sa Sim_AllocatorAllocProc
+         * @sa Sim_AllocatorCallocProc
+         * @sa Sim_AllocatorResizeProc
          */
-        typedef void  (*Sim_MemFreeProc)(
-            void* ptr
+        typedef void  (*Sim_AllocatorFreeProc)(
+            Sim_IAllocator *const alloc,
+            void*                 ptr
         );
 
-
         /**
-         * @struct Sim_IAllocator
-         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief Interface for a memory allocator.
-         * 
-         * @var Sim_IAllocator::malloc
-         *     Memory allocation function.
-         * @var Sim_IAllocator::falloc
-         *     Filled memory allocation function.
-         * @var Sim_IAllocator::realloc
-         *     Memory reallocation function.
-         * @var Sim_IAllocator::free
-         *     Allocated memory free function.
          */
-        typedef struct Sim_IAllocator {
-            Sim_MemAllocProc       malloc;
-            Sim_MemFilledAllocProc falloc;
-            Sim_MemReallocProc     realloc;
-            Sim_MemFreeProc        free;
-        } Sim_IAllocator;
+        struct Sim_IAllocator {
+            Sim_AllocatorAllocProc  alloc;  ///< Memory allocation function.
+            Sim_AllocatorCallocProc calloc; ///< Filled memory allocation function.
+            Sim_AllocatorResizeProc resize; ///< Memory reallocation function.
+            Sim_AllocatorFreeProc   free;   ///< Memory deallocation function.
+        };
 
         /**
-         * @fn void* sim_allocator_default_malloc(size_t)
-         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief The default memory allocation function used by the default allocator.
          * 
-         * @param[in] size How much memory to allocate.
+         * @param[in,out] alloc Pointer to the allocator associated with this function.
+         * @param[in]     size  How much memory to allocate.
          * 
-         * @return @c NULL if out of memory; pointer to allocated space otherwise.
+         * @returns @c NULL if out of memory; pointer to allocated space otherwise.
          * 
-         * @sa sim_allocator_default_falloc
-         * @sa sim_allocator_default_realloc
+         * @sa sim_allocator_default_calloc
+         * @sa sim_allocator_default_resize
          * @sa sim_allocator_default_free
          */
-        extern EXPORT void* C_CALL sim_allocator_default_malloc(
+        DYNAPI_PROC(void*, sim_allocator_default_alloc,,
+            Sim_IAllocator *const alloc,
             size_t size
         );
 
         /**
-         * @fn void* sim_allocator_default_falloc(size_t, uint8)
-         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief The default filled memory allocation function used by the default allocator.
          * 
-         * @param[in] size How much memory to allocate.
-         * @param[in] fill An unsigned byte to fill the allocated memory with.
+         * @param[in,out] alloc Pointer to the allocator associated with this function.
+         * @param[in]     count How many elements to allocate.
+         * @param[in]     size  How much memory each element is sized.
          * 
-         * @return @c NULL if out of memory; pointer to allocated space otherwise.
+         * @returns @c NULL if out of memory; pointer to allocated space otherwise.
          * 
-         * @sa sim_allocator_default_malloc
-         * @sa sim_allocator_default_realloc
+         * @sa sim_allocator_default_alloc
+         * @sa sim_allocator_default_resize
          * @sa sim_allocator_default_free
          */
-        extern EXPORT void* C_CALL sim_allocator_default_falloc(
-            size_t size,
-            uint8 fill
+        DYNAPI_PROC(void*, sim_allocator_default_calloc,,
+            Sim_IAllocator *const alloc,
+            size_t count,
+            size_t size
         );
 
         /**
-         * @fn void* sim_allocator_default_realloc(void*, size_t)
-         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief The default memory reallocation function used by the default allocator.
          * 
-         * @param[in] ptr  Pointer to malloc'd/falloc'd memory to reallocate.
-         * @param[in] size Size request for reallocated memory.
+         * @param[in,out] alloc Pointer to the allocator associated with this function.
+         * @param[in]     ptr   Pointer to malloc'd/falloc'd memory to reallocate.
+         * @param[in]     size  Size request for reallocated memory.
          * 
-         * @return @c NULL if out of memory; pointer to reallocated space otherwise.
+         * @returns @c NULL if out of memory; pointer to reallocated space otherwise.
          * 
-         * @sa sim_allocator_default_malloc
-         * @sa sim_allocator_default_falloc
+         * @sa sim_allocator_default_alloc
+         * @sa sim_allocator_default_calloc
          * @sa sim_allocator_default_free
          */
-        extern EXPORT void* C_CALL sim_allocator_default_realloc(
+        DYNAPI_PROC(void*, sim_allocator_default_resize,,
+            Sim_IAllocator *const alloc,
             void*  ptr,
             size_t size
         );
 
         /**
-         * @fn void sim_allocator_default_free(void*)
-         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief The default memory free function used by the default allocator.
          * 
-         * @param[in] ptr Pointer to malloc'd/falloc'd/realloc'd memory to free.
+         * @param[in,out] alloc Pointer to the allocator associated with this function.
+         * @param[in]     ptr   Pointer to malloc'd/falloc'd/realloc'd memory to free.
          * 
-         * @sa sim_allocator_default_malloc
-         * @sa sim_allocator_default_falloc
-         * @sa sim_allocator_default_realloc
+         * @sa sim_allocator_default_alloc
+         * @sa sim_allocator_default_calloc
+         * @sa sim_allocator_default_resize
          */
-        extern EXPORT void  C_CALL sim_allocator_default_free(
+        DYNAPI_PROC(void, sim_allocator_default_free,,
+            Sim_IAllocator *const alloc,
             void* ptr
         );
 
         /**
-         * @fn const Sim_IAllocator *const sim_allocator_get_default(void)
-         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief Retrieve the default allocator.
          * 
-         * @return Pointer to the default allocator.
+         * @returnsPointer to the default allocator.
          * 
          * @sa sim_allocator_set_default
          */
-        extern EXPORT const Sim_IAllocator *const C_CALL sim_allocator_get_default(void);
+        DYNAPI_PROC(Sim_IAllocator*, sim_allocator_get_default,, void);
         
         /**
-         * @fn void sim_allocator_set_default(Sim_IAllocator *const)
-         * @headerfile allocator.h "simsoft/allocator.h"
          * @brief Set the default allocator.
          * 
          * @param[in] allocator Pointer to an allocator to use as the default or @c NULL to
@@ -200,33 +187,16 @@ CPP_NAMESPACE_START(SimSoft)
          * 
          * @sa sim_allocator_get_default
          */
-        extern EXPORT void C_CALL sim_allocator_set_default(
+        DYNAPI_PROC(void, sim_allocator_set_default,,
             Sim_IAllocator *const allocator
         );
     
-    CPP_NAMESPACE_C_API_END /* end C API */
+    CPP_NAMESPACE_C_API_END // end C API
+#   ifdef __cplusplus       // start C++ API
 
-#   ifdef __cplusplus /* C++ API */
-
-        class EXPORT Allocator {
-        private:
-            C_API::Sim_IAllocator _c_allocator;
         
-        public:
-            virtual void* malloc(size_t size) = 0;
-            virtual void* falloc(size_t size, ubyte fill = 0x00) = 0;
-            virtual void* realloc(void* ptr, size_t size) = 0;
-            virtual void  free(void* ptr) = 0;
-
-            Allocator();
-            virtual ~Allocator() = 0;
-
-            C_API::Sim_IAllocator *const get_c_allocator() const {
-                return &_c_allocator;
-            }
-        }
         
-#   endif /* end C++ API */
-CPP_NAMESPACE_END(SimSoft) /* end SimSoft namespace */
+#   endif // end C++ API
+CPP_NAMESPACE_END(SimSoft)
 
-#endif /* SIMSOFT_ALLOCATOR_H_ */
+#endif // SIMSOFT_ALLOCATOR_H_
