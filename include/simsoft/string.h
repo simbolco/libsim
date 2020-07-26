@@ -2,8 +2,8 @@
  * @file string.h
  * @author Simon Struthers (snstruthers@gmail.com)
  * @brief Header for strings & related functions
- * @version 0.1
- * @date 2020-03-31
+ * @version 0.2
+ * @date 2020-07-26
  * 
  * @copyright Copyright (c) 2020 LGPLv3
  * 
@@ -12,427 +12,262 @@
 #ifndef SIMSOFT_STRING_H_
 #define SIMSOFT_STRING_H_
 
-#include "./common.h"
-#include "./allocator.h"
+#include "macro.h"
+#include "typedefs.h"
 
 CPP_NAMESPACE_START(SimSoft)
-    CPP_NAMESPACE_C_API_START /* C API */
+    CPP_NAMESPACE_C_API_START // start C API
 
 // == BASIC STRING =================================================================================
 
 #       ifndef SIM_STRING_INTERNAL_CAPACITY
-#           define SIM_STRING_INTERNAL_CAPACITY 16
+#           define SIM_STRING_INTERNAL_CAPACITY (16)
 #       endif
 
         /**
-         * @struct Sim_String
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Basic string type
-         * 
-         * @tparam _allocator_ptr Pointer to allocator used when allocating large strings.
-         * 
-         * @var Sim_String::c_string
-         *     Pointer to the array containing the string.
-         * @var Sim_String::length
-         *     The number of chars in the string.
-         * @var Sim_String::_allocated @private
-         *     The amount of space allocated when using a large string.
-         * @var Sim_String::_internal_data @private
-         *     Internal char array for short strings.
-         * @var Sim_String::_is_large_string @private
-         *     Flag for whether or not this is a large or short string.
-         * @var Sim_String::_hash1 @private
-         *     Cached hash1 value for the string.
-         * @var Sim_String::_hash2 @private
-         *     Cached hash2 value for the string.
-         * @var Sim_String::_hash_dirty @private
-         *     Flag saying whether or not the cached hash values are invalid.
+         * @brief Immutable string type
          */
         typedef struct Sim_String {
-            char*  c_string;
-            size_t length;
-            
-            // the last byte of _internal_data is a flag bit:
-            //   0 = small string + null terminator;
-            //   1 = large string
-            union {
-                size_t _allocated;
-                struct {
-                    char _internal_data[SIM_STRING_INTERNAL_CAPACITY - 1];
-                    char _is_large_string;
-                };
-            };
+            const char* c_string;   ///< Pointer to the array containing the string.
+            size_t length;          ///< The number of characters in the string.
 
-            const Sim_IAllocator *const _allocator_ptr;
+            Sim_HashType hash;      ///< hash code.
 
-            Sim_HashType _hash1;
-            Sim_HashType _hash2;
-            bool _hash_dirty;
+            bool _owns_string;
         } Sim_String;
 
         /**
-         * @fn void sim_string_construct(
-         *         Sim_String *const,
-         *         const Sim_IAllocator*,
-         *         size_t,
-         *         const char*
-         *     )
          * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Constructs a string.
+         * @brief Constructs a new string.
          * 
-         * @param[in,out] string_ptr      Pointer to an empty string to construct.
-         * @param[in]     allocator_ptr   Pointer to an allocator to use for large strings.
-         * @param[in]     c_string_length The number of chars in @e c_string.
-         * @param[in]     c_string        A C string.
+         * @param[in,out] string_ptr  Pointer to an empty string to construct.
+         * @param[in]     c_string    A C string.
+         * @param[in]     owns_string @c true if @e c_string should be freed when @e string_ptr
+         *                            is destroyed.
          * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e string_ptr is @c NULL;
-         *     @b SIM_RC_ERR_OUTOFMEM if @e c_string is a large string and couldn't be allocated;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e string_ptr is @c NULL
          * 
-         * @remarks If @e c_string is @c NULL or @e c_string_length equals 0, an empty string will
-         *          be allocated.
+         * @remarks If @e c_string is @c NULL, an empty string will be created.
          * 
          * @sa sim_string_construct_format
+         * @sa sim_string_copy
          * @sa sim_string_move
          * @sa sim_string_destroy
          */
-        extern EXPORT void C_CALL sim_string_construct(
-            Sim_String *const     string_ptr,
-            const Sim_IAllocator* allocator_ptr,
-            size_t                c_string_length,
-            const char*           c_string
+        DYNAPI_PROC(void, sim_string_construct,,
+            Sim_String *const string_ptr,
+            const char*       c_string,
+            bool              owns_string
         );
 
         /**
-         * @fn void sim_string_construct_format(
-         *         Sim_String *const,
-         *         const Sim_IAllocator*,
-         *         size_t,
-         *         const char*,
-         *         ...
-         *     )
          * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Constructs a string given a format string.
+         * @brief Constructs a new string using a format string.
          * 
          * @param[in,out] string_ptr    Pointer to an empty string to construct.
-         * @param[in]     allocator_ptr Pointer to an allocator to use for large strings.
-         * @param[in]     string_length The length of the string to be constructed.
          * @param[in]     format_string A format string.
          * @param[in]     ...           Format string parameters.
          * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e string_ptr is @c NULL;
-         *     @b SIM_RC_ERR_OUTOFMEM if the unformatted string is a large string and couldn't be
-         *                             allocated;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e string_ptr is @c NULL.
+         * @throw SIM_ERR_OUTOFMEM if the generated format string couldn't be allocated.
          * 
          * @remarks If @e string_length equals 0 and @e format_string != @c NULL, a string 
          *          will be allocated based on how large the deformatted string is.
-         * @remarks If @e format_string is @c NULL, an empty string will be
-         *          allocated.
+         * @remarks If @e format_string is @c NULL, an empty string will be created.
          * 
          * @sa sim_string_construct
+         * @sa sim_string_copy
          * @sa sim_string_move
          * @sa sim_string_destroy
          */
-        extern EXPORT void C_CALL sim_string_construct_format(
-            Sim_String *const     string_ptr,
-            const Sim_IAllocator* allocator_ptr,
-            size_t                string_length,
-            const char*           format_string,
+        DYNAPI_PROC(void, sim_string_construct_format, PRINTF_SPEC(2, 3),
+            Sim_String *const string_ptr,
+            const char*       format_string,
             ...
         );
 
         /**
-         * @fn void sim_string_copy(Sim_String *const, Sim_String *const)
          * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
          * @brief Copies the contents of one string into another.
          * 
          * @param[in,out] string_from_ptr Pointer to a string to copy contents from.
          * @param[in,out] string_to_ptr   Pointer to a string to paste contents into.
          * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e string_from_ptr or @e string_to_ptr are @c NULL;
-         *     @b SIM_RC_ERR_OUTOFMEM if a copy of @e string_from_ptr's C string couldn't be
-         *                             allocated;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e string_from_ptr or @e string_to_ptr are @c NULL.
+         * @throw SIM_ERR_OUTOFMEM if @e string_from_ptr couldn't be duplicated.
          * 
          * @sa sim_string_construct
          * @sa sim_string_construct_format
+         * @sa sim_string_move
          * @sa sim_string_destroy
          */
-        extern EXPORT void C_CALL sim_string_copy(
-            Sim_String *const string_from_ptr,
-            Sim_String *const string_to_ptr
+        DYNAPI_PROC(void, sim_string_copy,,
+            Sim_String *const RESTRICT string_from_ptr,
+            Sim_String *const RESTRICT string_to_ptr
         );
 
         /**
-         * @fn void sim_string_move(Sim_String *const, Sim_String *const)
          * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
          * @brief Moves the contents of one string to another.
          * 
          * @param[in,out] string_from_ptr Pointer to a string to take contents from.
          * @param[in,out] string_to_ptr   Pointer to a string to move contents into.
          * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e string_from_ptr or @e string_to_ptr are @c NULL;
-         *     @b SIM_RC_SUCCESS      otherwise.
-         * 
-         * @sa sim_string_construct
-         * @sa sim_string_construct_format
-         * @sa sim_string_destroy
-         */
-        extern EXPORT void C_CALL sim_string_move(
-            Sim_String *const string_from_ptr,
-            Sim_String *const string_to_ptr
-        );
-
-        /**
-         * @fn void sim_string_destroy(Sim_String *const)
-         * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Destroys a string.
-         * 
-         * @param[in,out] string_ptr Pointer to a string to destroy.
-         * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR if @e string_ptr is @c NULL ;
-         *     @b SIM_RC_SUCCESS     otherwise.
+         * @throw SIM_ERR_NULLPTR if @e string_from_ptr or @e string_to_ptr are @c NULL.
          * 
          * @sa sim_string_construct
          * @sa sim_string_construct_format
          * @sa sim_string_move
+         * @sa sim_string_destroy
          */
-        extern EXPORT void C_CALL sim_string_destroy(
+        DYNAPI_PROC(void, sim_string_move,,
+            Sim_String *const RESTRICT string_from_ptr,
+            Sim_String *const RESTRICT string_to_ptr
+        );
+
+        /**
+         * @relates @capi{Sim_String}
+         * @brief Destroys a string.
+         * 
+         * @param[in,out] string_ptr Pointer to a string to destroy.
+         * 
+         * @throw SIM_ERR_NULLPTR if @e string_ptr is @c NULL.
+         * 
+         * @sa sim_string_construct
+         * @sa sim_string_construct_format
+         * @sa sim_string_copy
+         * @sa sim_string_move
+         */
+        DYNAPI_PROC(void, sim_string_destroy,,
             Sim_String *const string_ptr
         );
 
         /**
-         * @fn void sim_string_is_empty(Sim_String *const)
          * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Checks if a vector is empty.
+         * @brief Checks if a string is empty.
          * 
          * @param[in,out] string_ptr Pointer to a string to check.
          * 
-         * @returns @c true if empty; @c false otherwise (see remarks).
+         * @returns @c true if empty; @c false otherwise.
          * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR if @e string_ptr is @c NULL ;
-         *     @b SIM_RC_SUCCESS     otherwise.
+         * @throw SIM_ERR_NULLPTR if @e string_ptr is @c NULL.
          */
-        extern EXPORT bool C_CALL sim_string_is_empty(
+        DYNAPI_PROC(bool, sim_string_is_empty,,
             Sim_String *const string_ptr
         );
 
         /**
-         * @fn size_t sim_string_get_allocated(Sim_String *const)
          * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Retrieves the number of bytes in memory that is allocated by the string.
+         * @brief Concatenates two strings together, placing the result into a third string.
          * 
-         * @param[in,out] string_ptr Pointer to a string to check.
+         * @param[in]     left_string_ptr  Pointer to left-hand string. 
+         * @param[in]     right_string_ptr Pointer to right-hand string.
+         * @param[in,out] string_to_ptr    Pointer to an empty string to populate.
          * 
-         * @returns The number of bytes @c string_ptr->c_string takes up; -1 on error (see remarks).
-         * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR if @e string_ptr is @c NULL ;
-         *     @b SIM_RC_SUCCESS     otherwise.
+         * @throw SIM_ERR_NULLPTR if @e left_string_ptr, @e right_string_ptr, or @e string_to_ptr
+         *                        are @c NULL.
          */
-        extern EXPORT size_t C_CALL sim_string_get_allocated(
-            Sim_String *const string_ptr
+        DYNAPI_PROC(void, sim_string_concat,,
+            Sim_String *const          left_string_ptr,
+            Sim_String *const          right_string_ptr,
+            Sim_String *const RESTRICT string_to_ptr 
         );
 
         /**
-         * @fn Sim_HashType sim_string_get_hash(Sim_String *const, const size_t)
          * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Retrieves the hash value of a string.
-         * 
-         * @param[in,out] string_ptr Pointer to a string to check.
-         * @param[in]     attempt    The hashing attempt.
-         * 
-         * @returns 0 if @e string_ptr is @c NULL; the hash value of the given string otherwise.
-         *          sim_return_code() is not set.
-         */
-        extern EXPORT Sim_HashType C_CALL sim_string_get_hash(
-            Sim_String *const string_ptr,
-            const size_t      attempt
-        );
-
-        /**
-         * @fn bool sim_string_insert(Sim_String *const, const size_t, const char*, const size_t)
-         * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
          * @brief Inserts a new string at a given position.
          * 
-         * @param[in,out] string_ptr        Pointer to a string to insert the new string into.
+         * @param[in,out] string_ptr        Pointer to a string to insert the combined string into.
+         * @param[in]     old_string_length The length of @e old_string.
+         * @param[in]     old_string        The string to insert @e new_string into.
          * @param[in]     new_string_length The length of the to-be inserted string.
          * @param[in]     new_string        The string to be inserted.
          * @param[in]     index             Where in @e string_ptr to insert @e new_string.
          * 
-         * @returns @c true if successful; @c false otherwise (see remarks).
+         * @throw SIM_ERR_NULLPTR  if @e string_ptr is @c NULL;
+         * @throw SIM_ERR_OUTOFBND if @e index > @e old_string_length;
+         * @throw SIM_ERR_OUTOFMEM if @e string_ptr couldn't be resized.
          * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e string_ptr is @c NULL ;
-         *     @b SIM_RC_ERR_OUTOFMEM if @e string_ptr couldn't be resized;
-         *     @b SIM_RC_ERR_OUTOFBND if @e index > @c string_ptr->length;
-         *     @b SIM_RC_SUCCESS      otherwise.
-         * 
-         * @remarks if @e new_string is @c NULL, nothing happens and is considered a success.
+         * @remarks if @e new_string is @c NULL, @e old_string is copied into @e string_ptr.
+         * @remarks if @e old_string is @c NULL, @e new_string is copied into @e string_ptr.
          */
-        extern EXPORT bool C_CALL sim_string_insert(
+        DYNAPI_PROC(void, sim_string_insert,,
             Sim_String *const string_ptr,
-            const size_t      new_string_length,
+            size_t            old_string_length,
+            const char*       old_string,
+            size_t            new_string_length,
             const char*       new_string,
-            const size_t      index
+            size_t            index
         );
 
         /**
-         * @fn bool sim_string_append(Sim_String *const, const size_t, const char*)
          * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Appends a new string to the back of a string.
-         * 
-         * @param[in,out] string_ptr        Pointer to a string to insert the new string into.
-         * @param[in]     new_string_length The length of the to-be inserted string.
-         * @param[in]     new_string        The string to be appended.
-         * 
-         * @returns @c true if successful; @c false otherwise (see remarks).
-         * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e string_ptr is @c NULL ;
-         *     @b SIM_RC_ERR_OUTOFMEM if @e string_ptr couldn't be resized;
-         *     @b SIM_RC_SUCCESS      otherwise.
-         * 
-         * @remarks if @e new_string is @c NULL, nothing happens and is considered a success.
-         */
-        extern EXPORT bool C_CALL sim_string_append(
-            Sim_String *const string_ptr,
-            const size_t      new_string_length,
-            const char*       new_string
-        );
-
-        /**
-         * @fn void sim_string_remove(Sim_String *const, const size_t, const size_t)
-         * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
          * @brief Removes a section of a string.
          * 
-         * @param[in,out] string_ptr Pointer to a string to remove a section from. 
-         * @param[in]     index      The index to start removing from.
-         * @param[in]     length     How many chars to remove from the string.
+         * @param[in,out] string_ptr        Pointer to a string to insert the sliced string into.
+         * @param[in]     old_string_length The length of @e old_string.
+         * @param[in]     old_string        The string to be sliced.
+         * @param[in]     index             The index to start removing from.
+         * @param[in]     length            How many chars to remove from the string.
          * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e string_ptr is @c NULL;
-         *     @b SIM_RC_ERR_OUTOFBND if @e index or @e index + @e length >= @c string_ptr->length;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e string_ptr is @c NULL;
+         * @throw SIM_ERR_OUTOFBND if @e index or @e index + @e length >= @e old_string_length.
+         * @throw SIM_ERR_OUTOFMEM
+         * 
+         * @remarks if @e old_string is @c NULL, a blank string is copied into @e string_ptr.
+         * @remarks if @e index + @e length is 0, @e old_string is copied into @e string_ptr.
+         * 
+         * @warning This function is currently unimplemented.
          */
-        extern EXPORT void C_CALL sim_string_remove(
+        DYNAPI_PROC(void, sim_string_remove,,
             Sim_String *const string_ptr,
-            const size_t      index,
-            const size_t      length
+            size_t            old_string_length,
+            const char*       old_string,
+            size_t            index,
+            size_t            length
         );
 
         /**
-         * @fn size_t sim_string_find(Sim_String *const, const size_t, const char*, const size_t)
          * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Finds a substring within a string.
-         * 
-         * @param[in,out] string_ptr       Pointer to the string to find within.
-         * @param[in]     substring_length Length of @e substring.
-         * @param[in]     substring        The substring to find.
-         * @param[in]     starting_index   The index to start searching from.
-         * 
-         * @returns (size_t)-1 on error/failure (see remarks); the index of the substring otherwise.
-         * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e string_ptr or @e substring are @c NULL;
-         *     @b SIM_RC_ERR_OUTOFBND if @e starting_index >= @c string_ptr->length;
-         *     @b SIM_RC_NOT_FOUND    if @e substring wasn't contained in @e string_ptr;
-         *     @b SIM_RC_SUCCESS      otherwise.
-         */
-        extern EXPORT size_t C_CALL sim_string_find(
-            Sim_String *const string_ptr,
-            const size_t      substring_length,
-            const char*       substring,
-            const size_t      starting_index
-        );
-
-        /**
-         * @fn size_t sim_string_replace(
-         *         Sim_String *const,
-         *         const size_t,
-         *         const char*,
-         *         const size_t,
-         *         const char*,
-         *         const size_t
-         *     )
-         * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
          * @brief Replaces a substring within a string with another string.
          * 
-         * @param[in,out] string_ptr            Pointer to the string to replace within.
+         * @param[in,out] string_ptr            Pointer to a string to insert the substituted
+         *                                      string into.
+         * @param[in]     source_string_length  Length of @e source_string.
+         * @param[in]     source_string         The string to substitute substrings from.
          * @param[in]     find_string_length    Length of @e find_string.
          * @param[in]     find_string           The substring to replace.
          * @param[in]     replace_string_length Length of @e replace_string.
          * @param[in]     replace_string        The string to replace @e find_string.
-         * @param[in]     starting_index        The index to start searching from.
+         * @param[in]     starting_index        The index to start replacing from.
          * 
-         * @returns (size_t)-1 on error/failure (see remarks); the index where @e replace_string was
-         *          inserted into otherwise.
+         * @returns The index where @e replace_string was inserted into;
+         *          @c (size_t)-1 if no substitutions were made.
          * 
-         * @remarks sim_return_code() is set to one of the following:
-         *     @b SIM_RC_ERR_NULLPTR  if @e string_ptr, @e find_string, or @e replace_string are
-         *                            @c NULL;
-         *     @b SIM_RC_ERR_OUTOFBND if @e starting_index >= @c string_ptr->length;
-         *     @b SIM_RC_ERR_OUTOFMEM if @e string_ptr couldn't be resized to fit @e replace_string
-         *                            in place of @e find_string;
-         *     @b SIM_RC_FAILURE      if @e find_string wasn't contained in @e string_ptr;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e string_ptr is @c NULL;
+         * @throw SIM_ERR_OUTOFBND if @e starting_index >= @e source_string_length;
+         * @throw SIM_ERR_OUTOFMEM if @e string_ptr couldn't be resized to fit @e replace_string
+         *                            in place of @e find_string.
+         * 
+         * @warning This function is currently unimplemented.
          */
-        extern EXPORT size_t C_CALL sim_string_replace(
+        DYNAPI_PROC(size_t, sim_string_replace,,
             Sim_String *const string_ptr,
-            const size_t      find_string_length,
+            size_t            source_string_length,
+            const char*       source_string,
+            size_t            find_string_length,
             const char*       find_string,
-            const size_t      replace_string_length,
+            size_t            replace_string_length,
             const char*       replace_string,
-            const size_t      starting_index
+            size_t            starting_index
         );
-
-        /**
-         * @fn Sim_HashProc sim_string_get_default_hash_proc(void)
-         * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Retrieves the string hash function.
-         * 
-         * @returns The internal hash function used by strings.
-         */
-        extern EXPORT Sim_HashProc C_CALL sim_string_get_default_hash_proc(void);
-
-        /**
-         * @fn Sim_HashProc sim_string_set_default_hash_proc(Sim_HashProc)
-         * @relates @capi{Sim_String}
-         * @headerfile string.h "simsoft/string.h"
-         * @brief Sets the string hash function.
-         * 
-         * @param[in] hash_proc The hash function for strings to use; @c NULL for the default.
-         */
-        extern EXPORT void C_CALL sim_string_set_default_hash_proc(Sim_HashProc hash_proc);
     
-    CPP_NAMESPACE_C_API_END /* end C API */
-
-#   ifdef __cplusplus /* C++ API */
+    CPP_NAMESPACE_C_API_END // end C API
+#   ifdef __cplusplus       // start C++ API
         
         //
 
-#   endif /* end C++ API */
-CPP_NAMESPACE_END(SimSoft) /* end SimSoft namespace */
+#   endif // end C++ API
+CPP_NAMESPACE_END(SimSoft)
 
-#endif /* SIMSOFT_STRING_H_ */
+#endif // SIMSOFT_STRING_H_
