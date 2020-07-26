@@ -2,8 +2,8 @@
  * @file debug.c
  * @author Simon Struthers (snstruthers@gmail.com)
  * @brief Source file/implementation for simsoft/debug.h
- * @version 0.1
- * @date 2020-01-12
+ * @version 0.2
+ * @date 2020-07-04
  * 
  * @copyright Copyright (c) 2020
  * 
@@ -12,17 +12,18 @@
 #ifndef SIMSOFT_DEBUG_C_
 #define SIMSOFT_DEBUG_C_
 
-#include <string.h>
-
 #include "simsoft/debug.h"
 
-#include "./_internal.h"
+#include <string.h>
 
-#ifdef __WIN32__
+#include "./_internal.h"
+#ifdef _WIN32
 #   include <dbghelp.h>
 #elif defined(__GLIBC__)
 #   include <execinfo.h>
 #endif
+
+#include "simsoft/except.h"
 
 // sim_debug_get_backtrace_info(3): Retrieve stack backtrace information.
 size_t sim_debug_get_backtrace_info(
@@ -32,7 +33,7 @@ size_t sim_debug_get_backtrace_info(
 ) {
     // check for nullptr
     if (!backtrace_array) 
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 is NULL", FUNCTION_NAME);
 
 #   ifdef _WIN32
         // get process/thread handles
@@ -51,8 +52,8 @@ size_t sim_debug_get_backtrace_info(
         SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
         if (!SymInitialize(process_handle, NULL, true))
         {
-            _sim_win32_print_last_error("SymInitialize(%p, %p, true)", process_handle, NULL);
-            RETURN(SIM_RC_FAILURE, 0);
+            //_sim_win32_print_last_error("SymInitialize(%p, %p, true)", process_handle, NULL);
+            return 0;
         }
 
         // prepare stack frame struct
@@ -134,7 +135,7 @@ size_t sim_debug_get_backtrace_info(
                             free(backtrace_array[index].function_name);
                             backtrace_array[index].function_address = NULL;
                         }
-                        THROW(SIM_RC_ERR_OUTOFMEM);
+                        THROW(SIM_ERR_OUTOFMEM, "Couldn't allocate backtrace strings");
                     }
                     
                     // get line/file info from address
@@ -154,27 +155,27 @@ size_t sim_debug_get_backtrace_info(
                                 free(backtrace_array[index].function_name);
                                 backtrace_array[index].function_address = NULL;
                             }
-                            THROW(SIM_RC_ERR_OUTOFMEM);
+                            THROW(SIM_ERR_OUTOFMEM, "Couldn't allocate backtrace strings");
                         }
                     } else {
-                        _sim_win32_print_last_error(
+                        /*_sim_win32_print_last_error(
                             "SymGetLineFromAddr64(%p, %p, %p, %p)",
                             process_handle,
                             backtrace_array[index].function_address,
                             NULL,
                             &line_info
-                        );
+                        );*/
                         backtrace_array[index].file_name = NULL;
                         backtrace_array[index].line_number = 0;
                     }
                 } else {
-                    _sim_win32_print_last_error(
+                    /*_sim_win32_print_last_error(
                         "SymFromAddr(%p, %p, %p, %p)",
                         process_handle,
                         backtrace_array[index].function_address,
                         NULL,
                         symbol_info_ptr
-                    );
+                    );*/
                     backtrace_array[index].function_name = NULL;
                     backtrace_array[index].file_name = NULL;
                     backtrace_array[index].line_number = 0;
@@ -185,11 +186,12 @@ size_t sim_debug_get_backtrace_info(
         }
 
         // cleanup symbol handler
-        if (!SymCleanup(process_handle)) {
+        SymCleanup(process_handle);
+        /*if (!SymCleanup(process_handle)) {
             _sim_win32_print_last_error("SymCleanup(%p)", process_handle);
-        }
+        }*/
         
-        RETURN(SIM_RC_SUCCESS, index);
+        return index;
 
 #   elif defined(__GLIBC__)
         // get backtrace addresses
@@ -217,20 +219,21 @@ size_t sim_debug_get_backtrace_info(
                         backtrace_array[j].function_address = NULL;
                     }
                     
-                    THROW(SIM_RC_ERR_OUTOFMEM);
+                    THROW(SIM_ERR_OUTOFMEM, "Couldn't allocate backtrace strings");
                 }
             } else
                 backtrace_array[i - skip_frames].function_name = NULL;
         }
 
         free(backtrace_symbol_array);
-        RETURN(SIM_RC_SUCCESS, i);
+        return i;
 
 #   else
 #       warning("sim_get_backtrace_info(3) is unsupported")
-        (void)backtrace_array; (void)backtrace_size; (void)skip_frames;
-        THROW(SIM_RC_ERR_UNSUPRTD);
+        UNUSED(backtrace_array, backtrace_size, skip_frames)
+
+        THROW(SIM_ERR_UNSUPRTD, "%s is unsupported", FUNCTION_NAME)
 #   endif
 }
 
-#endif /* SIMSOFT_DEBUG_C_ */
+#endif // SIMSOFT_DEBUG_C_
