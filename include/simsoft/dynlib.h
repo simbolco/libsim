@@ -2,8 +2,8 @@
  * @file dynlib.h
  * @author Simon Struthers (snstruthers@gmail.com)
  * @brief Header for dynamic library/shared object loading functions
- * @version 0.1
- * @date 2020-01-23
+ * @version 0.2
+ * @date 2020-07-04
  * 
  * @copyright Copyright (c) 2020 LGPLv3
  * 
@@ -12,104 +12,72 @@
 #ifndef SIMSOFT_DYNLIB_H_
 #define SIMSOFT_DYNLIB_H_
 
-#include "./common.h"
+#include "macro.h"
 
 CPP_NAMESPACE_START(SimSoft)
-    CPP_NAMESPACE_C_API_START /* C API */
+    CPP_NAMESPACE_C_API_START // start C API
         
         /**
-         * @typedef Sim_LibraryHandle
-         * @headerfile dynlib.h "simsoft/dynlib.h"
          * @brief Dynamic library handle
          */
         typedef void* Sim_LibraryHandle;
 
         /**
-         * @fn Sim_LibraryHandle sim_dynlib_load(const char*)
-         * @headerfile dynlib.h "simsoft/dynlib.h"
          * @brief Loads a dynamic library via filename during runtime.
          * 
          * @param[in]  filename           Filename of the dynamic library.
          * @param[out] out_library_handle Pointer to fill with resulting library handle.
          * 
-         * @return @c NULL on error (see remarks); handle to dynamic library otherwise.
+         * @returns @c NULL if the OS couldn't load the library;
+         *          handle to dynamic library otherwise.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_UNSUPRTD if not supported using your build configuration;
-         *     @b SIM_RC_ERR_NULLPTR  if @e filename is @c NULL ;
-         *     @b SIM_RC_FAILURE      if library could not be loaded;;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e filename is @c NULL;
+         * @throw SIM_ERR_UNSUPRTD if the operation isn't supported by the OS.
          * 
-         * @todo Use more specific error codes in the future.
+         * TODO: Use more specific error codes in the future.
          */
-        extern EXPORT Sim_LibraryHandle C_CALL sim_dynlib_load(
+        DYNAPI_PROC(Sim_LibraryHandle, sim_dynlib_load,,
             const char* filename
         );
 
         /**
-         * @fn void sim_dynlib_unload(Sim_LibraryHandle)
-         * @headerfile dynlib.h "simsoft/dynlib.h"
          * @brief Unloads a dynamic library handle.
          * 
          * @param[in] library_handle Handle of a dynamic library to unload.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_UNSUPRTD if not supported using your build configuration;
-         *     @b SIM_RC_ERR_NULLPTR  if @e library_handle is @c NULL ;
-         *     @b SIM_RC_FAILURE      if library could not be unloaded;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e library_handle is @c NULL;
+         * @throw SIM_ERR_UNSUPRTD if the operation isn't supported by the OS.
          * 
-         * @todo Use more specific error codes in the future.
+         * TODO: Use more specific error codes in the future.
          */
-        extern void C_CALL sim_dynlib_unload(
+        DYNAPI_PROC(void, sim_dynlib_unload,,
             Sim_LibraryHandle library_handle
         );
 
         /**
-         * @fn void* sim_dynlib_find_symbol(Sim_LibraryHandle, const char*)
-         * @headerfile dynlib.h "simsoft/dynlib.h"
          * @brief Retrieves a function from a dynamic library via a symbol.
          * 
          * @param[in]  library_handle   Handle of a dynamic library.
          * @param[in]  symbol_name      The symbol to look for in the dynamic library.
          * 
-         * @return @c NULL on error (see remarks);
-         *         pointer corresponding to the given symbol name otherwise.
+         * @returns @c NULL if the symbol couldn't be resolved;
+         *          pointer corresponding to the given symbol name otherwise.
          * 
-         * @remarks sim_return_code() is set to one of the folliwng:
-         *     @b SIM_RC_ERR_UNSUPRTD if not supported using your build configuration;
-         *     @b SIM_RC_ERR_NULLPTR  if @e library_handle or @e symbol_name are @c NULL ;
-         *     @b SIM_RC_FAILURE      if the symbol couldn't be found/resolved;
-         *     @b SIM_RC_SUCCESS      otherwise.
+         * @throw SIM_ERR_NULLPTR  if @e library_handle or @e symbol_name are @c NULL;
+         * @throw SIM_ERR_UNSUPRTD if the operation isn't supported by the OS.
          * 
-         * @todo Use more specific error codes in the future.
+         * TODO: Use more specific error codes in the future.
          */
-        extern EXPORT void* C_CALL sim_dynlib_find_symbol(
+        DYNAPI_PROC(void*, sim_dynlib_find_symbol,,
             Sim_LibraryHandle library_handle,
             const char*       symbol_name
         );
     
-    CPP_NAMESPACE_C_API_END /* end C API */
+    CPP_NAMESPACE_C_API_END // end C API
 
-#   ifdef __cplusplus /* C++ API */
-        
-        class EXPORT Library {
-        private:
-            C_API::Sim_LibraryHandle _library_handle;
+#   ifdef __cplusplus // start C++ API
 
-        public:
-            Library(const char* filename);
-            Library(const Library& other);
-            Library(Library&& other);
-            virtual ~Library();
+#   endif // end C++ API
+CPP_NAMESPACE_END(SimSoft) // end SimSoft namespace
 
-            Library& operator=(const Library& other);
-            Library& operator=(Library&& other);
-
-            void* find_symbol(const char* symbol_name);
-        };
-
-#   endif /* end C++ API */
-CPP_NAMESPACE_END(SimSoft) /* end SimSoft namespace */
-
-#endif /* SIMSOFT_DYNLIB_H_ */
+#endif // SIMSOFT_DYNLIB_H_

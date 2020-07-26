@@ -13,19 +13,22 @@
 #define SIMSOFT_DYNLIB_C_
 
 #include "simsoft/dynlib.h"
-#include "simsoft/hashmap.h"
-#include "./_internal.h"
 
-#ifdef __unix__
+#include <stddef.h>
+
+#include "./_internal.h"
+#if defined(__unix__)
 #   include <dlfcn.h>
 #endif
+
+#include "simsoft/except.h"
 
 // sim_dynlib_load(1): Loads a dynamic library via filename during runtime.
 Sim_LibraryHandle sim_dynlib_load(
     const char* filename
 ) {
     if (!filename)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
         
 #   ifdef _WIN32
         HMODULE library_handle = LoadLibraryA(filename);
@@ -34,10 +37,10 @@ Sim_LibraryHandle sim_dynlib_load(
                 "LoadLibraryA(\"%s\")",
                 filename
             );
-            RETURN(SIM_RC_FAILURE, NULL);
+            return NULL;
         }
 
-        RETURN(SIM_RC_SUCCESS, library_handle);
+        return (Sim_LibraryHandle)library_handle;
 #   elif defined(__unix__)
         void* library_handle = dlopen(filename, RTLD_LAZY);
         if (!library_handle) {
@@ -46,14 +49,12 @@ Sim_LibraryHandle sim_dynlib_load(
                 filename,
                 dlerror()
             );
-            RETURN(SIM_RC_FAILURE, NULL);
+            return NULL;
         }
 
-        RETURN(SIM_RC_FAILURE, library_handle);
+        return (Sim_LibraryHandle)library_handle;
 #   else
-#       warning("sim_dynlib_load(2) is unsupported")
-        (void)filename; (void)out_library_handle;
-        THROW(SIM_RC_ERR_UNSUPRTD);
+#       error("sim_dynlib_load(2) is unsupported")
 #   endif
 }
 
@@ -62,7 +63,7 @@ void sim_dynlib_unload(
     Sim_LibraryHandle library_handle
 ) {
     if (!library_handle)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     
 #   ifdef _WIN32
         if (!FreeLibrary((HMODULE)library_handle)) {
@@ -70,9 +71,7 @@ void sim_dynlib_unload(
                 "FreeLibrary(%p)",
                 library_handle
             );
-            RETURN(SIM_RC_FAILURE,);
         }
-        RETURN(SIM_RC_SUCCESS,);
 #   elif defined(__unix__)
         if (dlclose((void*)library_handle)) {
             _sim_unix_print_error(
@@ -80,13 +79,9 @@ void sim_dynlib_unload(
                 (void*)library_handle,
                 dlerror();
             );
-            RETURN(SIM_RC_FAILURE,);
         }
-        RETURN(SIM_RC_SUCCESS,);
 #   else
-#       warning("sim_dynlib_unload(1) is unsupported")
-        (void)library_handle;
-        THROW(SIM_RC_ERR_UNSUPRTD);
+#       error("sim_dynlib_unload(1) is unsupported")
 #   endif
 }
 
@@ -96,45 +91,43 @@ void* sim_dynlib_find_symbol(
     const char*       symbol_name
 ) {
     if (!library_handle)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 0 is NULL", FUNCTION_NAME);
     if (!symbol_name)
-        THROW(SIM_RC_ERR_NULLPTR);
+        THROW(SIM_ERR_NULLPTR, "(%s) Argument 1 is NULL", FUNCTION_NAME);
     
 #   ifdef _WIN32
         void* symbol_value = (void*)GetProcAddress(
             (HMODULE)library_handle,
             symbol_name
         );
-        if (!symbol_value) {
+        if ((uintptr_t)symbol_value <= (uintptr_t)2) {
             _sim_win32_print_last_error(
                 "GetProcAddress(%p, \"%s\")",
                 library_handle,
                 symbol_name
             );
-            RETURN(SIM_RC_FAILURE, NULL);
+            return NULL;
         }
 
-        RETURN(SIM_RC_SUCCESS, symbol_value);
+        return symbol_value;
 #   elif defined(__unix__)
         void* symbol_value = dlsym(library_handle, symbol_name);
-        char* error_string;
+        char* error_string = dlerror();
 
-        if ((error_string = dlerror()) != NULL) {
+        if (error_string != NULL) {
             _sim_unix_print_error(
                 "dlsym(%p, \"%s\") failed with error \"%s\"",
                 library_handle,
                 symbol_name,
                 error_string
             );
-            RETURN(SIM_RC_FAILURE, NULL);
+            return;
         }
 
-        RETURN(SIM_RC_SUCCESS, symbol_value);
+        return symbol_value;
 #   else
-#       warning("sim_dynlib_find_symbol(2) is unsupported")
-        (void)library_handle; (void)symbol_name; (void)out_symbol_value;
-        THROW(SIM_RC_ERR_UNSUPRTD);
+#       error("sim_dynlib_find_symbol(2) is unsupported")
 #   endif
 }
 
-#endif /* SIMSOFT_DYNLIB_C_ */
+#endif // SIMSOFT_DYNLIB_C_
