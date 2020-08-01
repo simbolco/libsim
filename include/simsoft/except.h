@@ -3,7 +3,7 @@
  * @author Simon Struthers (snstruthers@gmail.com)
  * @brief C and C++ exceptions header.
  * @version 0.2
- * @date 2020-07-03
+ * @date 2020-07-27
  * 
  * @copyright Copyright (c) 2020
  * 
@@ -52,6 +52,8 @@
 #define RETHROW() do {                                                                          \
     if (C_API_PREFIX(SimSoft, sim_except_peek()))                                               \
         C_API_PREFIX(SimSoft, sim_except_throw(C_API_PREFIX(SimSoft, sim_except_pop()), NULL)); \
+    else                                                                                        \
+        C_API_PREFIX(SimSoft, sim_except_pop());                                                \
 } while (0)
 
 /**
